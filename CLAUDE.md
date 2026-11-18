@@ -53,7 +53,12 @@ adapters -> domain model -> on-device cache -> Expo app UI
 4. ~~Add a shared contract test suite that any `LeagueAdapter` must pass.~~ Done.
 5. ~~On-device cache, TTL by game status, last-known data offline.~~ Done.
 6. Expo Android app (SDK 58, Expo Router, AsyncStorage cache). Screens built and the bundle compiles; still needs testing on a real device or emulator. When it works, release 1.0.0.
-7. Later: game-start local notifications, favorite teams, a league picker once there is a second league.
+7. APK builds in CI, before 1.0.0:
+   - First fix the version: `app.json` hard-codes `version` 0.1.0 and release-please only bumps `package.json`. Derive `version` and Android `versionCode` from `package.json` (e.g. an `app.config.ts`), so every APK reports the release version and updates install over older ones.
+   - Release job: when release-please creates a release, build a signed release APK (`expo prebuild` + Gradle) and upload it to that GitHub Release (e.g. `sports-scores-vX.Y.Z.apk`).
+   - Optional: build the APK on PRs too and keep it as a short-lived workflow artifact for testing a branch.
+   - Signing: one keystore, created once and stored as GitHub repo secrets (keystore + passwords), never committed. Updates only install over an APK signed with the same key, so keep a backup.
+8. Later: game-start local notifications, favorite teams, a league picker once there is a second league.
 
 ## Commits and releases
 
