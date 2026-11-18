@@ -29,9 +29,13 @@ export type GameStatus = "scheduled" | "live" | "final" | "postponed";
 export interface GameClock {
   period: number;
   label: string; // "2nd", "OT", "SO" - adapter formats it
-  timeRemaining?: string; // "12:34"
-  intermission?: boolean;
+  timeRemaining?: string; // period clock, "12:34"; undefined during an intermission
+  intermission?: boolean; // true between periods; `period` is the one just finished
+  intermissionRemaining?: string; // intermission countdown, "03:05"
 }
+
+/** How a final game was decided. */
+export type GameEnding = "regulation" | "overtime" | "shootout";
 
 export interface GameSide {
   team: Team;
@@ -45,6 +49,7 @@ export interface Game {
   startTime: string; // ISO 8601, UTC
   status: GameStatus;
   clock?: GameClock; // only while live
+  endedIn?: GameEnding; // only when final
   home: GameSide;
   away: GameSide;
 }
@@ -60,6 +65,7 @@ export interface StatColumn {
 
 export interface StatRow {
   player: Player;
+  /** Keyed by StatColumn.key. A missing key means the stat is not available (show "-"), not zero. */
   values: Record<string, string | number>;
 }
 
@@ -101,7 +107,7 @@ export interface Standings {
 // ---------- Leaders ----------
 
 export interface LeaderEntry {
-  rank: number;
+  rank: number; // tied values share a rank: 1, 2, 2, 4
   player: Player;
   team: Team;
   value: number;

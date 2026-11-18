@@ -1,6 +1,7 @@
 import type {
   Game,
   GameClock,
+  GameEnding,
   GameSide,
   GameStatus,
   LeaderBoard,
@@ -70,12 +71,28 @@ function mapClock(raw: RawGame): GameClock | undefined {
   if (!pd) return undefined;
   const label =
     pd.periodType === "SO" ? "SO" : pd.periodType === "OT" ? "OT" : ordinal(pd.number);
+  // During an intermission the API's timeRemaining is the intermission countdown.
+  const intermission = raw.clock?.inIntermission ?? false;
   return {
     period: pd.number,
     label,
-    timeRemaining: raw.clock?.timeRemaining,
-    intermission: raw.clock?.inIntermission,
+    timeRemaining: intermission ? undefined : raw.clock?.timeRemaining,
+    intermission,
+    intermissionRemaining: intermission ? raw.clock?.timeRemaining : undefined,
   };
+}
+
+function mapEnding(raw: RawGame): GameEnding | undefined {
+  switch (raw.gameOutcome?.lastPeriodType) {
+    case "REG":
+      return "regulation";
+    case "OT":
+      return "overtime";
+    case "SO":
+      return "shootout";
+    default:
+      return undefined;
+  }
 }
 
 function mapSide(raw: RawTeam, status: GameStatus): GameSide {
@@ -94,6 +111,7 @@ export function mapGame(raw: RawGame): Game {
     startTime: raw.startTimeUTC,
     status,
     clock: status === "live" ? mapClock(raw) : undefined,
+    endedIn: status === "final" ? mapEnding(raw) : undefined,
     home: mapSide(raw.homeTeam, status),
     away: mapSide(raw.awayTeam, status),
   };
@@ -118,10 +136,13 @@ function statTable<T extends RawSkater | RawGoalie>(
     columns,
     rows: rows.map((r) => {
       const record = r as unknown as Record<string, string | number | undefined>;
-      return {
-        player: mapPlayer(r),
-        values: Object.fromEntries(columns.map((c) => [c.key, record[c.key] ?? 0])),
-      };
+      const values: Record<string, string | number> = {};
+      for (const c of columns) {
+        const v = record[c.key];
+        // Leave missing stats out instead of showing 0 (e.g. a backup goalie has no savePctg).
+        if (v !== undefined && v !== null) values[c.key] = v;
+      }
+      return { player: mapPlayer(r), values };
     }),
   };
 }
@@ -149,7 +170,8 @@ export function mapStandings(raw: RawStandingsResponse): Standings {
       team: {
         id: s.teamAbbrev.default,
         league: LEAGUE,
-        name: s.teamName.default,
+        // Match the other endpoints, which use the common name ("Oilers", not "Edmonton Oilers").
+        name: s.teamCommonName?.default ?? s.teamName.default,
         abbrev: s.teamAbbrev.default,
         logoUrl: s.teamLogo,
       },
@@ -170,28 +192,42 @@ export function mapStandings(raw: RawStandingsResponse): Standings {
   };
 }
 
+// Standard competition ranking: tied values share a rank (1, 2, 2, 4).
+// The API returns each list already sorted best-first.
+function competitionRanks(values: number[]): number[] {
+  return values.map((v, i) => {
+    let first = i;
+    while (first > 0 && values[first - 1] === v) first--;
+    return first + 1;
+  });
+}
+
 export function mapLeaders(raw: RawLeadersResponse, categories: string[]): LeaderBoard[] {
-  return categories.map((key) => ({
-    category: key,
-    label: LEADER_LABELS[key] ?? key,
-    entries: (raw[key] ?? []).map((l, i) => ({
-      rank: i + 1,
-      player: {
-        id: String(l.id),
-        league: LEAGUE,
-        name: `${l.firstName.default} ${l.lastName.default}`,
-        teamId: l.teamAbbrev,
-        position: l.position,
-        headshotUrl: l.headshot,
-      },
-      team: {
-        id: l.teamAbbrev,
-        league: LEAGUE,
-        name: l.teamName?.default ?? l.teamAbbrev,
-        abbrev: l.teamAbbrev,
-        logoUrl: l.teamLogo,
-      },
-      value: l.value,
-    })),
-  }));
+  return categories.map((key) => {
+    const list = raw[key] ?? [];
+    const ranks = competitionRanks(list.map((l) => l.value));
+    return {
+      category: key,
+      label: LEADER_LABELS[key] ?? key,
+      entries: list.map((l, i) => ({
+        rank: ranks[i],
+        player: {
+          id: String(l.id),
+          league: LEAGUE,
+          name: `${l.firstName.default} ${l.lastName.default}`,
+          teamId: l.teamAbbrev,
+          position: l.position,
+          headshotUrl: l.headshot,
+        },
+        team: {
+          id: l.teamAbbrev,
+          league: LEAGUE,
+          name: l.teamName?.default ?? l.teamAbbrev,
+          abbrev: l.teamAbbrev,
+          logoUrl: l.teamLogo,
+        },
+        value: l.value,
+      })),
+    };
+  });
 }

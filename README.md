@@ -44,7 +44,7 @@ Adding a league means writing a new adapter that implements `LeagueAdapter`. Not
 ## Roadmap
 
 1. ~~Project housekeeping~~
-2. Verify NHL data types against live API responses
+2. ~~Verify NHL data types against live API responses~~
 3. Runtime validation of API responses (zod)
 4. Shared contract tests for adapters
 5. On-device cache, refreshed based on game status
