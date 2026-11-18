@@ -43,6 +43,14 @@ adapters -> domain model -> on-device cache -> Expo app UI
 5. On-device cache (MMKV or SQLite), TTL by game status, last-known data offline.
 6. Expo Android app.
 
+## Commits and releases
+
+- Commit messages must follow Conventional Commits (`type(scope): subject`). A husky `commit-msg` hook runs commitlint locally, and CI lints every pushed commit.
+- Types: `feat` (new feature, minor bump), `fix` (bug fix, patch bump), `feat!:` or a `BREAKING CHANGE:` footer (major bump; minor while on 0.x). `docs`, `test`, `refactor`, `perf`, `build`, `ci`, `chore`, `style` cause no release on their own (`perf` is listed in the changelog).
+- Scopes are optional; use the area, e.g. `fix(nhl): ...`, `feat(app): ...`, `test(contract): ...`.
+- release-please (`.github/workflows/release-please.yml`) keeps a release PR open with the next version and CHANGELOG. Merging it tags `vX.Y.Z` and creates a GitHub Release. Never edit the version in `package.json` or `.release-please-manifest.json` by hand.
+- The project stays on 0.x until the Android app works; then release 1.0.0 (a `Release-As: 1.0.0` footer on a commit forces it).
+
 ## Commands
 
 - `npm install`, `npm run typecheck` (app + tests), `npm test` (vitest)

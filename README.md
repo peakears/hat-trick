@@ -51,6 +51,19 @@ Adding a league means writing a new adapter that implements `LeagueAdapter` and 
 5. On-device cache, refreshed based on game status
 6. Android app (Expo / React Native)
 
+## Contributing
+
+Commit messages follow [Conventional Commits](https://www.conventionalcommits.org), because releases are versioned from them:
+
+| Commit | Example | Release |
+|---|---|---|
+| `fix:` | `fix(nhl): handle missing goalie stats` | patch (0.1.0 -> 0.1.1) |
+| `feat:` | `feat: add NBA adapter` | minor (0.1.0 -> 0.2.0) |
+| `feat!:` or `BREAKING CHANGE:` footer | `feat!: rename Game.startTime` | major (minor while on 0.x) |
+| `docs:`, `test:`, `refactor:`, `chore:`, `ci:` ... | `docs: fix typo` | none |
+
+`npm install` sets up a git hook that checks each commit message. Releases are made by merging the release PR that release-please keeps open.
+
 ## Disclaimer
 
 This project is not affiliated with, endorsed by, or connected to the National Hockey League or any team. NHL and team names and logos are trademarks of their respective owners. The app uses an unofficial public API (`api-web.nhle.com`) that may change or stop working without notice. The repository contains no league logos or other trademarked assets; logo images are loaded from the API at runtime.
