@@ -38,7 +38,7 @@ export class NhlAdapter implements LeagueAdapter {
 
   private async fetch<T extends z.ZodType>(path: string, schema: T): Promise<z.output<T>> {
     const data = await this.client.get(path);
-    return parseResponse(schema, data, path, this.onWarning);
+    return parseResponse(schema, data, `${this.client.baseUrl}${path}`, this.onWarning);
   }
 
   async getScores(date: string): Promise<Game[]> {

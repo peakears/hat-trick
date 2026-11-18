@@ -23,6 +23,7 @@ git clone <this repo>
 cd sports-api
 npm install
 npm run typecheck
+npm test
 ```
 
 The NHL needs no API key or signup. Leagues added later may need a key; you will enter it in the app's settings, where it stays on your device. Never commit API keys to the repo.
@@ -39,14 +40,14 @@ league adapters -> domain model -> on-device cache -> app UI
 - `src/registry.ts`: looks up an adapter by league id
 - `src/adapters/nhl/`: the NHL adapter
 
-Adding a league means writing a new adapter that implements `LeagueAdapter`. Nothing above it changes.
+Adding a league means writing a new adapter that implements `LeagueAdapter` and passes the shared contract tests in `src/contract/`. Nothing above it changes.
 
 ## Roadmap
 
 1. ~~Project housekeeping~~
 2. ~~Verify NHL data types against live API responses~~
 3. ~~Runtime validation of API responses (zod)~~
-4. Shared contract tests for adapters
+4. ~~Shared contract tests for adapters~~
 5. On-device cache, refreshed based on game status
 6. Android app (Expo / React Native)
 

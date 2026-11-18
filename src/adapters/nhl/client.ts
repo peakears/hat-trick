@@ -9,7 +9,7 @@ export interface NhlClientOptions {
 
 /** Thin HTTP layer: URL building, timeout, status checks, JSON parsing. */
 export class NhlClient {
-  private readonly baseUrl: string;
+  readonly baseUrl: string;
   private readonly fetchImpl: typeof fetch;
   private readonly timeoutMs: number;
 

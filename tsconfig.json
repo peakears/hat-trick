@@ -6,7 +6,10 @@
     "lib": ["ES2022", "DOM"],
     "strict": true,
     "noEmit": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    // App code must run in React Native: no Node types, so Node-only APIs fail the typecheck.
+    "types": []
   },
-  "include": ["src"]
+  "include": ["src"],
+  "exclude": ["src/**/*.test.ts", "src/contract"]
 }

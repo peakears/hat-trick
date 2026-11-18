@@ -1,0 +1,9 @@
+{
+  // Tests and the contract suite run under Node (vitest), so they get Node types.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": ["node"]
+  },
+  "include": ["src"],
+  "exclude": []
+}

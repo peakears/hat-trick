@@ -14,6 +14,8 @@ adapters -> domain model -> on-device cache -> Expo app UI
   - `client.ts` HTTP (timeout, status checks), `errors.ts`, `constants.ts`
   - `raw-types.ts` zod schemas for raw responses (types inferred from them), `validate.ts` validation policy
   - `mappers.ts` raw -> domain, `adapter.ts` orchestration (fetch -> validate -> map)
+  - `__fixtures__/` real responses recorded 2026-11-17, `nhl.test.ts` NHL tests
+- `src/contract/league-adapter.contract.ts`: shared suite every `LeagueAdapter` must pass. A new league's test file calls `runLeagueAdapterContract()` with fixture-backed adapters.
 
 ## Rules
 
@@ -21,7 +23,8 @@ adapters -> domain model -> on-device cache -> Expo app UI
 - Validation policy: core fields (ids, teams, scores, game state, standings W/L) use plain zod and throw `NhlResponseError` on mismatch. Minor fields use `minor()` and are dropped with an `onWarning` call. Box score player rows use `lenientArray()`, so one bad row is dropped, not the whole game.
 - Team ids are three-letter abbreviations (standings has no numeric id).
 - The NHL API (api-web.nhle.com) is unofficial. `raw-types.ts` was verified against live responses on 2026-11-17; postponed game states and standings `clinchIndicator` are still unverified.
-- Adapter code must run in React Native (Hermes): no Node-only or browser-only APIs. `AbortSignal.timeout` in `client.ts` needs a fallback.
+- Adapter code must run in React Native (Hermes): no Node-only or browser-only APIs. `tsconfig.json` has no Node types to enforce this; tests use `tsconfig.test.json`. `AbortSignal.timeout` in `client.ts` needs a fallback.
+- Tests never hit the live API. Use recorded fixtures; simulate drift by editing a fixture in the test.
 - API keys (for future leagues that need them) are entered by the user in the app and stored with `expo-secure-store`. Never commit keys; keyless leagues like NHL must work with no setup.
 - Never commit league logos or other trademarked assets. Logo URLs are fetched from the API at runtime.
 
@@ -36,10 +39,11 @@ adapters -> domain model -> on-device cache -> Expo app UI
 1. ~~Housekeeping: `LICENSE` (MIT), README with disclaimer, `.gitignore`.~~ Done.
 2. ~~Verify raw types against live responses.~~ Done.
 3. ~~Add zod schemas at the adapter boundary.~~ Done.
-4. Add a shared contract test suite that any `LeagueAdapter` must pass.
+4. ~~Add a shared contract test suite that any `LeagueAdapter` must pass.~~ Done.
 5. On-device cache (MMKV or SQLite), TTL by game status, last-known data offline.
 6. Expo Android app.
 
 ## Commands
 
-- `npm install`, `npm run typecheck`
+- `npm install`, `npm run typecheck` (app + tests), `npm test` (vitest)
+- `npm audit` reports a picomatch ReDoS via vitest: dev-only, no patched version exists. Do not run `npm audit fix --force` (it downgrades vitest).
