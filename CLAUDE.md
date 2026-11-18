@@ -15,6 +15,9 @@ adapters -> domain model -> on-device cache -> Expo app UI
   - `raw-types.ts` zod schemas for raw responses (types inferred from them), `validate.ts` validation policy
   - `mappers.ts` raw -> domain, `adapter.ts` orchestration (fetch -> validate -> map)
   - `__fixtures__/` real responses recorded 2026-11-17, `nhl.test.ts` NHL tests
+- `src/data/`: on-device data layer, the only thing the UI calls:
+  - `sports-data.ts` `SportsData`: cache-first reads returning `Fetched<T>` (`{ data, meta }`), offline fallback to last known data, shared in-flight requests, `prune()`
+  - `freshness.ts` TTL rules by game status, `store.ts` `KeyValueStore` interface + `MemoryStore`, `types.ts` `DataMeta`
 - `src/contract/league-adapter.contract.ts`: shared suite every `LeagueAdapter` must pass. A new league's test file calls `runLeagueAdapterContract()` with fixture-backed adapters.
 
 ## Rules
@@ -24,6 +27,8 @@ adapters -> domain model -> on-device cache -> Expo app UI
 - Team ids are three-letter abbreviations (standings has no numeric id).
 - The NHL API (api-web.nhle.com) is unofficial. `raw-types.ts` was verified against live responses on 2026-11-17; postponed game states and standings `clinchIndicator` are still unverified.
 - Adapter code must run in React Native (Hermes): no Node-only or browser-only APIs. `tsconfig.json` has no Node types to enforce this; tests use `tsconfig.test.json`. `AbortSignal.timeout` in `client.ts` needs a fallback.
+- The UI never calls adapters directly; it goes through `SportsData` and polls around `meta.staleAt`. TTLs live in `freshness.ts` (live 20s, starting soon 1 min, final >1 day 7 days).
+- Cached entries are stored under `cache:` keys with a `CACHE_VERSION`. Bump it whenever the shape of a domain type changes, or old cached data will be read as the new shape.
 - Tests never hit the live API. Use recorded fixtures; simulate drift by editing a fixture in the test.
 - API keys (for future leagues that need them) are entered by the user in the app and stored with `expo-secure-store`. Never commit keys; keyless leagues like NHL must work with no setup.
 - Never commit league logos or other trademarked assets. Logo URLs are fetched from the API at runtime.
@@ -40,7 +45,7 @@ adapters -> domain model -> on-device cache -> Expo app UI
 2. ~~Verify raw types against live responses.~~ Done.
 3. ~~Add zod schemas at the adapter boundary.~~ Done.
 4. ~~Add a shared contract test suite that any `LeagueAdapter` must pass.~~ Done.
-5. On-device cache (MMKV or SQLite), TTL by game status, last-known data offline.
+5. ~~On-device cache, TTL by game status, last-known data offline.~~ Done; the persistent `KeyValueStore` (MMKV or AsyncStorage) is wired up in step 6.
 6. Expo Android app.
 
 ## Commits and releases

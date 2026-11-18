@@ -39,6 +39,7 @@ league adapters -> domain model -> on-device cache -> app UI
 - `src/domain.ts`: league-agnostic types and the `LeagueAdapter` contract
 - `src/registry.ts`: looks up an adapter by league id
 - `src/adapters/nhl/`: the NHL adapter
+- `src/data/`: on-device cache; refreshes live games every 20 seconds, keeps finished games for days, and serves the last known data when offline
 
 Adding a league means writing a new adapter that implements `LeagueAdapter` and passes the shared contract tests in `src/contract/`. Nothing above it changes.
 
@@ -48,7 +49,7 @@ Adding a league means writing a new adapter that implements `LeagueAdapter` and 
 2. ~~Verify NHL data types against live API responses~~
 3. ~~Runtime validation of API responses (zod)~~
 4. ~~Shared contract tests for adapters~~
-5. On-device cache, refreshed based on game status
+5. ~~On-device cache, refreshed based on game status~~
 6. Android app (Expo / React Native)
 
 ## Contributing
