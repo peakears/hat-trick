@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { AdapterWarning } from "../../domain";
 import { NhlResponseError } from "./errors";
 
 /**
@@ -7,11 +8,6 @@ import { NhlResponseError } from "./errors";
  * - Minor fields use `minor()`. A wrong value is dropped and reported as a warning.
  * - Box score player rows use `lenientArray()`. A broken row is dropped and reported.
  */
-
-export interface AdapterWarning {
-  url: string;
-  message: string; // savePctg: unexpected value ".905" (string), ignored
-}
 
 // Parsing is synchronous, so a single active collector is safe even when
 // several requests are in flight.

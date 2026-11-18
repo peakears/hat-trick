@@ -126,15 +126,26 @@ export interface LeaderQuery {
   limit?: number;
 }
 
+/** A minor problem in an API response that the adapter worked around (see the adapter's validation). */
+export interface AdapterWarning {
+  url: string;
+  message: string; // savePctg: unexpected value ".905" (string), ignored
+}
+
+export interface RequestOptions {
+  /** Receives warnings for this request only. Overrides the adapter's default handler. */
+  onWarning?: (warning: AdapterWarning) => void;
+}
+
 export interface LeagueAdapter {
   readonly league: LeagueId;
 
-  /** All games on a calendar date, YYYY-MM-DD. */
-  getScores(date: string): Promise<Game[]>;
+  /** All games on a league calendar date, YYYY-MM-DD. */
+  getScores(date: string, options?: RequestOptions): Promise<Game[]>;
 
-  getStandings(): Promise<Standings>;
+  getStandings(options?: RequestOptions): Promise<Standings>;
 
-  getLeaders(query?: LeaderQuery): Promise<LeaderBoard[]>;
+  getLeaders(query?: LeaderQuery, options?: RequestOptions): Promise<LeaderBoard[]>;
 
-  getGameDetail(gameId: string): Promise<GameDetail>;
+  getGameDetail(gameId: string, options?: RequestOptions): Promise<GameDetail>;
 }

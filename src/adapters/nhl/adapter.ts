@@ -1,10 +1,12 @@
 import type { z } from "zod";
 import type {
+  AdapterWarning,
   Game,
   GameDetail,
   LeaderBoard,
   LeaderQuery,
   LeagueAdapter,
+  RequestOptions,
   Standings,
 } from "../../domain";
 import { NhlClient, type NhlClientOptions } from "./client";
@@ -16,7 +18,7 @@ import {
   RawScoreResponseSchema,
   RawStandingsResponseSchema,
 } from "./raw-types";
-import { parseResponse, type AdapterWarning } from "./validate";
+import { parseResponse } from "./validate";
 
 export interface NhlAdapterOptions extends NhlClientOptions {
   /** Called for each minor field the API returned in an unexpected shape. Defaults to console.warn. */
@@ -36,22 +38,27 @@ export class NhlAdapter implements LeagueAdapter {
       options.onWarning ?? ((w) => console.warn(`[nhl] ${w.message} (${w.url})`));
   }
 
-  private async fetch<T extends z.ZodType>(path: string, schema: T): Promise<z.output<T>> {
+  private async fetch<T extends z.ZodType>(
+    path: string,
+    schema: T,
+    options: RequestOptions = {},
+  ): Promise<z.output<T>> {
     const data = await this.client.get(path);
-    return parseResponse(schema, data, `${this.client.baseUrl}${path}`, this.onWarning);
+    const onWarning = options.onWarning ?? this.onWarning;
+    return parseResponse(schema, data, `${this.client.baseUrl}${path}`, onWarning);
   }
 
-  async getScores(date: string): Promise<Game[]> {
-    const raw = await this.fetch(`/score/${date}`, RawScoreResponseSchema);
+  async getScores(date: string, options?: RequestOptions): Promise<Game[]> {
+    const raw = await this.fetch(`/score/${date}`, RawScoreResponseSchema, options);
     return (raw.games ?? []).map(mapGame);
   }
 
-  async getStandings(): Promise<Standings> {
-    const raw = await this.fetch("/standings/now", RawStandingsResponseSchema);
+  async getStandings(options?: RequestOptions): Promise<Standings> {
+    const raw = await this.fetch("/standings/now", RawStandingsResponseSchema, options);
     return mapStandings(raw);
   }
 
-  async getLeaders(query: LeaderQuery = {}): Promise<LeaderBoard[]> {
+  async getLeaders(query: LeaderQuery = {}, options?: RequestOptions): Promise<LeaderBoard[]> {
     const limit = query.limit ?? 10;
     const category = query.category;
     const isGoalie = category !== undefined && GOALIE_LEADER_CATEGORIES.includes(category);
@@ -61,12 +68,13 @@ export class NhlAdapter implements LeagueAdapter {
     const raw = await this.fetch(
       `/${kind}-stats-leaders/current?categories=${categories.join(",")}&limit=${limit}`,
       RawLeadersResponseSchema,
+      options,
     );
     return mapLeaders(raw, categories);
   }
 
-  async getGameDetail(gameId: string): Promise<GameDetail> {
-    const raw = await this.fetch(`/gamecenter/${gameId}/boxscore`, RawBoxscoreSchema);
+  async getGameDetail(gameId: string, options?: RequestOptions): Promise<GameDetail> {
+    const raw = await this.fetch(`/gamecenter/${gameId}/boxscore`, RawBoxscoreSchema, options);
     return {
       game: mapGame(raw),
       boxscore: {
