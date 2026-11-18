@@ -1,0 +1,34 @@
+# Dependencies
+node_modules/
+
+# Secrets: never commit API keys
+.env
+.env.*
+!.env.example
+*.keystore
+*.jks
+credentials.json
+
+# Expo / React Native
+.expo/
+dist/
+web-build/
+android/
+ios/
+*.apk
+*.aab
+
+# Build and tooling output
+build/
+coverage/
+*.tsbuildinfo
+npm-debug.log*
+
+# Editor and OS
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Local Claude Code settings
+.claude/settings.local.json
