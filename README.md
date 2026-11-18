@@ -19,8 +19,8 @@ Everything runs on your device: the app talks to public sports APIs directly, wi
 Requires Node.js 18 or newer.
 
 ```sh
-git clone <this repo>
-cd sports-api
+git clone https://github.com/peakears/sports-scores.git
+cd sports-scores
 npm install
 npm run typecheck
 npm test
