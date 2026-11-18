@@ -4,9 +4,9 @@ A clean, open-source sports scores app for Android. NHL first, more leagues late
 
 Everything runs on your device: the app talks to public sports APIs directly, with no backend server to host.
 
-> **Status: early development.** The NHL data layer exists; the Android app does not yet. See [Roadmap](#roadmap).
+> **Status: early development.** The NHL app runs, but has not had much testing on real devices yet. See [Roadmap](#roadmap).
 
-## Features (planned)
+## Features
 
 - Scores for any date, with live game clocks
 - Standings
@@ -16,7 +16,7 @@ Everything runs on your device: the app talks to public sports APIs directly, wi
 
 ## Getting started
 
-Requires Node.js 18 or newer.
+Requires Node.js 22.13 or newer.
 
 ```sh
 git clone https://github.com/peakears/sports-scores.git
@@ -25,6 +25,21 @@ npm install
 npm run typecheck
 npm test
 ```
+
+### Run it on your phone (quickest)
+
+1. Install **Expo Go** from the Play Store.
+2. Run `npm start` and scan the QR code with Expo Go. Your phone and computer must be on the same network (or use `npm start -- --tunnel`).
+
+### Build an APK
+
+Needs the Android SDK and a JDK (installing Android Studio gives you both), and a phone with USB debugging on or an emulator:
+
+```sh
+npx expo run:android --variant release
+```
+
+This builds the native project into `android/` (not committed) and installs the app. The release build is signed with a debug key, which is fine for your own devices.
 
 The NHL needs no API key or signup. Leagues added later may need a key; you will enter it in the app's settings, where it stays on your device. Never commit API keys to the repo.
 
@@ -40,6 +55,8 @@ league adapters -> domain model -> on-device cache -> app UI
 - `src/registry.ts`: looks up an adapter by league id
 - `src/adapters/nhl/`: the NHL adapter
 - `src/data/`: on-device cache; refreshes live games every 20 seconds, keeps finished games for days, and serves the last known data when offline
+- `src/ui/`: React Native pieces shared by screens (polling hook, components, formatting)
+- `app/`: the screens, using [Expo Router](https://docs.expo.dev/router/introduction/) (one file per route)
 
 Adding a league means writing a new adapter that implements `LeagueAdapter` and passes the shared contract tests in `src/contract/`. Nothing above it changes.
 
@@ -50,7 +67,8 @@ Adding a league means writing a new adapter that implements `LeagueAdapter` and 
 3. ~~Runtime validation of API responses (zod)~~
 4. ~~Shared contract tests for adapters~~
 5. ~~On-device cache, refreshed based on game status~~
-6. Android app (Expo / React Native)
+6. Android app (Expo / React Native): scores, standings, leaders and box scores work; needs real-device testing
+7. Game-start notifications, favorite teams, more leagues
 
 ## Contributing
 

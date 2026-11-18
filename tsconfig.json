@@ -1,15 +1,10 @@
 {
+  "extends": "expo/tsconfig.base",
   "compilerOptions": {
-    "target": "ES2022",
-    "module": "ESNext",
-    "moduleResolution": "bundler",
-    "lib": ["ES2022", "DOM"],
     "strict": true,
-    "noEmit": true,
-    "skipLibCheck": true,
     // App code must run in React Native: no Node types, so Node-only APIs fail the typecheck.
     "types": []
   },
-  "include": ["src"],
-  "exclude": ["src/**/*.test.ts", "src/contract"]
+  "include": ["src", "app"],
+  "exclude": ["node_modules", "src/**/*.test.ts", "src/contract"]
 }

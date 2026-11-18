@@ -1,0 +1,25 @@
+{
+  "expo": {
+    "name": "Sports Scores",
+    "slug": "sports-scores",
+    "scheme": "sportsscores",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "platforms": [
+      "android",
+      "ios"
+    ],
+    "android": {
+      "package": "io.github.peakears.sportsscores"
+    },
+    "ios": {
+      "bundleIdentifier": "io.github.peakears.sportsscores"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-status-bar",
+      "expo-image"
+    ]
+  }
+}
