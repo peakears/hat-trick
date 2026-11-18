@@ -1,3 +1,5 @@
+import type { z } from "zod";
+
 export class NhlApiError extends Error {
   constructor(
     message: string,
@@ -6,5 +8,17 @@ export class NhlApiError extends Error {
   ) {
     super(message);
     this.name = "NhlApiError";
+  }
+}
+
+/** The API answered, but a core field was missing or the wrong type (API drift). */
+export class NhlResponseError extends NhlApiError {
+  constructor(
+    message: string,
+    url: string,
+    readonly issues: z.core.$ZodIssue[],
+  ) {
+    super(message, undefined, url);
+    this.name = "NhlResponseError";
   }
 }

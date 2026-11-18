@@ -19,7 +19,8 @@ export class NhlClient {
     this.timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   }
 
-  async get<T>(path: string): Promise<T> {
+  /** Returns the parsed JSON body, unvalidated. The adapter validates it. */
+  async get(path: string): Promise<unknown> {
     const url = `${this.baseUrl}${path}`;
     let res: Response;
     try {
@@ -30,6 +31,10 @@ export class NhlClient {
     if (!res.ok) {
       throw new NhlApiError(`NHL API returned ${res.status}`, res.status, url);
     }
-    return (await res.json()) as T;
+    try {
+      return await res.json();
+    } catch (err) {
+      throw new NhlApiError(`NHL API returned invalid JSON: ${(err as Error).message}`, res.status, url);
+    }
   }
 }

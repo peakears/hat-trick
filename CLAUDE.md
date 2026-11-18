@@ -12,11 +12,13 @@ adapters -> domain model -> on-device cache -> Expo app UI
 - `src/registry.ts`: `AdapterRegistry`, looks up an adapter by league id.
 - `src/adapters/nhl/`: NHL adapter, split by responsibility:
   - `client.ts` HTTP (timeout, status checks), `errors.ts`, `constants.ts`
-  - `raw-types.ts` raw response shapes, `mappers.ts` raw -> domain, `adapter.ts` orchestration
+  - `raw-types.ts` zod schemas for raw responses (types inferred from them), `validate.ts` validation policy
+  - `mappers.ts` raw -> domain, `adapter.ts` orchestration (fetch -> validate -> map)
 
 ## Rules
 
 - Only an adapter may touch raw API shapes. Everything above it uses domain types.
+- Validation policy: core fields (ids, teams, scores, game state, standings W/L) use plain zod and throw `NhlResponseError` on mismatch. Minor fields use `minor()` and are dropped with an `onWarning` call. Box score player rows use `lenientArray()`, so one bad row is dropped, not the whole game.
 - Team ids are three-letter abbreviations (standings has no numeric id).
 - The NHL API (api-web.nhle.com) is unofficial. `raw-types.ts` was verified against live responses on 2026-11-17; postponed game states and standings `clinchIndicator` are still unverified.
 - Adapter code must run in React Native (Hermes): no Node-only or browser-only APIs. `AbortSignal.timeout` in `client.ts` needs a fallback.
@@ -33,7 +35,7 @@ adapters -> domain model -> on-device cache -> Expo app UI
 
 1. ~~Housekeeping: `LICENSE` (MIT), README with disclaimer, `.gitignore`.~~ Done.
 2. ~~Verify raw types against live responses.~~ Done.
-3. Add zod schemas at the adapter boundary (fail loudly on API drift).
+3. ~~Add zod schemas at the adapter boundary.~~ Done.
 4. Add a shared contract test suite that any `LeagueAdapter` must pass.
 5. On-device cache (MMKV or SQLite), TTL by game status, last-known data offline.
 6. Expo Android app.

@@ -1,158 +1,200 @@
-// Raw response shapes for the unofficial NHL web API.
+// Raw response shapes for the unofficial NHL web API, as zod schemas.
+// The TypeScript types below are inferred from them, so there is one source of truth.
+//
 // Verified against live responses on 2026-11-17 (season 20262027): /score,
 // /gamecenter/{id}/boxscore (live and final), /standings/now, and both
-// stats-leaders endpoints. Fields marked optional were absent in at least one
-// response or depend on game state. The API can still change without notice.
+// stats-leaders endpoints.
+//
+// Core fields (plain schemas) throw on mismatch. Minor fields (`minor()`) are
+// dropped with a warning. See validate.ts for the policy.
 
-export interface Localized {
-  default: string;
-  fr?: string;
-}
+import { z } from "zod";
+import { lenientArray, minor } from "./validate";
 
-export interface RawTeam {
-  id?: number;
-  abbrev: string;
-  name?: Localized; // /score only, e.g. "Bruins"
-  commonName?: Localized; // boxscore only, e.g. "Bruins"
-  placeName?: Localized; // boxscore only, e.g. "Boston"
-  score?: number; // absent before the game starts
-  sog?: number; // absent before the game starts
-  record?: string; // scheduled games in /score only, "8-10-3"
-  logo?: string; // light-background SVG
-  darkLogo?: string; // boxscore only
-}
+const num = (field: string) => minor(z.number(), field);
+const str = (field: string) => minor(z.string(), field);
+const bool = (field: string) => minor(z.boolean(), field);
 
-export interface RawPeriodDescriptor {
-  number: number;
-  periodType: string; // "REG" | "OT" | "SO"
-  maxRegulationPeriods?: number;
-}
+export const LocalizedSchema = z.object({
+  default: z.string(),
+  fr: str("fr"),
+});
+const localized = (field: string) => minor(LocalizedSchema, field);
 
-export interface RawClock {
+// ---------- Games (/score, /gamecenter/{id}/boxscore) ----------
+
+export const RawTeamSchema = z.object({
+  abbrev: z.string(),
+  score: z.number().optional(), // absent before the game starts
+  id: num("team.id"),
+  name: localized("team.name"), // /score only, e.g. "Bruins"
+  commonName: localized("team.commonName"), // boxscore only, e.g. "Bruins"
+  placeName: localized("team.placeName"), // boxscore only, e.g. "Boston"
+  sog: num("team.sog"), // absent before the game starts
+  logo: str("team.logo"), // light-background SVG
+  darkLogo: str("team.darkLogo"), // boxscore only
+  record: str("team.record"), // scheduled games in /score only, "8-10-3"
+});
+
+export const RawPeriodDescriptorSchema = z.object({
+  number: z.number(),
+  periodType: z.string(), // "REG" | "OT" | "SO"
+  maxRegulationPeriods: num("periodDescriptor.maxRegulationPeriods"),
+});
+
+export const RawClockSchema = z.object({
   // During an intermission this counts down the intermission, not the period.
-  timeRemaining?: string; // "03:05"
-  secondsRemaining?: number;
-  running?: boolean;
-  inIntermission?: boolean;
-}
+  timeRemaining: str("clock.timeRemaining"), // "03:05"
+  secondsRemaining: num("clock.secondsRemaining"),
+  running: bool("clock.running"),
+  inIntermission: bool("clock.inIntermission"),
+});
 
-export interface RawGame {
-  id: number;
-  season?: number; // 20262027
-  gameType?: number; // 1 preseason, 2 regular season, 3 playoffs
-  gameDate?: string; // league calendar date, YYYY-MM-DD
-  startTimeUTC: string;
-  venue?: Localized;
+export const RawGameSchema = z.object({
+  id: z.number(),
+  startTimeUTC: z.string(),
   // Seen: "FUT", "LIVE", "FINAL", "OFF". "PRE", "CRIT" and postponed values unverified.
-  gameState: string;
-  gameScheduleState?: string; // "OK"
-  homeTeam: RawTeam;
-  awayTeam: RawTeam;
-  periodDescriptor?: RawPeriodDescriptor;
-  clock?: RawClock;
-  gameOutcome?: { lastPeriodType: string }; // final games only: "REG" | "OT" | "SO"
-}
+  gameState: z.string(),
+  homeTeam: RawTeamSchema,
+  awayTeam: RawTeamSchema,
+  season: num("season"), // 20262027
+  gameType: num("gameType"), // 1 preseason, 2 regular season, 3 playoffs
+  gameDate: str("gameDate"), // league calendar date, YYYY-MM-DD
+  venue: localized("venue"),
+  gameScheduleState: str("gameScheduleState"), // "OK"
+  periodDescriptor: minor(RawPeriodDescriptorSchema, "periodDescriptor"),
+  clock: minor(RawClockSchema, "clock"),
+  // Final games only: "REG" | "OT" | "SO".
+  gameOutcome: minor(z.object({ lastPeriodType: z.string() }), "gameOutcome"),
+});
 
-export interface RawScoreResponse {
-  currentDate?: string;
-  games?: RawGame[];
-}
+export const RawScoreResponseSchema = z.object({
+  currentDate: str("currentDate"),
+  games: z.array(RawGameSchema).optional(),
+});
 
-export interface RawStanding {
-  seasonId?: number;
-  date?: string;
-  teamAbbrev: Localized;
-  teamName: Localized; // "Edmonton Oilers"
-  teamCommonName?: Localized; // "Oilers"
-  teamLogo?: string;
-  conferenceName?: string;
-  conferenceAbbrev?: string;
-  divisionName?: string;
-  divisionAbbrev?: string;
+// ---------- Box score players ----------
+
+export const RawSkaterSchema = z.object({
+  playerId: z.number(),
+  name: LocalizedSchema, // abbreviated, e.g. "J. Eichel"
+  sweaterNumber: num("sweaterNumber"),
+  position: str("position"), // "C" | "L" | "R" | "D"
+  goals: num("goals"),
+  assists: num("assists"),
+  points: num("points"),
+  plusMinus: num("plusMinus"),
+  pim: num("pim"),
+  hits: num("hits"),
+  sog: num("sog"),
+  blockedShots: num("blockedShots"),
+  powerPlayGoals: num("powerPlayGoals"),
+  faceoffWinningPctg: num("faceoffWinningPctg"), // not always present for defense
+  shifts: num("shifts"),
+  giveaways: num("giveaways"),
+  takeaways: num("takeaways"),
+  toi: str("toi"), // "17:36"
+});
+
+export const RawGoalieSchema = z.object({
+  playerId: z.number(),
+  name: LocalizedSchema,
+  sweaterNumber: num("sweaterNumber"),
+  position: str("position"), // "G"
+  starter: bool("starter"), // final games only
+  shotsAgainst: num("shotsAgainst"),
+  saves: num("saves"),
+  saveShotsAgainst: str("saveShotsAgainst"), // "23/25"
+  goalsAgainst: num("goalsAgainst"),
+  savePctg: num("savePctg"), // absent for a goalie who did not play
+  pim: num("pim"),
+  toi: str("toi"), // "00:00" for a goalie who did not play
+});
+
+export const RawSideStatsSchema = z.object({
+  forwards: lenientArray(RawSkaterSchema, "forwards"),
+  defense: lenientArray(RawSkaterSchema, "defense"),
+  goalies: lenientArray(RawGoalieSchema, "goalies"),
+});
+
+export const RawBoxscoreSchema = RawGameSchema.extend({
+  playerByGameStats: minor(
+    z.object({
+      homeTeam: minor(RawSideStatsSchema, "playerByGameStats.homeTeam"),
+      awayTeam: minor(RawSideStatsSchema, "playerByGameStats.awayTeam"),
+    }),
+    "playerByGameStats",
+  ),
+});
+
+// ---------- Standings (/standings/now) ----------
+
+export const RawStandingSchema = z.object({
+  teamAbbrev: LocalizedSchema,
+  teamName: LocalizedSchema, // "Edmonton Oilers"
+  gamesPlayed: z.number(),
+  wins: z.number(),
+  losses: z.number(),
+  otLosses: z.number().optional(),
+  points: z.number().optional(),
+  teamCommonName: localized("teamCommonName"), // "Oilers"
+  seasonId: num("seasonId"),
+  date: str("date"),
+  teamLogo: str("teamLogo"),
+  conferenceName: str("conferenceName"),
+  conferenceAbbrev: str("conferenceAbbrev"),
+  divisionName: str("divisionName"),
+  divisionAbbrev: str("divisionAbbrev"),
   // Rank within each grouping, 1-based. The response is sorted by leagueSequence.
-  leagueSequence?: number;
-  conferenceSequence?: number;
-  divisionSequence?: number;
-  wildcardSequence?: number; // 0 for teams in a division top-3 spot
-  gamesPlayed: number;
-  wins: number;
-  losses: number;
-  otLosses?: number;
-  points?: number;
-  pointPctg?: number;
-  regulationWins?: number;
-  goalFor?: number;
-  goalAgainst?: number;
-  goalDifferential?: number;
-  streakCode?: string; // "W" | "L" | "OT"
-  streakCount?: number;
-  clinchIndicator?: string; // not present early in the season; unverified
-}
+  leagueSequence: num("leagueSequence"),
+  conferenceSequence: num("conferenceSequence"),
+  divisionSequence: num("divisionSequence"),
+  wildcardSequence: num("wildcardSequence"), // 0 for teams in a division top-3 spot
+  pointPctg: num("pointPctg"),
+  regulationWins: num("regulationWins"),
+  goalFor: num("goalFor"),
+  goalAgainst: num("goalAgainst"),
+  goalDifferential: num("goalDifferential"),
+  streakCode: str("streakCode"), // "W" | "L" | "OT"
+  streakCount: num("streakCount"),
+  clinchIndicator: str("clinchIndicator"), // not present early in the season; unverified
+});
 
-export interface RawStandingsResponse {
-  standingsDateTimeUtc?: string;
-  wildCardIndicator?: boolean;
-  standings?: RawStanding[];
-}
+export const RawStandingsResponseSchema = z.object({
+  standingsDateTimeUtc: str("standingsDateTimeUtc"),
+  wildCardIndicator: bool("wildCardIndicator"),
+  standings: z.array(RawStandingSchema).optional(),
+});
 
-export interface RawSkater {
-  playerId: number;
-  sweaterNumber?: number;
-  name: Localized; // abbreviated, e.g. "J. Eichel"
-  position?: string; // "C" | "L" | "R" | "D"
-  goals?: number;
-  assists?: number;
-  points?: number;
-  plusMinus?: number;
-  pim?: number;
-  hits?: number;
-  sog?: number;
-  blockedShots?: number;
-  powerPlayGoals?: number;
-  faceoffWinningPctg?: number; // not always present for defense
-  shifts?: number;
-  giveaways?: number;
-  takeaways?: number;
-  toi?: string; // "17:36"
-}
+// ---------- Leaders (/{skater,goalie}-stats-leaders/current) ----------
 
-export interface RawGoalie {
-  playerId: number;
-  sweaterNumber?: number;
-  name: Localized;
-  position?: string; // "G"
-  starter?: boolean; // final games only
-  shotsAgainst?: number;
-  saves?: number;
-  saveShotsAgainst?: string; // "23/25"
-  goalsAgainst?: number;
-  savePctg?: number; // absent for a goalie who did not play
-  pim?: number;
-  toi?: string; // "00:00" for a goalie who did not play
-}
-
-export interface RawSideStats {
-  forwards?: RawSkater[];
-  defense?: RawSkater[];
-  goalies?: RawGoalie[];
-}
-
-export interface RawBoxscore extends RawGame {
-  playerByGameStats?: { homeTeam?: RawSideStats; awayTeam?: RawSideStats };
-}
-
-export interface RawLeader {
-  id: number;
-  firstName: Localized;
-  lastName: Localized;
-  sweaterNumber?: number;
-  headshot?: string;
-  teamAbbrev: string;
-  teamName?: Localized;
-  teamLogo?: string;
-  position?: string;
-  value: number; // integer for counts, decimal for savePctg (0.939759) and GAA (1.4236)
-}
+export const RawLeaderSchema = z.object({
+  id: z.number(),
+  firstName: LocalizedSchema,
+  lastName: LocalizedSchema,
+  teamAbbrev: z.string(),
+  value: z.number(), // integer for counts, decimal for savePctg (0.939759) and GAA (1.4236)
+  sweaterNumber: num("sweaterNumber"),
+  headshot: str("headshot"),
+  teamName: localized("teamName"),
+  teamLogo: str("teamLogo"),
+  position: str("position"),
+});
 
 // Keyed by category name, e.g. { goals: [...], assists: [...] }.
-export type RawLeadersResponse = Record<string, RawLeader[]>;
+export const RawLeadersResponseSchema = z.record(z.string(), z.array(RawLeaderSchema));
+
+// ---------- Inferred types ----------
+
+export type Localized = z.output<typeof LocalizedSchema>;
+export type RawTeam = z.output<typeof RawTeamSchema>;
+export type RawGame = z.output<typeof RawGameSchema>;
+export type RawScoreResponse = z.output<typeof RawScoreResponseSchema>;
+export type RawSkater = z.output<typeof RawSkaterSchema>;
+export type RawGoalie = z.output<typeof RawGoalieSchema>;
+export type RawSideStats = z.output<typeof RawSideStatsSchema>;
+export type RawBoxscore = z.output<typeof RawBoxscoreSchema>;
+export type RawStanding = z.output<typeof RawStandingSchema>;
+export type RawStandingsResponse = z.output<typeof RawStandingsResponseSchema>;
+export type RawLeader = z.output<typeof RawLeaderSchema>;
+export type RawLeadersResponse = z.output<typeof RawLeadersResponseSchema>;
