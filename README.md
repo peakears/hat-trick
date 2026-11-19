@@ -122,6 +122,12 @@ This project is not affiliated with, endorsed by, or connected to the National H
 
 This is a free, non-commercial project for personal use.
 
+## Support
+
+Hat Trick is free, with no ads or paid features. If you enjoy it, you can [buy me a coffee on Ko-fi](https://ko-fi.com/peakears).
+
+[![Support me on Ko-fi](https://img.shields.io/badge/Ko--fi-buy%20me%20a%20coffee-FF5E5B?logo=ko-fi&logoColor=white)](https://ko-fi.com/peakears)
+
 ## License
 
 [MIT](LICENSE)
