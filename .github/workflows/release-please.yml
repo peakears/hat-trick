@@ -2,7 +2,7 @@ name: Release
 
 # Keeps a release PR open with the next version and CHANGELOG, based on
 # Conventional Commits since the last release. Merging it tags the release
-# (vX.Y.Z) and publishes a GitHub Release.
+# (vX.Y.Z) and publishes a GitHub Release, then the apk job attaches a signed APK to it.
 on:
   push:
     branches: [main]
@@ -14,8 +14,45 @@ permissions:
 jobs:
   release-please:
     runs-on: ubuntu-latest
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
     steps:
       - uses: googleapis/release-please-action@v4
+        id: release
         with:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
+
+  apk:
+    name: Build release APK
+    needs: release-please
+    if: needs.release-please.outputs.release_created == 'true'
+    permissions:
+      contents: read
+    uses: ./.github/workflows/android-apk.yml
+    with:
+      ref: ${{ needs.release-please.outputs.tag_name }}
+      apk-name: sports-scores-${{ needs.release-please.outputs.tag_name }}.apk
+      release-signing: true
+      retention-days: 7
+    secrets:
+      ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+      ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+      ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+
+  attach-apk:
+    name: Attach APK to the release
+    needs: [release-please, apk]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: sports-scores-${{ needs.release-please.outputs.tag_name }}.apk
+      - name: Upload to the GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ needs.release-please.outputs.tag_name }}
+        run: gh release upload "$TAG" "sports-scores-$TAG.apk" --clobber

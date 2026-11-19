@@ -1,0 +1,105 @@
+name: Android APK
+
+# Builds a release APK and keeps it as a workflow artifact. Called by:
+#   - release-please.yml: signed with the release key, then attached to the GitHub Release
+#   - ci.yml, on pull requests: signed with a debug key, for testing a branch
+#
+# The release key lives in four repository secrets (see "Release signing" in the README):
+#   ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD
+on:
+  workflow_call:
+    inputs:
+      ref:
+        description: Git ref to build. Defaults to the triggering commit.
+        type: string
+        default: ""
+      apk-name:
+        description: File name of the APK, also used as the artifact name.
+        type: string
+        required: true
+      release-signing:
+        description: Sign with the release key from secrets. Otherwise the generated debug key is used.
+        type: boolean
+        default: false
+      retention-days:
+        type: number
+        default: 14
+    secrets:
+      ANDROID_KEYSTORE_BASE64:
+        required: false
+      ANDROID_KEYSTORE_PASSWORD:
+        required: false
+      ANDROID_KEY_ALIAS:
+        required: false
+      ANDROID_KEY_PASSWORD:
+        required: false
+
+jobs:
+  build:
+    name: Build APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    env:
+      CI: 1
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      # React Native's Gradle plugin targets JDK 17. The runner image already has the Android SDK.
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v4
+      - run: npm ci
+
+      # The native project is generated from app.json / app.config.ts and never committed.
+      - name: Generate the Android project
+        run: npx expo prebuild --platform android --no-install
+
+      - name: Build, signed with the release key
+        if: inputs.release-signing
+        working-directory: android
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ] || [ -z "$KEYSTORE_PASSWORD" ] || [ -z "$KEY_ALIAS" ] || [ -z "$KEY_PASSWORD" ]; then
+            echo "::error::Release signing secrets are missing. See 'Release signing' in the README."
+            exit 1
+          fi
+          keystore="$RUNNER_TEMP/release.keystore"
+          echo "$KEYSTORE_BASE64" | base64 --decode > "$keystore"
+          # The injected signing properties override the debug signing config prebuild generates.
+          ./gradlew assembleRelease --no-daemon \
+            -Pandroid.injected.signing.store.file="$keystore" \
+            -Pandroid.injected.signing.store.password="$KEYSTORE_PASSWORD" \
+            -Pandroid.injected.signing.key.alias="$KEY_ALIAS" \
+            -Pandroid.injected.signing.key.password="$KEY_PASSWORD"
+          rm -f "$keystore"
+
+      # Android will not install this over a release build (different signature): uninstall that first.
+      - name: Build, signed with the debug key
+        if: ${{ !inputs.release-signing }}
+        working-directory: android
+        run: ./gradlew assembleRelease --no-daemon
+
+      - name: Name the APK
+        env:
+          APK_NAME: ${{ inputs.apk-name }}
+        run: mv android/app/build/outputs/apk/release/app-release.apk "$APK_NAME"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.apk-name }}
+          path: ${{ inputs.apk-name }}
+          if-no-files-found: error
+          retention-days: ${{ inputs.retention-days }}
