@@ -65,7 +65,7 @@ adapters -> domain model -> on-device cache -> Expo app UI
 - Types: `feat` (new feature, minor bump), `fix` (bug fix, patch bump), `feat!:` or a `BREAKING CHANGE:` footer (major bump; minor while on 0.x). `docs`, `test`, `refactor`, `perf`, `build`, `ci`, `chore`, `style` cause no release on their own (`perf` is listed in the changelog).
 - Scopes are optional; use the area, e.g. `fix(nhl): ...`, `feat(app): ...`, `test(contract): ...`.
 - release-please (`.github/workflows/release-please.yml`) keeps a release PR open with the next version and CHANGELOG. Merging it tags `vX.Y.Z` and creates a GitHub Release. Never edit the version in `package.json` or `.release-please-manifest.json` by hand.
-- APKs: `.github/workflows/android-apk.yml` (`expo prebuild` + Gradle, JDK 17) is called by release-please.yml when a release is created (signed with the release key from the `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD` secrets, attached to the release) and by ci.yml on pull requests (debug key, workflow artifact). Never commit a keystore.
+- APKs: `.github/workflows/android-apk.yml` (`expo prebuild` + Gradle, JDK 17) is called by release-please.yml when a release is created (signed with the release key from the `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD` secrets, attached to the release) and by ci.yml on pull requests (debug key, workflow artifact). PR builds compile native code for `arm64-v8a` only; releases add `armeabi-v7a` (the `architectures` input). Never commit a keystore.
 - The project stays on 0.x until the Android app works; then release 1.0.0 (a `Release-As: 1.0.0` footer on a commit forces it).
 
 ## Commands

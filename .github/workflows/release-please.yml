@@ -35,6 +35,8 @@ jobs:
       ref: ${{ needs.release-please.outputs.tag_name }}
       apk-name: hat-trick-${{ needs.release-please.outputs.tag_name }}.apk
       release-signing: true
+      # Also 32-bit ARM, for older phones. PR test builds are 64-bit ARM only, to build faster.
+      architectures: arm64-v8a,armeabi-v7a
       retention-days: 7
     secrets:
       ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}

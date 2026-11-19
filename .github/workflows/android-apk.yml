@@ -24,6 +24,12 @@ on:
       retention-days:
         type: number
         default: 14
+      architectures:
+        description: >-
+          CPU architectures to compile native code for (comma-separated). Each one adds several
+          minutes; arm64-v8a covers practically every phone from the last several years.
+        type: string
+        default: arm64-v8a
     secrets:
       ANDROID_KEYSTORE_BASE64:
         required: false
@@ -43,6 +49,7 @@ jobs:
       contents: read
     env:
       CI: 1
+      ARCHITECTURES: ${{ inputs.architectures }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -57,6 +64,10 @@ jobs:
           distribution: temurin
           java-version: 17
       - uses: gradle/actions/setup-gradle@v4
+        with:
+          # By default only the default branch saves the cache; let pull requests save it too, so
+          # PR builds reuse downloaded dependencies instead of starting cold every time.
+          cache-read-only: false
       - run: npm ci
 
       # The native project is generated from app.json / app.config.ts and never committed.
@@ -80,6 +91,7 @@ jobs:
           echo "$KEYSTORE_BASE64" | base64 --decode > "$keystore"
           # The injected signing properties override the debug signing config prebuild generates.
           ./gradlew assembleRelease --no-daemon \
+            -PreactNativeArchitectures="$ARCHITECTURES" \
             -Pandroid.injected.signing.store.file="$keystore" \
             -Pandroid.injected.signing.store.password="$KEYSTORE_PASSWORD" \
             -Pandroid.injected.signing.key.alias="$KEY_ALIAS" \
@@ -90,7 +102,7 @@ jobs:
       - name: Build, signed with the debug key
         if: ${{ !inputs.release-signing }}
         working-directory: android
-        run: ./gradlew assembleRelease --no-daemon
+        run: ./gradlew assembleRelease --no-daemon -PreactNativeArchitectures="$ARCHITECTURES"
 
       - name: Name the APK
         env:
