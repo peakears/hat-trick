@@ -1,4 +1,4 @@
-import { Link } from "expo-router";
+import { useRouter } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import type { Game, GameSide } from "../../domain";
 import { gameStatusLabel, winner } from "../format";
@@ -8,6 +8,7 @@ import { TeamLogo } from "./TeamLogo";
 /** One game in the scores list: away team on top, home below, status on the right. */
 export function GameCard({ game }: { game: Game }) {
   const colors = useColors();
+  const router = useRouter();
   const won = winner(game);
   const live = game.status === "live";
   const showScores = game.status !== "scheduled" && game.status !== "postponed";
@@ -33,27 +34,28 @@ export function GameCard({ game }: { game: Game }) {
   };
 
   return (
-    <Link href={{ pathname: "/game/[id]", params: { id: game.id } }} asChild>
-      <Pressable
-        style={({ pressed }) => [
-          styles.card,
-          { backgroundColor: colors.card, borderColor: colors.cardBorder, opacity: pressed ? 0.7 : 1 },
-        ]}
-        accessibilityRole="button"
-        accessibilityLabel={`${game.away.team.name} at ${game.home.team.name}, ${gameStatusLabel(game)}`}
-      >
-        <View style={styles.teams}>
-          {row(game.away, "away")}
-          {row(game.home, "home")}
-        </View>
-        <View style={[styles.status, { borderLeftColor: colors.border }]}>
-          {live && <Text style={[styles.liveDot, { color: colors.live }]}>● LIVE</Text>}
-          <Text style={[styles.statusText, tabular, { color: live ? colors.text : colors.muted }]}>
-            {gameStatusLabel(game)}
-          </Text>
-        </View>
-      </Pressable>
-    </Link>
+    // Not <Link asChild>: its Slot merges styles by spreading them, which drops a style function
+    // like the one below (pressed state), so the card would lose all of its styling.
+    <Pressable
+      onPress={() => router.push({ pathname: "/game/[id]", params: { id: game.id } })}
+      style={({ pressed }) => [
+        styles.card,
+        { backgroundColor: colors.card, borderColor: colors.cardBorder, opacity: pressed ? 0.7 : 1 },
+      ]}
+      accessibilityRole="button"
+      accessibilityLabel={`${game.away.team.name} at ${game.home.team.name}, ${gameStatusLabel(game)}`}
+    >
+      <View style={styles.teams}>
+        {row(game.away, "away")}
+        {row(game.home, "home")}
+      </View>
+      <View style={[styles.status, { borderLeftColor: colors.border }]}>
+        {live && <Text style={[styles.liveDot, { color: colors.live }]}>● LIVE</Text>}
+        <Text style={[styles.statusText, tabular, { color: live ? colors.text : colors.muted }]}>
+          {gameStatusLabel(game)}
+        </Text>
+      </View>
+    </Pressable>
   );
 }
 
