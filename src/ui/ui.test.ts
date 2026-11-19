@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { DataMeta } from "../data";
 import type { Game, GameStatus } from "../domain";
-import { addDays, dateLabel, gameStatusLabel, localDate, statValue, winner } from "./format";
+import { addDays, dateLabel, gameStatusLabel, localDate, scoresToday, statValue, winner } from "./format";
 import { POLL, combineFetched, nextPollDelay } from "./polling";
 
 const NOW = Date.parse("2026-11-17T23:00:00Z");
@@ -43,6 +43,15 @@ describe("dates", () => {
     expect(addDays("2026-12-31", 1)).toBe("2027-01-01");
     expect(addDays("2026-03-01", -1)).toBe("2026-02-28");
     expect(addDays("2026-11-01", 1)).toBe("2026-11-02"); // US DST ends
+  });
+
+  it("keeps last night's games as Today until the morning rollover", () => {
+    expect(scoresToday(new Date(2026, 10, 17, 23, 30))).toBe("2026-11-17");
+    expect(scoresToday(new Date(2026, 10, 18, 0, 45))).toBe("2026-11-17"); // late game past midnight
+    expect(scoresToday(new Date(2026, 10, 18, 4, 59))).toBe("2026-11-17");
+    expect(scoresToday(new Date(2026, 10, 18, 5, 0))).toBe("2026-11-18");
+    expect(scoresToday(new Date(2026, 11, 1, 1, 0))).toBe("2026-11-30"); // across a month
+    expect(scoresToday(new Date(2027, 0, 1, 2, 0))).toBe("2026-12-31"); // and a year
   });
 
   it("labels nearby dates relative to today", () => {

@@ -9,6 +9,25 @@ export function localDate(d: Date = new Date()): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
+/**
+ * Local hour at which the Scores tab's "Today" moves to the next date. Games often end after
+ * midnight, so until then "Today" keeps showing last night's games.
+ */
+export const DAY_ROLLOVER_HOUR = 5;
+
+/** The date the Scores tab calls "Today": the local date, except before DAY_ROLLOVER_HOUR. */
+export function scoresToday(now: Date = new Date()): string {
+  // Local-time constructor: a negative hour rolls back into the previous day, DST included.
+  const shifted = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate(),
+    now.getHours() - DAY_ROLLOVER_HOUR,
+    now.getMinutes(),
+  );
+  return localDate(shifted);
+}
+
 /** Shifts a YYYY-MM-DD date by whole days. Works in UTC, so DST changes cannot skip a day. */
 export function addDays(date: string, days: number): string {
   const [y, m, d] = date.split("-").map(Number);
