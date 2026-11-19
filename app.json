@@ -1,24 +1,39 @@
 {
   "expo": {
-    "name": "Sports Scores",
-    "slug": "sports-scores",
-    "scheme": "sportsscores",
+    "name": "Hat Trick",
+    "slug": "hat-trick",
+    "scheme": "hattrick",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
+    "icon": "./assets/images/icon.png",
     "platforms": [
       "android",
       "ios"
     ],
     "android": {
-      "package": "io.github.peakears.sportsscores"
+      "package": "io.github.peakears.hattrick",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/adaptive-foreground.png",
+        "monochromeImage": "./assets/images/adaptive-monochrome.png",
+        "backgroundColor": "#0d1420"
+      }
     },
     "ios": {
-      "bundleIdentifier": "io.github.peakears.sportsscores"
+      "bundleIdentifier": "io.github.peakears.hattrick"
     },
     "plugins": [
       "expo-router",
       "expo-status-bar",
-      "expo-image"
+      "expo-image",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/splash.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#0d1420"
+        }
+      ]
     ]
   }
 }

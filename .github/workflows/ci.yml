@@ -66,4 +66,4 @@ jobs:
     needs: check
     uses: ./.github/workflows/android-apk.yml
     with:
-      apk-name: sports-scores-pr${{ github.event.pull_request.number }}.apk
+      apk-name: hat-trick-pr${{ github.event.pull_request.number }}.apk

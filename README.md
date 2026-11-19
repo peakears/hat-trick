@@ -1,4 +1,4 @@
-# Sports Scores
+# Hat Trick
 
 A clean, open-source sports scores app for Android. NHL first, more leagues later.
 
@@ -16,7 +16,7 @@ Everything runs on your device: the app talks to public sports APIs directly, wi
 
 ## Install
 
-Each [release](https://github.com/peakears/sports-scores/releases) has an APK attached (`sports-scores-vX.Y.Z.apk`).
+Each [release](https://github.com/peakears/sports-scores/releases) has an APK attached (`hat-trick-vX.Y.Z.apk`).
 
 1. On your Android phone, open the latest release and download the `.apk`.
 2. Open the downloaded file. Android asks you to allow installs from that app (your browser or Files): allow it, then tap **Install**.

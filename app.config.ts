@@ -18,8 +18,8 @@ export function androidVersionCode(version: string): number {
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
-  name: config.name ?? "Sports Scores",
-  slug: config.slug ?? "sports-scores",
+  name: config.name ?? "Hat Trick",
+  slug: config.slug ?? "hat-trick",
   version: pkg.version,
   android: { ...config.android, versionCode: androidVersionCode(pkg.version) },
 });
