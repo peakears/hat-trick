@@ -14,6 +14,18 @@ Everything runs on your device: the app talks to public sports APIs directly, wi
 - Box scores
 - Works offline with the last data it fetched
 
+## Install
+
+Each [release](https://github.com/peakears/sports-scores/releases) has an APK attached (`sports-scores-vX.Y.Z.apk`).
+
+1. On your Android phone, open the latest release and download the `.apk`.
+2. Open the downloaded file. Android asks you to allow installs from that app (your browser or Files): allow it, then tap **Install**.
+3. To update, install the newer APK the same way. It replaces the old version and keeps your data.
+
+Android may warn that the app is from an unknown developer, because it is not from the Play Store. That is expected for a sideloaded app.
+
+Every pull request also gets a test APK, under **Artifacts** on its CI run. Test APKs are signed with a different key than releases, so Android will not install one over a release (or the other way round): uninstall first.
+
 ## Getting started
 
 Requires Node.js 22.13 or newer.
@@ -39,7 +51,7 @@ Needs the Android SDK and a JDK (installing Android Studio gives you both), and 
 npx expo run:android --variant release
 ```
 
-This builds the native project into `android/` (not committed) and installs the app. The release build is signed with a debug key, which is fine for your own devices.
+This builds the native project into `android/` (not committed) and installs the app. The release build is signed with a debug key, which is fine for your own devices. Android will not install it over an APK from the releases page (different key), so uninstall that first.
 
 The NHL needs no API key or signup. Leagues added later may need a key; you will enter it in the app's settings, where it stays on your device. Never commit API keys to the repo.
 
@@ -82,6 +94,27 @@ Commit messages follow [Conventional Commits](https://www.conventionalcommits.or
 | `docs:`, `test:`, `refactor:`, `chore:`, `ci:` ... | `docs: fix typo` | none |
 
 `npm install` sets up a git hook that checks each commit message. Releases are made by merging the release PR that release-please keeps open.
+
+### Release signing (maintainers)
+
+Releases are built by CI (`.github/workflows/android-apk.yml`) and signed with one release key. Android only installs an update over an APK signed with the same key, so create it once and keep a backup somewhere safe: if it is lost, every user has to uninstall to update.
+
+```sh
+keytool -genkeypair -v -keystore sports-scores-release.keystore -alias sports-scores \
+  -keyalg RSA -keysize 4096 -validity 10000
+base64 -w0 sports-scores-release.keystore   # macOS: base64 -i sports-scores-release.keystore
+```
+
+Then add four repository secrets (Settings > Secrets and variables > Actions):
+
+| Secret | Value |
+|---|---|
+| `ANDROID_KEYSTORE_BASE64` | the base64 output above |
+| `ANDROID_KEYSTORE_PASSWORD` | the keystore password |
+| `ANDROID_KEY_ALIAS` | `sports-scores` |
+| `ANDROID_KEY_PASSWORD` | the key password (the same as the keystore password unless you set a different one) |
+
+Never commit the keystore (`*.keystore` is in `.gitignore`). If the secrets are missing, the release still happens but no APK is attached, and the workflow says why.
 
 ## Disclaimer
 
