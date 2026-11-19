@@ -62,5 +62,5 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   dateText: { fontSize: 17, fontWeight: "600" },
-  list: { paddingVertical: 7 },
+  list: { paddingVertical: 3 },
 });

@@ -6,6 +6,8 @@ export interface Colors {
   text: string;
   muted: string;
   border: string;
+  /** Outline of a standalone card (a game on the Scores tab); stronger than row dividers. */
+  cardBorder: string;
   accent: string;
   live: string;
   banner: string;
@@ -18,6 +20,7 @@ export const lightColors: Colors = {
   text: "#14171a",
   muted: "#6b7280",
   border: "#e2e4e8",
+  cardBorder: "#d1d5db",
   accent: "#2563eb",
   live: "#dc2626",
   banner: "#fef3c7",
@@ -30,6 +33,7 @@ export const darkColors: Colors = {
   text: "#f2f3f5",
   muted: "#9ca3af",
   border: "#363b44",
+  cardBorder: "#4b5260",
   accent: "#60a5fa",
   live: "#f87171",
   banner: "#3b2f12",

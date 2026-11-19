@@ -37,7 +37,7 @@ export function GameCard({ game }: { game: Game }) {
       <Pressable
         style={({ pressed }) => [
           styles.card,
-          { backgroundColor: colors.card, borderColor: colors.border, opacity: pressed ? 0.7 : 1 },
+          { backgroundColor: colors.card, borderColor: colors.cardBorder, opacity: pressed ? 0.7 : 1 },
         ]}
         accessibilityRole="button"
         accessibilityLabel={`${game.away.team.name} at ${game.home.team.name}, ${gameStatusLabel(game)}`}
@@ -61,11 +61,12 @@ const styles = StyleSheet.create({
   card: {
     flexDirection: "row",
     borderRadius: 12,
-    // A border plus a wider gap keeps games apart when the card is close to the background (dark mode).
+    // A visible outline plus a wide gap keeps each game apart, even when the card is close to the
+    // background (dark mode).
     borderWidth: 1,
     marginHorizontal: 12,
-    marginVertical: 6,
-    paddingVertical: 10,
+    marginVertical: 9,
+    paddingVertical: 12,
     paddingLeft: 14,
   },
   teams: { flex: 1, gap: 8 },
