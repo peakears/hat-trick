@@ -80,7 +80,12 @@ Adding a league means writing a new adapter that implements `LeagueAdapter` and 
 4. ~~Shared contract tests for adapters~~
 5. ~~On-device cache, refreshed based on game status~~
 6. Android app (Expo / React Native): scores, standings, leaders and box scores work; needs real-device testing
-7. Game-start notifications, favorite teams, more leagues
+7. After 1.0:
+   - Settings: theme (system, light or dark), team logos on or off, betting info on or off
+   - A calendar to jump to any date
+   - Favourite teams, with game-start notifications
+   - Betting odds, if a public source is available (off by default)
+   - A second league (NBA or NFL), with a league switcher; golf (PGA) later
 
 ## Contributing
 
