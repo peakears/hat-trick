@@ -1,15 +1,20 @@
-import { Stack, useLocalSearchParams } from "expo-router";
+import { Stack, useLocalSearchParams, type ErrorBoundaryProps } from "expo-router";
 import { useState } from "react";
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import type { GameSide } from "../../src/domain";
 import { Segmented } from "../../src/ui/components/Segmented";
-import { Empty, ErrorView, Loading, OfflineBanner, UpdatedAt } from "../../src/ui/components/States";
+import { CrashScreen, Empty, ErrorView, Loading, OfflineBanner, UpdatedAt } from "../../src/ui/components/States";
 import { StatTableView } from "../../src/ui/components/StatTableView";
 import { TeamLogo } from "../../src/ui/components/TeamLogo";
 import { gameStatusLabel } from "../../src/ui/format";
 import { LEAGUE, useSportsData } from "../../src/ui/sports-data-context";
 import { tabular, useColors } from "../../src/ui/theme";
 import { usePolled } from "../../src/ui/use-polled";
+
+/** A box score that fails to render keeps the header, so Back still returns to the scores. */
+export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
+  return <CrashScreen error={error} retry={retry} />;
+}
 
 export default function GameScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();

@@ -1,8 +1,14 @@
-import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from "expo-router";
+import { DarkTheme, DefaultTheme, Stack, ThemeProvider, type ErrorBoundaryProps } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useColorScheme } from "react-native";
+import { CrashScreen } from "../src/ui/components/States";
 import { SportsDataProvider } from "../src/ui/sports-data-context";
 import { darkColors, lightColors } from "../src/ui/theme";
+
+/** Catches a render error anywhere in the app, so a release build never shows a blank screen. */
+export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
+  return <CrashScreen error={error} retry={retry} />;
+}
 
 export default function RootLayout() {
   const dark = useColorScheme() === "dark";

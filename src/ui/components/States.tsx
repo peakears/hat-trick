@@ -25,6 +25,19 @@ export function ErrorView({ title, error, onRetry }: { title: string; error: Err
   );
 }
 
+/**
+ * Shown by a route's ErrorBoundary when a screen throws while rendering. Without one, a release
+ * build shows a blank screen. It may render outside the theme provider, so it sets its own background.
+ */
+export function CrashScreen({ error, retry }: { error: Error; retry: () => void }) {
+  const colors = useColors();
+  return (
+    <View style={[styles.screen, { backgroundColor: colors.background }]}>
+      <ErrorView title="Something went wrong" error={error} onRetry={retry} />
+    </View>
+  );
+}
+
 export function Empty({ message }: { message: string }) {
   const colors = useColors();
   return (
@@ -55,6 +68,7 @@ export function UpdatedAt({ meta }: { meta?: DataMeta }) {
 }
 
 const styles = StyleSheet.create({
+  screen: { flex: 1 },
   center: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24, gap: 8, minHeight: 240 },
   title: { fontSize: 17, fontWeight: "600" },
   message: { fontSize: 14, textAlign: "center" },
