@@ -6,13 +6,16 @@ import { LEAGUE, useSportsData } from "../../src/ui/sports-data-context";
 import { tabular, useColors } from "../../src/ui/theme";
 import { usePolled } from "../../src/ui/use-polled";
 
-const COLUMNS: { label: string; value: (r: StandingRow) => string | number | undefined }[] = [
-  { label: "GP", value: (r) => r.gamesPlayed },
-  { label: "W", value: (r) => r.wins },
-  { label: "L", value: (r) => r.losses },
-  { label: "OT", value: (r) => r.otLosses },
-  { label: "PTS", value: (r) => r.points },
-  { label: "STRK", value: (r) => r.streak },
+const NUM_WIDTH = 28;
+
+// Streaks can be three characters ("OT2", "W10"), so that column is wider than the counts.
+const COLUMNS: { label: string; width: number; value: (r: StandingRow) => string | number | undefined }[] = [
+  { label: "GP", width: NUM_WIDTH, value: (r) => r.gamesPlayed },
+  { label: "W", width: NUM_WIDTH, value: (r) => r.wins },
+  { label: "L", width: NUM_WIDTH, value: (r) => r.losses },
+  { label: "OT", width: NUM_WIDTH, value: (r) => r.otLosses },
+  { label: "PTS", width: NUM_WIDTH, value: (r) => r.points },
+  { label: "STRK", width: 36, value: (r) => r.streak },
 ];
 
 export default function StandingsScreen() {
@@ -44,7 +47,7 @@ export default function StandingsScreen() {
           <View style={[styles.row, styles.headerRow, { backgroundColor: colors.background }]}>
             <Text style={[styles.groupName, { color: colors.text }]}>{section.title}</Text>
             {columns.map((c) => (
-              <Text key={c.label} style={[styles.num, styles.headerText, { color: colors.muted }]}>
+              <Text key={c.label} style={[styles.num, styles.headerText, { width: c.width, color: colors.muted }]}>
                 {c.label}
               </Text>
             ))}
@@ -54,13 +57,14 @@ export default function StandingsScreen() {
           <View style={[styles.row, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
             <Text style={[styles.rank, tabular, { color: colors.muted }]}>{item.rank}</Text>
             <TeamLogo team={item.team} size={24} />
-            <Text numberOfLines={1} style={[styles.team, { color: colors.text }]}>
+            {/* Two lines, so long names ("Golden Knights") wrap on narrow screens instead of being cut off. */}
+            <Text numberOfLines={2} style={[styles.team, { color: colors.text }]}>
               {item.team.name}
             </Text>
             {columns.map((c) => (
               <Text
                 key={c.label}
-                style={[styles.num, tabular, { color: colors.text }, c.label === "PTS" && styles.bold]}
+                style={[styles.num, tabular, { width: c.width, color: colors.text }, c.label === "PTS" && styles.bold]}
               >
                 {c.value(item) ?? "-"}
               </Text>
@@ -80,7 +84,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 12,
     paddingVertical: 9,
-    gap: 8,
+    gap: 4,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: "transparent",
   },
@@ -88,7 +92,7 @@ const styles = StyleSheet.create({
   groupName: { flex: 1, fontSize: 15, fontWeight: "700" },
   headerText: { fontSize: 11, fontWeight: "700" },
   rank: { width: 20, textAlign: "right", fontSize: 13 },
-  team: { flex: 1, fontSize: 15 },
-  num: { width: 30, textAlign: "right", fontSize: 14 },
+  team: { flex: 1, fontSize: 15, paddingLeft: 4 },
+  num: { textAlign: "right", fontSize: 14 },
   bold: { fontWeight: "700" },
 });
