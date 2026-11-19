@@ -16,7 +16,7 @@ Everything runs on your device: the app talks to public sports APIs directly, wi
 
 ## Install
 
-Each [release](https://github.com/peakears/sports-scores/releases) has an APK attached (`hat-trick-vX.Y.Z.apk`).
+Each [release](https://github.com/peakears/hat-trick/releases) has an APK attached (`hat-trick-vX.Y.Z.apk`).
 
 1. On your Android phone, open the latest release and download the `.apk`.
 2. Open the downloaded file. Android asks you to allow installs from that app (your browser or Files): allow it, then tap **Install**.
@@ -31,8 +31,8 @@ Every pull request also gets a test APK, under **Artifacts** on its CI run. Test
 Requires Node.js 22.13 or newer.
 
 ```sh
-git clone https://github.com/peakears/sports-scores.git
-cd sports-scores
+git clone https://github.com/peakears/hat-trick.git
+cd hat-trick
 npm install
 npm run typecheck
 npm test
@@ -100,9 +100,9 @@ Commit messages follow [Conventional Commits](https://www.conventionalcommits.or
 Releases are built by CI (`.github/workflows/android-apk.yml`) and signed with one release key. Android only installs an update over an APK signed with the same key, so create it once and keep a backup somewhere safe: if it is lost, every user has to uninstall to update.
 
 ```sh
-keytool -genkeypair -v -keystore sports-scores-release.keystore -alias sports-scores \
+keytool -genkeypair -v -keystore hat-trick-release.keystore -alias hat-trick \
   -keyalg RSA -keysize 4096 -validity 10000
-base64 -w0 sports-scores-release.keystore   # macOS: base64 -i sports-scores-release.keystore
+base64 -w0 hat-trick-release.keystore   # macOS: base64 -i hat-trick-release.keystore
 ```
 
 Then add four repository secrets (Settings > Secrets and variables > Actions):
@@ -111,7 +111,7 @@ Then add four repository secrets (Settings > Secrets and variables > Actions):
 |---|---|
 | `ANDROID_KEYSTORE_BASE64` | the base64 output above |
 | `ANDROID_KEYSTORE_PASSWORD` | the keystore password |
-| `ANDROID_KEY_ALIAS` | `sports-scores` |
+| `ANDROID_KEY_ALIAS` | `hat-trick` |
 | `ANDROID_KEY_PASSWORD` | the key password (the same as the keystore password unless you set a different one) |
 
 Never commit the keystore (`*.keystore` is in `.gitignore`). If the secrets are missing, the release still happens but no APK is attached, and the workflow says why.

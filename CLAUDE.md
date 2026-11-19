@@ -1,6 +1,6 @@
 # Hat Trick (sports scores app)
 
-Clean sports scores app, NHL first, more leagues later. The app is called Hat Trick (Android package `io.github.peakears.hattrick`); the repo and npm package stay `sports-scores`. Data comes from public APIs.
+Clean sports scores app, NHL first, more leagues later. The app is called Hat Trick (Android package `io.github.peakears.hattrick`); the GitHub repo (`peakears/hat-trick`) and npm package use `hat-trick` too. Data comes from public APIs.
 
 Free, open-source Android app (Expo / React Native), not published to app stores. Users install the APK attached to each GitHub Release, or build it themselves. Everything runs on the device: no backend server.
 
