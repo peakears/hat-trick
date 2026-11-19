@@ -26,10 +26,10 @@ export const lightColors: Colors = {
 
 export const darkColors: Colors = {
   background: "#0e0f11",
-  card: "#1a1c20",
+  card: "#1e2126",
   text: "#f2f3f5",
   muted: "#9ca3af",
-  border: "#2a2d33",
+  border: "#363b44",
   accent: "#60a5fa",
   live: "#f87171",
   banner: "#3b2f12",

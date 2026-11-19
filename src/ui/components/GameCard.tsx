@@ -35,7 +35,10 @@ export function GameCard({ game }: { game: Game }) {
   return (
     <Link href={{ pathname: "/game/[id]", params: { id: game.id } }} asChild>
       <Pressable
-        style={({ pressed }) => [styles.card, { backgroundColor: colors.card, opacity: pressed ? 0.7 : 1 }]}
+        style={({ pressed }) => [
+          styles.card,
+          { backgroundColor: colors.card, borderColor: colors.border, opacity: pressed ? 0.7 : 1 },
+        ]}
         accessibilityRole="button"
         accessibilityLabel={`${game.away.team.name} at ${game.home.team.name}, ${gameStatusLabel(game)}`}
       >
@@ -58,8 +61,10 @@ const styles = StyleSheet.create({
   card: {
     flexDirection: "row",
     borderRadius: 12,
+    // A border plus a wider gap keeps games apart when the card is close to the background (dark mode).
+    borderWidth: 1,
     marginHorizontal: 12,
-    marginVertical: 5,
+    marginVertical: 6,
     paddingVertical: 10,
     paddingLeft: 14,
   },
