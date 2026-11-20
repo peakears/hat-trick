@@ -108,6 +108,39 @@ export function sortGamesForScores(games: readonly Game[], favorites: readonly s
   );
 }
 
+export interface ScoresSection {
+  /** Stable key for the list: "favorites" or the status. */
+  key: "favorites" | GameStatus;
+  title: string;
+  data: Game[];
+}
+
+const SECTION_TITLES: Record<GameStatus, string> = {
+  live: "Live",
+  scheduled: "Upcoming",
+  final: "Final",
+  postponed: "Postponed",
+};
+
+/**
+ * The Scores list in labelled sections, in the same order as sortGamesForScores: games involving a favourite
+ * team first under "Your teams" (still live, upcoming, final inside it), then Live, Upcoming, Final and
+ * Postponed. Empty sections are left out.
+ */
+export function groupGamesForScores(games: readonly Game[], favorites: readonly string[] = []): ScoresSection[] {
+  const sections: ScoresSection[] = [];
+  for (const game of sortGamesForScores(games, favorites)) {
+    const key = involvesFavorite(game, favorites) ? "favorites" : game.status;
+    const last = sections[sections.length - 1];
+    if (last && last.key === key) {
+      last.data.push(game);
+    } else {
+      sections.push({ key, title: key === "favorites" ? "Your teams" : SECTION_TITLES[key], data: [game] });
+    }
+  }
+  return sections;
+}
+
 /** A season record: "W-L-OT" when the league has OT losses (hockey), otherwise "W-L". */
 export function recordLabel(row: Pick<StandingRow, "wins" | "losses" | "otLosses">): string {
   return row.otLosses === undefined ? `${row.wins}-${row.losses}` : `${row.wins}-${row.losses}-${row.otLosses}`;
