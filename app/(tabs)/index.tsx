@@ -1,9 +1,9 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from "react-native";
 import { GameCard } from "../../src/ui/components/GameCard";
 import { Empty, ErrorView, Loading, OfflineBanner, UpdatedAt } from "../../src/ui/components/States";
-import { addDays, dateLabel } from "../../src/ui/format";
+import { addDays, dateLabel, sortGamesForScores } from "../../src/ui/format";
 import { LEAGUE, useSportsData } from "../../src/ui/sports-data-context";
 import { useColors } from "../../src/ui/theme";
 import { usePolled } from "../../src/ui/use-polled";
@@ -18,6 +18,8 @@ export default function ScoresScreen() {
   const date = picked ?? today;
   const go = (d: string) => setPicked(d === today ? null : d);
   const scores = usePolled(`scores:${date}`, (o) => sports.getScores(LEAGUE, date, o));
+  // Live games on top, finished ones below; re-sorted on each poll as games start and end.
+  const games = useMemo(() => (scores.data ? sortGamesForScores(scores.data) : undefined), [scores.data]);
 
   return (
     <View style={styles.screen}>
@@ -40,7 +42,7 @@ export default function ScoresScreen() {
         <ErrorView title="Couldn't load scores" error={scores.error} onRetry={scores.refresh} />
       ) : (
         <FlatList
-          data={scores.data}
+          data={games}
           keyExtractor={(g) => g.id}
           renderItem={({ item }) => <GameCard game={item} />}
           contentContainerStyle={styles.list}
