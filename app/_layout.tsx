@@ -45,7 +45,8 @@ export default function RootLayout() {
             <ThemeProvider value={theme}>
               <Stack>
                 <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                <Stack.Screen name="game/[id]" options={{ title: "Game" }} />
+                <Stack.Screen name="game/[id]/index" options={{ title: "Game" }} />
+                <Stack.Screen name="game/[id]/box-score" options={{ title: "Box score" }} />
               </Stack>
               <Reminders />
               <StatusBar style="auto" />

@@ -1,22 +1,19 @@
-import { Stack, useLocalSearchParams, type ErrorBoundaryProps } from "expo-router";
-import { useState } from "react";
-import { RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
-import type { GameSide } from "../../src/domain";
-import { RevealButton } from "../../src/ui/components/ShieldUi";
-import { FavoriteStar } from "../../src/ui/components/FavoriteStar";
-import { Segmented } from "../../src/ui/components/Segmented";
-import { CrashScreen, Empty, ErrorView, Loading, OfflineBanner, UpdatedAt } from "../../src/ui/components/States";
-import { StatTableView } from "../../src/ui/components/StatTableView";
-import { TeamLogo } from "../../src/ui/components/TeamLogo";
-import { GoalSummary } from "../../src/ui/components/GoalSummary";
-import { WhereToWatch } from "../../src/ui/components/WhereToWatch";
-import { teamRecord } from "../../src/ui/format";
-import { useSpoilers } from "../../src/ui/spoiler-context";
-import { LEAGUE, useSportsData } from "../../src/ui/sports-data-context";
-import { tabular, useColors } from "../../src/ui/theme";
-import { usePolled } from "../../src/ui/use-polled";
+import { Stack, useLocalSearchParams, useRouter, type ErrorBoundaryProps } from "expo-router";
+import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
+import type { GameSide } from "../../../src/domain";
+import { RevealButton } from "../../../src/ui/components/ShieldUi";
+import { FavoriteStar } from "../../../src/ui/components/FavoriteStar";
+import { CrashScreen, Empty, ErrorView, Loading, OfflineBanner, UpdatedAt } from "../../../src/ui/components/States";
+import { TeamLogo } from "../../../src/ui/components/TeamLogo";
+import { GoalSummary } from "../../../src/ui/components/GoalSummary";
+import { WhereToWatch } from "../../../src/ui/components/WhereToWatch";
+import { teamRecord } from "../../../src/ui/format";
+import { useSpoilers } from "../../../src/ui/spoiler-context";
+import { LEAGUE, useSportsData } from "../../../src/ui/sports-data-context";
+import { tabular, useColors } from "../../../src/ui/theme";
+import { usePolled } from "../../../src/ui/use-polled";
 
-/** A box score that fails to render keeps the header, so Back still returns to the scores. */
+/** A game page that fails to render keeps the header, so Back still returns to the scores. */
 export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
   return <CrashScreen error={error} retry={retry} />;
 }
@@ -26,7 +23,7 @@ export default function GameScreen() {
   const sports = useSportsData();
   const colors = useColors();
   const spoilers = useSpoilers();
-  const [side, setSide] = useState<"away" | "home">("away");
+  const router = useRouter();
   const detail = usePolled(`game:${id}`, (o) => sports.getGameDetail(LEAGUE, id, o));
   // Season records come from the standings (shared with the Standings tab's cache). Optional:
   // if standings fail to load, the records are just left out.
@@ -43,11 +40,10 @@ export default function GameScreen() {
     );
   }
 
-  const { game, boxscore, goals } = detail.data;
+  const { game, goals } = detail.data;
   const live = game.status === "live";
   // While hidden: no score, shots, box score, and no records (the standings already count a finished game).
   const hidden = spoilers.isHidden(game);
-  const tables = boxscore[side].filter((t) => t.rows.length > 0);
 
   const team = (s: GameSide) => {
     const record = hidden && game.status === "final" ? undefined : teamRecord(standings.data, s.team);
@@ -113,22 +109,18 @@ export default function GameScreen() {
 
         {!hidden && goals && <GoalSummary goals={goals} />}
 
-        {hidden ? (
-          <Empty message="Box score hidden by the spoiler shield. Tap Show score to see it." />
+        {game.status === "scheduled" ? (
+          <Empty message="Box score starts at puck drop." />
         ) : (
-          <Segmented
-            options={[
-              { value: "away", label: game.away.team.abbrev },
-              { value: "home", label: game.home.team.abbrev },
-            ]}
-            value={side}
-            onChange={setSide}
-          />
-        )}
-        {hidden ? null : tables.length === 0 ? (
-          <Empty message={game.status === "scheduled" ? "Box score starts at puck drop." : "No box score yet."} />
-        ) : (
-          tables.map((t) => <StatTableView key={t.title} table={t} />)
+          <Pressable
+            onPress={() => router.push({ pathname: "/game/[id]/box-score", params: { id: game.id } })}
+            accessibilityRole="button"
+            accessibilityLabel="Open box score"
+            style={[styles.boxScoreRow, { backgroundColor: colors.card }]}
+          >
+            <Text style={[styles.boxScoreLabel, { color: colors.text }]}>Box score</Text>
+            <Text style={[styles.boxScoreHint, { color: colors.muted }]}>Player stats ›</Text>
+          </Pressable>
         )}
         <UpdatedAt meta={detail.meta} />
       </ScrollView>
@@ -137,6 +129,17 @@ export default function GameScreen() {
 }
 
 const styles = StyleSheet.create({
+  boxScoreRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginHorizontal: 12,
+    marginBottom: 12,
+    padding: 14,
+    borderRadius: 12,
+  },
+  boxScoreLabel: { fontSize: 15, fontWeight: "700" },
+  boxScoreHint: { fontSize: 13 },
   summary: {
     flexDirection: "row",
     alignItems: "center",
