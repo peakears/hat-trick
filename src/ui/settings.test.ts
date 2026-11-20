@@ -16,8 +16,15 @@ describe("parseSettings", () => {
     expect(parseSettings(null)).toEqual(DEFAULT_SETTINGS);
   });
 
-  it("has betting off, logos on and no favourite teams by default", () => {
-    expect(DEFAULT_SETTINGS).toEqual({ theme: "system", showLogos: true, showBetting: false, favoriteTeams: [] });
+  it("has betting off, logos on, no favourite teams and reminders off by default", () => {
+    expect(DEFAULT_SETTINGS).toEqual({
+      theme: "system",
+      showLogos: true,
+      showBetting: false,
+      favoriteTeams: [],
+      remindersEnabled: false,
+      reminderLeadMinutes: 30,
+    });
   });
 
   it("returns defaults for corrupt JSON or a non-object", () => {
@@ -33,13 +40,23 @@ describe("parseSettings", () => {
       showLogos: true,
       showBetting: false,
       favoriteTeams: [],
+      remindersEnabled: false,
+      reminderLeadMinutes: 30,
     });
     expect(parseSettings(JSON.stringify({ theme: "purple", showBetting: true }))).toEqual({
       theme: "system",
       showLogos: true,
       showBetting: true,
       favoriteTeams: [],
+      remindersEnabled: false,
+      reminderLeadMinutes: 30,
     });
+  });
+
+  it("keeps a valid reminder lead and defaults an unknown one to 30 minutes", () => {
+    expect(parseSettings(JSON.stringify({ reminderLeadMinutes: 60 })).reminderLeadMinutes).toBe(60);
+    expect(parseSettings(JSON.stringify({ reminderLeadMinutes: 7 })).reminderLeadMinutes).toBe(30);
+    expect(parseSettings(JSON.stringify({ reminderLeadMinutes: "15" })).reminderLeadMinutes).toBe(30);
   });
 
   it("keeps stored favourite teams, drops duplicates, and defaults a bad value to none", () => {
@@ -59,7 +76,14 @@ describe("parseSettings", () => {
 describe("loadSettings / saveSettings", () => {
   it("round-trips through a store", async () => {
     const store = new MemoryStore();
-    const settings: Settings = { theme: "light", showLogos: false, showBetting: true, favoriteTeams: ["TOR"] };
+    const settings: Settings = {
+      theme: "light",
+      showLogos: false,
+      showBetting: true,
+      favoriteTeams: ["TOR"],
+      remindersEnabled: true,
+      reminderLeadMinutes: 15,
+    };
     await saveSettings(store, settings);
     expect(await loadSettings(store)).toEqual(settings);
   });
