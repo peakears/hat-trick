@@ -121,7 +121,7 @@ Then add four repository secrets (Settings > Secrets and variables > Actions):
 | `ANDROID_KEY_ALIAS` | `hat-trick` |
 | `ANDROID_KEY_PASSWORD` | the key password (the same as the keystore password unless you set a different one) |
 
-Never commit the keystore (`*.keystore` is in `.gitignore`). If the secrets are missing, the release still happens but no APK is attached, and the workflow says why.
+Never commit the keystore (`*.keystore` is in `.gitignore`). Releases are created as drafts and published only after the signed APK is attached. If the secrets are missing or the build fails, the release stays an unpublished draft (visible only to maintainers) and the workflow says why.
 
 ## Disclaimer
 
