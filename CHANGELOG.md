@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.1.0](https://github.com/peakears/hat-trick/compare/v1.0.0...v1.1.0) (2026-11-20)
+
+
+### Features
+
+* **app:** add calendar date picker to Scores ([#13](https://github.com/peakears/hat-trick/issues/13)) ([48dcb4e](https://github.com/peakears/hat-trick/commit/48dcb4e29bd166ebc89bdb6910b7e0b7afceb7b8)), closes [#5](https://github.com/peakears/hat-trick/issues/5)
+* **app:** add settings tab with theme, logo and betting switches ([#11](https://github.com/peakears/hat-trick/issues/11)) ([07a12c1](https://github.com/peakears/hat-trick/commit/07a12c1468622f67f7700dc6b848565ff2e456a2)), closes [#4](https://github.com/peakears/hat-trick/issues/4)
+* **app:** show season records on the game page ([#14](https://github.com/peakears/hat-trick/issues/14)) ([7ca112f](https://github.com/peakears/hat-trick/commit/7ca112f0a1654ca36a6b4c7ccd023c1e32aa6692))
+* **app:** sort live games to the top of Scores ([#12](https://github.com/peakears/hat-trick/issues/12)) ([9e57125](https://github.com/peakears/hat-trick/commit/9e5712509312d951ad9625939b9d99a156214b92))
+
 ## [1.0.0](https://github.com/peakears/hat-trick/compare/v0.2.0...v1.0.0) (2026-11-20)
 
 
