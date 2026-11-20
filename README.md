@@ -91,6 +91,7 @@ Released:
 - **1.0:** Android app with scores, standings, leaders and box scores; on-device cache with offline support
 - **1.1:** Settings tab (theme, team logos), calendar date picker, live games first on Scores, season records on the game page
 - **1.2:** Favourite teams, optional puck drop reminders, an update notice, and Settings > About with version info and links
+- **1.3:** TV channels for your country on every game, an optional spoiler shield, team records on upcoming games, and section headers on Scores
 
 Planned (each links to its issue):
 
