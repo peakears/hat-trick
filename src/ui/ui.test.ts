@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { DataMeta } from "../data";
 import type { Game, GameStatus } from "../domain";
-import { addDays, dateLabel, gameStatusLabel, localDate, scoresToday, sortGamesForScores, statValue, winner } from "./format";
+import { addDays, dateLabel, dateToPickerValue, gameStatusLabel, localDate, pickerValueToDate, scoresToday, sortGamesForScores, statValue, winner } from "./format";
 import { POLL, combineFetched, nextPollDelay } from "./polling";
 
 const NOW = Date.parse("2026-11-17T23:00:00Z");
@@ -59,6 +59,24 @@ describe("dates", () => {
     expect(dateLabel("2026-11-16", "2026-11-17")).toBe("Yesterday");
     expect(dateLabel("2026-11-18", "2026-11-17")).toBe("Tomorrow");
     expect(dateLabel("2026-11-20", "2026-11-17")).toMatch(/20/);
+  });
+});
+
+describe("date picker values", () => {
+  it("round-trips a date through the picker's local Date", () => {
+    for (const d of ["2026-11-19", "2026-03-08", "2026-11-01", "2027-01-01", "2028-02-29"]) {
+      expect(pickerValueToDate(dateToPickerValue(d))).toBe(d);
+    }
+  });
+
+  it("opens the picker at local noon on that date", () => {
+    const v = dateToPickerValue("2026-11-19");
+    expect([v.getFullYear(), v.getMonth(), v.getDate(), v.getHours()]).toEqual([2026, 10, 19, 12]);
+  });
+
+  it("reads the local calendar date the picker returns, whatever the time", () => {
+    expect(pickerValueToDate(new Date(2026, 10, 19, 0, 0))).toBe("2026-11-19");
+    expect(pickerValueToDate(new Date(2026, 10, 19, 23, 59))).toBe("2026-11-19");
   });
 });
 

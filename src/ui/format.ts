@@ -34,6 +34,20 @@ export function addDays(date: string, days: number): string {
   return new Date(Date.UTC(y, m - 1, d + days)).toISOString().slice(0, 10);
 }
 
+/**
+ * A YYYY-MM-DD date as a local Date for a date picker. Noon, so a DST change can never move it
+ * to another day.
+ */
+export function dateToPickerValue(date: string): Date {
+  const [y, m, d] = date.split("-").map(Number);
+  return new Date(y, m - 1, d, 12);
+}
+
+/** The calendar date a date picker returned, as YYYY-MM-DD (the picker works in local time). */
+export function pickerValueToDate(value: Date): string {
+  return localDate(value);
+}
+
 /** "Today", "Yesterday", "Tomorrow", or a short date like "Fri, Nov 20". */
 export function dateLabel(date: string, today: string): string {
   if (date === today) return "Today";
