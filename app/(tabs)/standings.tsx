@@ -1,6 +1,6 @@
-import { RefreshControl, SectionList, StyleSheet, Text, View } from "react-native";
+import { useRouter } from "expo-router";
+import { Pressable, RefreshControl, SectionList, StyleSheet, Text, View } from "react-native";
 import type { StandingRow } from "../../src/domain";
-import { FavoriteStar } from "../../src/ui/components/FavoriteStar";
 import { ErrorView, Loading, OfflineBanner, UpdatedAt } from "../../src/ui/components/States";
 import { TeamLogo } from "../../src/ui/components/TeamLogo";
 import { isFavorite } from "../../src/ui/favorites";
@@ -24,6 +24,7 @@ const COLUMNS: { label: string; width: number; value: (r: StandingRow) => string
 export default function StandingsScreen() {
   const sports = useSportsData();
   const colors = useColors();
+  const router = useRouter();
   const { settings } = useSettings();
   const standings = usePolled("standings", (o) => sports.getStandings(LEAGUE, o));
 
@@ -58,7 +59,10 @@ export default function StandingsScreen() {
           </View>
         )}
         renderItem={({ item }) => (
-          <View
+          <Pressable
+            onPress={() => router.push({ pathname: "/team/[id]", params: { id: item.team.id } })}
+            accessibilityRole="button"
+            accessibilityLabel={`${item.team.name}, open team page`}
             style={[
               styles.row,
               styles.teamRow,
@@ -71,7 +75,6 @@ export default function StandingsScreen() {
             ]}
           >
             <Text style={[styles.rank, tabular, { color: colors.muted }]}>{item.rank}</Text>
-            <FavoriteStar team={item.team} size={20} />
             <TeamLogo team={item.team} size={24} />
             {/* Two lines, so long names ("Golden Knights") wrap on narrow screens instead of being cut off. */}
             <Text numberOfLines={2} style={[styles.team, { color: colors.text }]}>
@@ -85,7 +88,7 @@ export default function StandingsScreen() {
                 {c.value(item) ?? "-"}
               </Text>
             ))}
-          </View>
+          </Pressable>
         )}
         ListFooterComponent={<UpdatedAt meta={standings.meta} />}
       />

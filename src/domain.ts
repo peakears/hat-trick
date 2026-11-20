@@ -123,8 +123,18 @@ export interface GameDetail {
 
 // ---------- Standings ----------
 
+/** A team's results over some stretch of the season: all of it, home games, road games, the last 10. */
+export interface RecordSplit {
+  wins: number;
+  losses: number;
+  otLosses?: number; // hockey only
+  goalsFor?: number;
+  goalsAgainst?: number;
+}
+
 export interface StandingRow {
   team: Team;
+  /** Position within the group the row sits in (the division for the NHL). */
   rank: number;
   gamesPlayed: number;
   wins: number;
@@ -132,6 +142,13 @@ export interface StandingRow {
   otLosses?: number; // hockey only
   points?: number;
   streak?: string; // "W3"
+  goalsFor?: number;
+  goalsAgainst?: number;
+  goalDifferential?: number;
+  last10?: RecordSplit;
+  home?: RecordSplit;
+  road?: RecordSplit;
+  divisionName?: string;
 }
 
 export interface StandingsGroup {

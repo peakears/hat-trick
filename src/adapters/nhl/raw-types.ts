@@ -192,6 +192,22 @@ export const RawStandingSchema = z.object({
   streakCode: str("streakCode"), // "W" | "L" | "OT"
   streakCount: num("streakCount"),
   clinchIndicator: str("clinchIndicator"), // not present early in the season; unverified
+  // Home, road and last-10 splits (all verified against the 2026-11-17 fixture).
+  homeWins: num("homeWins"),
+  homeLosses: num("homeLosses"),
+  homeOtLosses: num("homeOtLosses"),
+  homeGoalsFor: num("homeGoalsFor"),
+  homeGoalsAgainst: num("homeGoalsAgainst"),
+  roadWins: num("roadWins"),
+  roadLosses: num("roadLosses"),
+  roadOtLosses: num("roadOtLosses"),
+  roadGoalsFor: num("roadGoalsFor"),
+  roadGoalsAgainst: num("roadGoalsAgainst"),
+  l10Wins: num("l10Wins"),
+  l10Losses: num("l10Losses"),
+  l10OtLosses: num("l10OtLosses"),
+  l10GoalsFor: num("l10GoalsFor"),
+  l10GoalsAgainst: num("l10GoalsAgainst"),
 });
 
 export const RawStandingsResponseSchema = z.object({

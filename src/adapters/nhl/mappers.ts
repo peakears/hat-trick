@@ -10,6 +10,7 @@ import type {
   GoalStrength,
   LeaderBoard,
   Player,
+  RecordSplit,
   StatColumn,
   StatTable,
   Standings,
@@ -222,6 +223,22 @@ export function mapBoxscoreSide(stats?: RawSideStats): StatTable[] {
   ];
 }
 
+type RawStanding = NonNullable<RawStandingsResponse["standings"]>[number];
+
+/** One of the home/road/last-10 splits, or undefined if the response lacks its wins or losses. */
+function mapSplit(s: RawStanding, prefix: "home" | "road" | "l10"): RecordSplit | undefined {
+  const wins = s[`${prefix}Wins`];
+  const losses = s[`${prefix}Losses`];
+  if (wins === undefined || losses === undefined) return undefined;
+  return {
+    wins,
+    losses,
+    otLosses: s[`${prefix}OtLosses`],
+    goalsFor: s[`${prefix}GoalsFor`],
+    goalsAgainst: s[`${prefix}GoalsAgainst`],
+  };
+}
+
 export function mapStandings(raw: RawStandingsResponse): Standings {
   const groups = new Map<string, StandingsGroup>();
 
@@ -249,6 +266,13 @@ export function mapStandings(raw: RawStandingsResponse): Standings {
       otLosses: s.otLosses,
       points: s.points,
       streak: s.streakCode && s.streakCount ? `${s.streakCode}${s.streakCount}` : undefined,
+      goalsFor: s.goalFor,
+      goalsAgainst: s.goalAgainst,
+      goalDifferential: s.goalDifferential,
+      last10: mapSplit(s, "l10"),
+      home: mapSplit(s, "home"),
+      road: mapSplit(s, "road"),
+      divisionName: s.divisionName,
     });
   }
 
