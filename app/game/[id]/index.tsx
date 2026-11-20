@@ -2,7 +2,6 @@ import { Stack, useLocalSearchParams, useRouter, type ErrorBoundaryProps } from 
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import type { GameSide } from "../../../src/domain";
 import { RevealButton } from "../../../src/ui/components/ShieldUi";
-import { FavoriteStar } from "../../../src/ui/components/FavoriteStar";
 import { CrashScreen, Empty, ErrorView, Loading, OfflineBanner, UpdatedAt } from "../../../src/ui/components/States";
 import { TeamLogo } from "../../../src/ui/components/TeamLogo";
 import { GoalSummary } from "../../../src/ui/components/GoalSummary";
@@ -50,13 +49,17 @@ export default function GameScreen() {
     const record = hidden && game.status === "final" ? undefined : teamRecord(standings.data, s.team);
     return (
       <View style={styles.team}>
-        <TeamLogo team={s.team} size={56} />
-        <View style={styles.nameRow}>
+        <Pressable
+          onPress={() => router.push({ pathname: "/team/[id]", params: { id: s.team.id } })}
+          accessibilityRole="button"
+          accessibilityLabel={`${s.team.name}, open team page`}
+          style={styles.teamLink}
+        >
+          <TeamLogo team={s.team} size={56} />
           <Text style={[styles.teamName, { color: colors.text }]} numberOfLines={1}>
             {s.team.name}
           </Text>
-          <FavoriteStar team={s.team} size={18} />
-        </View>
+        </Pressable>
         {record && (
           <Text
             style={[styles.record, tabular, { color: colors.muted }]}
@@ -157,7 +160,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   team: { flex: 1, alignItems: "center", gap: 6 },
-  nameRow: { flexDirection: "row", alignItems: "center", gap: 6, maxWidth: "100%" },
+  teamLink: { alignItems: "center", gap: 6, maxWidth: "100%" },
   teamName: { flexShrink: 1, fontSize: 14, fontWeight: "600" },
   record: { fontSize: 12, fontWeight: "600" },
   sogPill: {

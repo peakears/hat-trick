@@ -9,12 +9,12 @@ Everything runs on your device: the app talks to public sports APIs directly, wi
 ## Features
 
 - **Scores** for any date, with live game clocks. Games are grouped under Live, Upcoming and Final headers. Upcoming games show each team's season record. Swipe left or right, or use the arrows, to step a day, or tap the calendar to jump to any date; tap the date to return to today. Pull down to refresh; a pull within 30 seconds of the last update is ignored, to save requests.
-- **Favourite teams:** star a team on Standings or a game page. Their games show first on Scores with the team name in the accent colour, and Standings marks them.
+- **Favourite teams:** star a team on its team page. Their games show first on Scores with the team name in the accent colour, and Standings marks them.
 - **Puck drop reminders** (optional): a notification 10 to 60 minutes before your favourite teams' games, even with the app closed.
 - **TV channels:** each game shows where to watch it, for your country (Canada or US, from your phone's region, or set it in Settings). National channels are bold, and the Scores list shows the first three for games that have not finished. The game page has the full list ("Aired on" once the game is over). Games with no listing for your country show nothing.
 - **Spoiler shield** (optional, off by default): hides scores, goals and box scores until you tap Show, for watching games on delay. Reveal one game or all games. Standings and leaders are not hidden. Nothing is saved, so every app launch starts hidden.
 - **Game page:** score, each team's season record and shots on goal, where it is played (arena and city), a goal-by-goal summary (scorer, assists, power-play and empty-net tags, running score), and a Box score page with player stats for both teams.
-- **Standings** by division.
+- **Standings** by division. Tap a team (here or on a game page) for its team page: record, points, streak, goal difference, last 10, home and road records, and its division, conference and league rank.
 - **Stat leaders** for skaters and goalies.
 - **Settings:** light, dark or system theme, team logos on or off (off shows team abbreviations), TV channel country, spoiler shield, favourite teams, reminders and update checks.
 - **Update notice:** a banner when a newer release is available, checked at most once a day (switchable). The app never downloads or installs anything by itself. **Settings > About** shows the version, release notes and a "Report a problem" link that opens a GitHub issue with your app version filled in.
@@ -90,7 +90,7 @@ What each version added is on the [Releases page](https://github.com/peakears/ha
 
 Planned (each links to its issue):
 
-- [Team pages](https://github.com/peakears/hat-trick/issues/52): tap a team for its record, last 10 and roster with season stats; the favourite star moves there
+- [More on team pages](https://github.com/peakears/hat-trick/issues/52): the roster with season stats, and last and next games
 - [Player pages](https://github.com/peakears/hat-trick/issues/15): bio (age, hometown, position, draft) and season/career stats, including goalie stats
 - [Play-by-play and penalty log](https://github.com/peakears/hat-trick/issues/28) on the game page
 - [Three stars](https://github.com/peakears/hat-trick/issues/39) for finished games and [more standings views](https://github.com/peakears/hat-trick/issues/38) (conference, wild card, league)
