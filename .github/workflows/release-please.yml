@@ -3,8 +3,12 @@ name: Release
 # Keeps a release PR open with the next version and CHANGELOG, based on
 # Conventional Commits since the last release. Merging it creates a DRAFT GitHub Release
 # (vX.Y.Z), the apk job builds a signed APK from the release commit, and only once the APK is
-# attached does the last job publish the release (which also creates the tag). Users never see a
+# attached does the publish job publish the release (which also creates the tag). Users never see a
 # release without its APK, and a failed APK build leaves the draft unpublished.
+#
+# The release PR is opened by a separate last job, after the tag exists. If it were opened in the
+# same run that creates a draft release, release-please could not find the new tag, would treat the
+# whole history as unreleased and open a bogus PR (it once proposed "1.0.0" right after 1.2.0).
 on:
   push:
     branches: [main]
@@ -26,6 +30,8 @@ jobs:
         with:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
+          # Only create releases here. The release PR is handled by the release-pr job below.
+          skip-github-pull-request: true
 
   apk:
     name: Build release APK
@@ -64,3 +70,18 @@ jobs:
         run: |
           gh release upload "$TAG" "hat-trick-$TAG.apk" --clobber
           gh release edit "$TAG" --draft=false
+
+  release-pr:
+    name: Open or update the release PR
+    needs: [release-please, apk, publish]
+    # Runs on every push to main: right after publish when a release was made, or directly when the
+    # apk and publish jobs were skipped. Not when the APK build or publish failed (the draft is
+    # still waiting, and the tag does not exist yet).
+    if: ${{ !cancelled() && needs.release-please.result == 'success' && needs.apk.result != 'failure' && needs.publish.result != 'failure' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: googleapis/release-please-action@v4
+        with:
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+          skip-github-release: true
