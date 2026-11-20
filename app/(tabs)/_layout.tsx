@@ -16,6 +16,7 @@ export default function TabsLayout() {
       <Tabs.Screen name="index" options={{ title: "Scores", tabBarIcon: icon("calendar-outline") }} />
       <Tabs.Screen name="standings" options={{ title: "Standings", tabBarIcon: icon("list-outline") }} />
       <Tabs.Screen name="leaders" options={{ title: "Leaders", tabBarIcon: icon("trophy-outline") }} />
+      <Tabs.Screen name="settings" options={{ title: "Settings", tabBarIcon: icon("settings-outline") }} />
     </Tabs>
   );
 }
