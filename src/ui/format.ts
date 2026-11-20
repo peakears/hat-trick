@@ -1,7 +1,7 @@
 // Display formatting for the app. Pure functions over domain types (no React Native imports),
 // so they are unit tested under Node.
 
-import type { Game, GameStatus, StandingRow, Standings, Team } from "../domain";
+import type { Game, GameStatus, StandingRow, Standings, Team, Venue } from "../domain";
 import { involvesFavorite } from "./favorites";
 
 /** A Date's local calendar date as YYYY-MM-DD. */
@@ -139,6 +139,12 @@ export function groupGamesForScores(games: readonly Game[], favorites: readonly 
     }
   }
   return sections;
+}
+
+/** "TD Garden · Boston", or just the arena when the city is not known. Undefined without a venue. */
+export function venueLabel(venue: Venue | undefined): string | undefined {
+  if (!venue) return undefined;
+  return venue.city ? `${venue.name} · ${venue.city}` : venue.name;
 }
 
 /** A season record: "W-L-OT" when the league has OT losses (hockey), otherwise "W-L". */

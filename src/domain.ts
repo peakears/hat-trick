@@ -54,6 +54,12 @@ export interface Broadcast {
   market: BroadcastMarket;
 }
 
+/** Where a game is played. `city` is only known for some responses (the NHL box score has it, the scores list does not). */
+export interface Venue {
+  name: string; // arena, "TD Garden"
+  city?: string; // "Boston"
+}
+
 export interface Game {
   id: string;
   league: LeagueId;
@@ -65,6 +71,7 @@ export interface Game {
   away: GameSide;
   /** TV listings in every country the league reports, in the league's order. Empty or absent when none are known. */
   broadcasts?: Broadcast[];
+  venue?: Venue;
 }
 
 // ---------- Generic stat tables ----------

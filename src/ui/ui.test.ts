@@ -15,6 +15,7 @@ import {
   sortGamesForScores,
   statValue,
   teamRecord,
+  venueLabel,
   winner,
 } from "./format";
 import { POLL, combineFetched, nextPollDelay } from "./polling";
@@ -148,6 +149,14 @@ describe("scores order", () => {
     const games = [at("b", "live", "2026-11-18T00:00:00Z"), at("a", "live", "2026-11-18T00:00:00Z")];
     expect(sortGamesForScores(games).map((g) => g.id)).toEqual(["a", "b"]);
     expect(games.map((g) => g.id)).toEqual(["b", "a"]);
+  });
+});
+
+describe("venueLabel", () => {
+  it("joins the arena and city, or gives just the arena", () => {
+    expect(venueLabel({ name: "TD Garden", city: "Boston" })).toBe("TD Garden · Boston");
+    expect(venueLabel({ name: "TD Garden" })).toBe("TD Garden");
+    expect(venueLabel(undefined)).toBeUndefined();
   });
 });
 

@@ -15,6 +15,7 @@ import type {
   Standings,
   StandingsGroup,
   Team,
+  Venue,
 } from "../../domain";
 import { GOALIE_COLUMNS, LEADER_LABELS, LEAGUE, SKATER_COLUMNS } from "./constants";
 import type {
@@ -129,6 +130,12 @@ function mapBroadcasts(raw: RawBroadcast[] | undefined): Broadcast[] | undefined
   return out;
 }
 
+function mapVenue(raw: RawGame): Venue | undefined {
+  const name = raw.venue?.default.trim();
+  if (!name) return undefined;
+  return { name, city: raw.venueLocation?.default.trim() || undefined };
+}
+
 export function mapGame(raw: RawGame): Game {
   const status = mapStatus(raw.gameState);
   return {
@@ -141,6 +148,7 @@ export function mapGame(raw: RawGame): Game {
     home: mapSide(raw.homeTeam, status),
     away: mapSide(raw.awayTeam, status),
     broadcasts: mapBroadcasts(raw.tvBroadcasts),
+    venue: mapVenue(raw),
   };
 }
 
