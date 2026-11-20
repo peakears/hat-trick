@@ -1,8 +1,10 @@
 name: Release
 
 # Keeps a release PR open with the next version and CHANGELOG, based on
-# Conventional Commits since the last release. Merging it tags the release
-# (vX.Y.Z) and publishes a GitHub Release, then the apk job attaches a signed APK to it.
+# Conventional Commits since the last release. Merging it creates a DRAFT GitHub Release
+# (vX.Y.Z), the apk job builds a signed APK from the release commit, and only once the APK is
+# attached does the last job publish the release (which also creates the tag). Users never see a
+# release without its APK, and a failed APK build leaves the draft unpublished.
 on:
   push:
     branches: [main]
@@ -17,6 +19,7 @@ jobs:
     outputs:
       release_created: ${{ steps.release.outputs.release_created }}
       tag_name: ${{ steps.release.outputs.tag_name }}
+      sha: ${{ steps.release.outputs.sha }}
     steps:
       - uses: googleapis/release-please-action@v4
         id: release
@@ -32,7 +35,8 @@ jobs:
       contents: read
     uses: ./.github/workflows/android-apk.yml
     with:
-      ref: ${{ needs.release-please.outputs.tag_name }}
+      # A draft release has no tag yet, so build from the release commit itself.
+      ref: ${{ needs.release-please.outputs.sha }}
       apk-name: hat-trick-${{ needs.release-please.outputs.tag_name }}.apk
       release-signing: true
       # Also 32-bit ARM, for older phones. PR test builds are 64-bit ARM only, to build faster.
@@ -44,17 +48,19 @@ jobs:
       ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
       ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
 
-  attach-apk:
-    name: Attach APK to the release
+  publish:
+    name: Attach APK and publish the release
     needs: [release-please, apk]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
         with:
           name: hat-trick-${{ needs.release-please.outputs.tag_name }}.apk
-      - name: Upload to the GitHub Release
+      - name: Upload to the draft release, then publish it
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           TAG: ${{ needs.release-please.outputs.tag_name }}
-        run: gh release upload "$TAG" "hat-trick-$TAG.apk" --clobber
+        run: |
+          gh release upload "$TAG" "hat-trick-$TAG.apk" --clobber
+          gh release edit "$TAG" --draft=false
