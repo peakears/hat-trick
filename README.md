@@ -39,6 +39,7 @@ Requires Node.js 22.13 or newer.
 git clone https://github.com/peakears/hat-trick.git
 cd hat-trick
 npm install
+npm run format:check
 npm run typecheck
 npm test
 ```
@@ -96,12 +97,12 @@ Adding a league means writing a new adapter that implements `LeagueAdapter` and 
 
 Commit messages follow [Conventional Commits](https://www.conventionalcommits.org), because releases are versioned from them:
 
-| Commit | Example | Release |
-|---|---|---|
-| `fix:` | `fix(nhl): handle missing goalie stats` | patch (0.1.0 -> 0.1.1) |
-| `feat:` | `feat: add NBA adapter` | minor (0.1.0 -> 0.2.0) |
-| `feat!:` or `BREAKING CHANGE:` footer | `feat!: rename Game.startTime` | major (minor while on 0.x) |
-| `docs:`, `test:`, `refactor:`, `chore:`, `ci:` ... | `docs: fix typo` | none |
+| Commit                                             | Example                                 | Release                    |
+| -------------------------------------------------- | --------------------------------------- | -------------------------- |
+| `fix:`                                             | `fix(nhl): handle missing goalie stats` | patch (0.1.0 -> 0.1.1)     |
+| `feat:`                                            | `feat: add NBA adapter`                 | minor (0.1.0 -> 0.2.0)     |
+| `feat!:` or `BREAKING CHANGE:` footer              | `feat!: rename Game.startTime`          | major (minor while on 0.x) |
+| `docs:`, `test:`, `refactor:`, `chore:`, `ci:` ... | `docs: fix typo`                        | none                       |
 
 `npm install` sets up a git hook that checks each commit message. Releases are made by merging the release PR that release-please keeps open.
 
@@ -117,12 +118,12 @@ base64 -w0 hat-trick-release.keystore   # macOS: base64 -i hat-trick-release.key
 
 Then add four repository secrets (Settings > Secrets and variables > Actions):
 
-| Secret | Value |
-|---|---|
-| `ANDROID_KEYSTORE_BASE64` | the base64 output above |
-| `ANDROID_KEYSTORE_PASSWORD` | the keystore password |
-| `ANDROID_KEY_ALIAS` | `hat-trick` |
-| `ANDROID_KEY_PASSWORD` | the key password (the same as the keystore password unless you set a different one) |
+| Secret                      | Value                                                                               |
+| --------------------------- | ----------------------------------------------------------------------------------- |
+| `ANDROID_KEYSTORE_BASE64`   | the base64 output above                                                             |
+| `ANDROID_KEYSTORE_PASSWORD` | the keystore password                                                               |
+| `ANDROID_KEY_ALIAS`         | `hat-trick`                                                                         |
+| `ANDROID_KEY_PASSWORD`      | the key password (the same as the keystore password unless you set a different one) |
 
 Never commit the keystore (`*.keystore` is in `.gitignore`). Releases are created as drafts and published only after the signed APK is attached. If the secrets are missing or the build fails, the release stays an unpublished draft (visible only to maintainers) and the workflow says why.
 

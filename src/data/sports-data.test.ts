@@ -1,14 +1,6 @@
 import { readFileSync } from "node:fs";
 import { beforeEach, describe, expect, it } from "vitest";
-import type {
-  Game,
-  GameDetail,
-  GameStatus,
-  LeaderBoard,
-  LeagueAdapter,
-  RequestOptions,
-  Standings,
-} from "../domain";
+import type { Game, GameDetail, GameStatus, LeaderBoard, LeagueAdapter, RequestOptions, Standings } from "../domain";
 import { NhlAdapter } from "../adapters/nhl";
 import { AdapterRegistry } from "../registry";
 import { FRESHNESS, MemoryStore, SportsData, gameFreshness, scoresFreshness } from ".";

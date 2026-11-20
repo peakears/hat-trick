@@ -8,7 +8,9 @@ type IconName = ComponentProps<typeof Ionicons>["name"];
 const icon =
   (name: IconName) =>
   // The tab bar always passes a color string; its type is wider than Ionicons accepts.
-  ({ color, size }: { color: ColorValue; size: number }) => <Ionicons name={name} color={color as string} size={size} />;
+  ({ color, size }: { color: ColorValue; size: number }) => (
+    <Ionicons name={name} color={color as string} size={size} />
+  );
 
 export default function TabsLayout() {
   return (

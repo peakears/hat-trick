@@ -1,7 +1,20 @@
 import { describe, expect, it } from "vitest";
 import type { DataMeta } from "../data";
 import type { Game, GameStatus, Standings } from "../domain";
-import { addDays, dateLabel, dateToPickerValue, gameStatusLabel, localDate, pickerValueToDate, recordLabel, scoresToday, sortGamesForScores, statValue, teamRecord, winner } from "./format";
+import {
+  addDays,
+  dateLabel,
+  dateToPickerValue,
+  gameStatusLabel,
+  localDate,
+  pickerValueToDate,
+  recordLabel,
+  scoresToday,
+  sortGamesForScores,
+  statValue,
+  teamRecord,
+  winner,
+} from "./format";
 import { POLL, combineFetched, nextPollDelay } from "./polling";
 
 const NOW = Date.parse("2026-11-17T23:00:00Z");
@@ -83,7 +96,10 @@ describe("date picker values", () => {
 describe("game status", () => {
   it.each([
     [game("live", { clock: { period: 2, label: "2nd", timeRemaining: "12:34" } }), "2nd 12:34"],
-    [game("live", { clock: { period: 2, label: "2nd", intermission: true, intermissionRemaining: "03:05" } }), "2nd INT 03:05"],
+    [
+      game("live", { clock: { period: 2, label: "2nd", intermission: true, intermissionRemaining: "03:05" } }),
+      "2nd INT 03:05",
+    ],
     [game("live", { clock: { period: 1, label: "1st", intermission: true } }), "1st INT"],
     [game("live"), "Live"],
     [game("final"), "Final"],

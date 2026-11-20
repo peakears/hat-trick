@@ -6,10 +6,7 @@
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
     "icon": "./assets/images/icon.png",
-    "platforms": [
-      "android",
-      "ios"
-    ],
+    "platforms": ["android", "ios"],
     "android": {
       "package": "io.github.peakears.hattrick",
       "adaptiveIcon": {

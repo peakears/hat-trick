@@ -79,6 +79,7 @@ adapters -> domain model -> on-device cache -> Expo app UI
 ## Commands
 
 - `npm install`, `npm run typecheck` (app + tests), `npm test` (vitest)
+- `npm run format` (Prettier, `printWidth` 120, config in `.prettierrc.json`, exclusions in `.prettierignore`); CI runs `npm run format:check` and fails on unformatted files. Run `npm run format` before committing.
 - `npm start` (Expo dev server, open in Expo Go), `npm run android` (native build, needs the Android SDK)
 - `CI=1 npx expo export --platform android --output-dir <tmp dir>` checks that Metro can bundle the app without a device.
 - Add Expo packages with `npx expo install <pkg>` so versions match the SDK; `npx expo install --check` verifies. Where api.expo.dev is unreachable, take the version from `node_modules/expo/bundledNativeModules.json` and `npm install` it. `react-dom` is pinned to the same version as `react` (expo-router pulls it in for web).

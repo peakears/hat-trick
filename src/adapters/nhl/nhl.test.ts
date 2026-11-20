@@ -232,16 +232,28 @@ describe("NHL adapter", () => {
     });
 
     it.each([
-      ["team abbrev renamed", "games[0].homeTeam.abbrev", (b: any) => {
-        b.games[0].homeTeam.teamAbbrev = b.games[0].homeTeam.abbrev;
-        delete b.games[0].homeTeam.abbrev;
-      }],
-      ["score is a string", "games[0].homeTeam.score", (b: any) => {
-        b.games[0].homeTeam.score = "3";
-      }],
-      ["game id missing", "games[0].id", (b: any) => {
-        delete b.games[0].id;
-      }],
+      [
+        "team abbrev renamed",
+        "games[0].homeTeam.abbrev",
+        (b: any) => {
+          b.games[0].homeTeam.teamAbbrev = b.games[0].homeTeam.abbrev;
+          delete b.games[0].homeTeam.abbrev;
+        },
+      ],
+      [
+        "score is a string",
+        "games[0].homeTeam.score",
+        (b: any) => {
+          b.games[0].homeTeam.score = "3";
+        },
+      ],
+      [
+        "game id missing",
+        "games[0].id",
+        (b: any) => {
+          delete b.games[0].id;
+        },
+      ],
     ])("throws NhlResponseError when a core field breaks: %s", async (_name, path, edit) => {
       const { adapter } = fixtureAdapter((_url, body) => edit(body));
       const error = await adapter.getScores("2026-11-17").catch((e) => e);

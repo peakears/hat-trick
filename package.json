@@ -8,6 +8,8 @@
     "start": "expo start",
     "android": "expo run:android",
     "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.test.json",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "test": "vitest run",
     "prepare": "husky"
   },
@@ -36,6 +38,7 @@
     "@types/node": "^24.19.2",
     "@types/react": "~19.3.0",
     "husky": "^9.1.7",
+    "prettier": "3.10.1",
     "react-dom": "19.3.0",
     "typescript": "~6.0.3",
     "vitest": "^5.1.0"

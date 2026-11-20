@@ -177,7 +177,17 @@ function updateDetail(status: UpdateStatus, checking: boolean): string {
 }
 
 /** A row that opens a web page in the browser. */
-function LinkRow({ label, detail, url, last = false }: { label: string; detail?: string; url: string; last?: boolean }) {
+function LinkRow({
+  label,
+  detail,
+  url,
+  last = false,
+}: {
+  label: string;
+  detail?: string;
+  url: string;
+  last?: boolean;
+}) {
   const colors = useColors();
   return (
     <Pressable
@@ -209,21 +219,13 @@ function ToggleRow({
   const colors = useColors();
   return (
     <View
-      style={[
-        styles.row,
-        !last && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border },
-      ]}
+      style={[styles.row, !last && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border }]}
     >
       <View style={styles.rowText}>
         <Text style={[styles.label, { color: colors.text }]}>{label}</Text>
         {detail ? <Text style={[styles.detail, { color: colors.muted }]}>{detail}</Text> : null}
       </View>
-      <Switch
-        value={value}
-        onValueChange={onChange}
-        trackColor={{ true: colors.accent }}
-        accessibilityLabel={label}
-      />
+      <Switch value={value} onValueChange={onChange} trackColor={{ true: colors.accent }} accessibilityLabel={label} />
     </View>
   );
 }

@@ -32,9 +32,7 @@ export function GameCard({ game }: { game: Game }) {
           <Ionicons name="star" size={14} color={colors.accent} accessibilityLabel="Favourite team" />
         )}
         {showScores && (
-          <Text style={[styles.score, tabular, { color: dim ? colors.muted : colors.text }]}>
-            {side.score ?? "-"}
-          </Text>
+          <Text style={[styles.score, tabular, { color: dim ? colors.muted : colors.text }]}>{side.score ?? "-"}</Text>
         )}
       </View>
     );
