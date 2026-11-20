@@ -89,7 +89,8 @@ export const RawGameSchema = z.object({
   season: num("season"), // 20262027
   gameType: num("gameType"), // 1 preseason, 2 regular season, 3 playoffs
   gameDate: str("gameDate"), // league calendar date, YYYY-MM-DD
-  venue: localized("venue"),
+  venue: localized("venue"), // arena, "TD Garden"
+  venueLocation: localized("venueLocation"), // box score only: city, "Boston" (no state or province)
   gameScheduleState: str("gameScheduleState"), // "OK"
   periodDescriptor: minor(RawPeriodDescriptorSchema, "periodDescriptor"),
   clock: minor(RawClockSchema, "clock"),

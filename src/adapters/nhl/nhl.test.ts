@@ -223,6 +223,30 @@ describe("NHL adapter", () => {
     });
   });
 
+  describe("venue", () => {
+    it("has the arena in the scores list, without a city", async () => {
+      const [game] = await fixtureAdapter().adapter.getScores("2026-11-17");
+      expect(game.venue).toEqual({ name: "TD Garden", city: undefined });
+    });
+
+    it("has the arena and city in the box score", async () => {
+      const { adapter } = fixtureAdapter();
+      expect((await adapter.getGameDetail("2026020333")).game.venue).toEqual({ name: "TD Garden", city: "Boston" });
+      expect((await adapter.getGameDetail("2026020342")).game.venue).toEqual({
+        name: "T-Mobile Arena",
+        city: "Paradise",
+      });
+    });
+
+    it("leaves the venue out when the API sends none", async () => {
+      const { adapter } = fixtureAdapter((_url, body) => {
+        if (body.games) delete body.games[0].venue;
+      });
+      const [game] = await adapter.getScores("2026-11-17");
+      expect(game.venue).toBeUndefined();
+    });
+  });
+
   describe("goal summary", () => {
     it("lists a final game's goals in the order scored", async () => {
       const { goals } = await fixtureAdapter().adapter.getGameDetail("2026020333");

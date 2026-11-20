@@ -7,7 +7,7 @@ import { CrashScreen, Empty, ErrorView, Loading, OfflineBanner, UpdatedAt } from
 import { TeamLogo } from "../../../src/ui/components/TeamLogo";
 import { GoalSummary } from "../../../src/ui/components/GoalSummary";
 import { WhereToWatch } from "../../../src/ui/components/WhereToWatch";
-import { teamRecord } from "../../../src/ui/format";
+import { teamRecord, venueLabel } from "../../../src/ui/format";
 import { useSpoilers } from "../../../src/ui/spoiler-context";
 import { LEAGUE, useSportsData } from "../../../src/ui/sports-data-context";
 import { tabular, useColors } from "../../../src/ui/theme";
@@ -42,6 +42,7 @@ export default function GameScreen() {
 
   const { game, goals } = detail.data;
   const live = game.status === "live";
+  const venue = venueLabel(game.venue);
   // While hidden: no score, shots, box score, and no records (the standings already count a finished game).
   const hidden = spoilers.isHidden(game);
 
@@ -105,6 +106,12 @@ export default function GameScreen() {
           {team(game.home)}
         </View>
 
+        {venue && (
+          <Text style={[styles.venue, { color: colors.muted }]} accessibilityLabel={`Played at ${venue}`}>
+            {venue}
+          </Text>
+        )}
+
         <WhereToWatch game={game} />
 
         {!hidden && goals && <GoalSummary goals={goals} />}
@@ -138,6 +145,7 @@ const styles = StyleSheet.create({
     padding: 14,
     borderRadius: 12,
   },
+  venue: { fontSize: 13, textAlign: "center", marginTop: 10, marginHorizontal: 12 },
   boxScoreLabel: { fontSize: 15, fontWeight: "700" },
   boxScoreHint: { fontSize: 13 },
   summary: {
