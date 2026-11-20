@@ -77,9 +77,7 @@ export function gameStatusLabel(game: Game): string {
       const clock = game.clock;
       if (!clock) return "Live";
       if (clock.intermission) {
-        return clock.intermissionRemaining
-          ? `${clock.label} INT ${clock.intermissionRemaining}`
-          : `${clock.label} INT`;
+        return clock.intermissionRemaining ? `${clock.label} INT ${clock.intermissionRemaining}` : `${clock.label} INT`;
       }
       return clock.timeRemaining ? `${clock.label} ${clock.timeRemaining}` : clock.label;
     }

@@ -69,8 +69,7 @@ function ordinal(n: number): string {
 function mapClock(raw: RawGame): GameClock | undefined {
   const pd = raw.periodDescriptor;
   if (!pd) return undefined;
-  const label =
-    pd.periodType === "SO" ? "SO" : pd.periodType === "OT" ? "OT" : ordinal(pd.number);
+  const label = pd.periodType === "SO" ? "SO" : pd.periodType === "OT" ? "OT" : ordinal(pd.number);
   // During an intermission the API's timeRemaining is the intermission countdown.
   const intermission = raw.clock?.inIntermission ?? false;
   return {
@@ -126,11 +125,7 @@ function mapPlayer(raw: { playerId: number; name: { default: string }; position?
   };
 }
 
-function statTable<T extends RawSkater | RawGoalie>(
-  title: string,
-  columns: StatColumn[],
-  rows: T[] = [],
-): StatTable {
+function statTable<T extends RawSkater | RawGoalie>(title: string, columns: StatColumn[], rows: T[] = []): StatTable {
   return {
     title,
     columns,

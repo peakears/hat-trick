@@ -54,7 +54,10 @@ export default function GameScreen() {
           <FavoriteStar team={s.team} size={18} />
         </View>
         {record && (
-          <Text style={[styles.record, tabular, { color: colors.muted }]} accessibilityLabel={`Season record ${record}`}>
+          <Text
+            style={[styles.record, tabular, { color: colors.muted }]}
+            accessibilityLabel={`Season record ${record}`}
+          >
             {record}
           </Text>
         )}

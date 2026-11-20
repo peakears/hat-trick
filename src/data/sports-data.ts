@@ -6,15 +6,7 @@
 // - If a fetch fails and anything is cached, the last known data is returned, marked stale.
 // - Concurrent requests for the same key share one network call.
 
-import type {
-  Game,
-  GameDetail,
-  LeaderBoard,
-  LeaderQuery,
-  LeagueId,
-  RequestOptions,
-  Standings,
-} from "../domain";
+import type { Game, GameDetail, LeaderBoard, LeaderQuery, LeagueId, RequestOptions, Standings } from "../domain";
 import type { AdapterRegistry } from "../registry";
 import { FRESHNESS, gameFreshness, scoresFreshness } from "./freshness";
 import type { KeyValueStore } from "./store";
@@ -84,11 +76,7 @@ export class SportsData {
     );
   }
 
-  getLeaders(
-    league: LeagueId,
-    query: LeaderQuery = {},
-    options?: FetchOptions,
-  ): Promise<Fetched<LeaderBoard[]>> {
+  getLeaders(league: LeagueId, query: LeaderQuery = {}, options?: FetchOptions): Promise<Fetched<LeaderBoard[]>> {
     const category = query.category ?? "default";
     const limit = query.limit ?? "default";
     return this.get(
@@ -102,11 +90,7 @@ export class SportsData {
     );
   }
 
-  getGameDetail(
-    league: LeagueId,
-    gameId: string,
-    options?: FetchOptions,
-  ): Promise<Fetched<GameDetail>> {
+  getGameDetail(league: LeagueId, gameId: string, options?: FetchOptions): Promise<Fetched<GameDetail>> {
     return this.get(
       {
         league,

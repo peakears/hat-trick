@@ -34,8 +34,7 @@ export class NhlAdapter implements LeagueAdapter {
 
   constructor(options: NhlAdapterOptions = {}) {
     this.client = new NhlClient(options);
-    this.onWarning =
-      options.onWarning ?? ((w) => console.warn(`[nhl] ${w.message} (${w.url})`));
+    this.onWarning = options.onWarning ?? ((w) => console.warn(`[nhl] ${w.message} (${w.url})`));
   }
 
   private async fetch<T extends z.ZodType>(
