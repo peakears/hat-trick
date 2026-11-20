@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.2.0](https://github.com/peakears/hat-trick/compare/v1.1.0...v1.2.0) (2026-11-20)
+
+
+### Features
+
+* **app:** favourite teams ([#36](https://github.com/peakears/hat-trick/issues/36)) ([cf20e97](https://github.com/peakears/hat-trick/commit/cf20e97529e5839796a6d16c9edda9c8113fb52a)), closes [#31](https://github.com/peakears/hat-trick/issues/31)
+* **app:** puck drop reminders ([#37](https://github.com/peakears/hat-trick/issues/37)) ([d701b41](https://github.com/peakears/hat-trick/commit/d701b4102335884ac6d10c3e26c55d4168b5e75b)), closes [#33](https://github.com/peakears/hat-trick/issues/33)
+* **app:** update check and About section ([#40](https://github.com/peakears/hat-trick/issues/40)) ([70909bc](https://github.com/peakears/hat-trick/commit/70909bc663d855e9446b5f0da38aa90528fde83e)), closes [#22](https://github.com/peakears/hat-trick/issues/22)
+
 ## [1.1.0](https://github.com/peakears/hat-trick/compare/v1.0.0...v1.1.0) (2026-11-20)
 
 
