@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.1](https://github.com/peakears/hat-trick/compare/v1.2.0...v1.2.1) (2026-11-20)
+
+
+### Bug Fixes
+
+* **app:** highlight favourite team names instead of a star on game cards ([#43](https://github.com/peakears/hat-trick/issues/43)) ([60e4a3a](https://github.com/peakears/hat-trick/commit/60e4a3aa1f27005766bd6aa0800be2d770a94e95))
+
 ## [1.2.0](https://github.com/peakears/hat-trick/compare/v1.1.0...v1.2.0) (2026-11-20)
 
 
