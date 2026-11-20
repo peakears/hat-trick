@@ -18,7 +18,7 @@ const LOOKAHEAD_DAYS = 7;
  */
 export function useReminderSync(): void {
   const sports = useSportsData();
-  const { settings } = useSettings();
+  const { settings, loaded } = useSettings();
   const { remindersEnabled, favoriteTeams, reminderLeadMinutes } = settings;
   const [foregrounded, setForegrounded] = useState(0);
 
@@ -30,6 +30,8 @@ export function useReminderSync(): void {
   }, []);
 
   useEffect(() => {
+    // Before the stored settings load they are defaults (reminders off), which would cancel everything.
+    if (!loaded) return;
     let cancelled = false;
     async function sync() {
       if (!remindersEnabled || favoriteTeams.length === 0) {
@@ -52,7 +54,7 @@ export function useReminderSync(): void {
     return () => {
       cancelled = true;
     };
-  }, [sports, remindersEnabled, favoriteTeams, reminderLeadMinutes, foregrounded]);
+  }, [sports, loaded, remindersEnabled, favoriteTeams, reminderLeadMinutes, foregrounded]);
 }
 
 /** Opens the game when a reminder notification is tapped (including when it launched the app). */
