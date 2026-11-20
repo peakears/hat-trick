@@ -127,6 +127,18 @@ describe("NHL adapter", () => {
       expect(game.endedIn).toBe(expected);
     });
 
+    it("maps each team's season record on a game that has not started", async () => {
+      const [game] = await fixtureAdapter().adapter.getScores("2026-11-18");
+      expect(game.away.record).toBe("13-7-1");
+      expect(game.home.record).toBe("8-10-3");
+    });
+
+    it("has no record on a game that has started, where the API sends none", async () => {
+      const final = (await fixtureAdapter().adapter.getScores("2026-11-17")).find((g) => g.status === "final")!;
+      expect(final.home.record).toBeUndefined();
+      expect(final.away.record).toBeUndefined();
+    });
+
     it("maps a scheduled game with no score", async () => {
       const [game] = await fixtureAdapter().adapter.getScores("2026-11-18");
       expect(game.status).toBe("scheduled");
