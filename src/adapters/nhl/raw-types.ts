@@ -165,6 +165,9 @@ export const RawStandingSchema = z.object({
   goalFor: num("goalFor"),
   goalAgainst: num("goalAgainst"),
   goalDifferential: num("goalDifferential"),
+  l10Wins: num("l10Wins"),
+  l10Losses: num("l10Losses"),
+  l10OtLosses: num("l10OtLosses"),
   streakCode: str("streakCode"), // "W" | "L" | "OT"
   streakCount: num("streakCount"),
   clinchIndicator: str("clinchIndicator"), // not present early in the season; unverified

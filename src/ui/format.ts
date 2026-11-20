@@ -141,6 +141,11 @@ export function groupGamesForScores(games: readonly Game[], favorites: readonly 
   return sections;
 }
 
+/** A goal difference with its sign, so a positive one reads as "+30" and zero as "0". */
+export function signedNumber(n: number): string {
+  return n > 0 ? `+${n}` : String(n);
+}
+
 /** A season record: "W-L-OT" when the league has OT losses (hockey), otherwise "W-L". */
 export function recordLabel(row: Pick<StandingRow, "wins" | "losses" | "otLosses">): string {
   return row.otLosses === undefined ? `${row.wins}-${row.losses}` : `${row.wins}-${row.losses}-${row.otLosses}`;

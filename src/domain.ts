@@ -104,6 +104,10 @@ export interface StandingRow {
   otLosses?: number; // hockey only
   points?: number;
   streak?: string; // "W3"
+  /** Record over the last 10 games, "8-1-1" (W-L-OT in hockey). */
+  last10?: string;
+  /** Goals for minus goals against; negative when a team has conceded more than it scored. */
+  goalDifferential?: number;
 }
 
 export interface StandingsGroup {

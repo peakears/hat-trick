@@ -11,6 +11,7 @@ import {
   pickerValueToDate,
   recordLabel,
   scoresToday,
+  signedNumber,
   sortGamesForScores,
   statValue,
   teamRecord,
@@ -222,6 +223,14 @@ describe("team records", () => {
   it("returns undefined for a missing team or no standings", () => {
     expect(teamRecord(standings, team("SEA"))).toBeUndefined();
     expect(teamRecord(undefined, team("TOR"))).toBeUndefined();
+  });
+});
+
+describe("signed numbers", () => {
+  it("puts a plus on positive numbers only", () => {
+    expect(signedNumber(30)).toBe("+30");
+    expect(signedNumber(0)).toBe("0");
+    expect(signedNumber(-34)).toBe("-34");
   });
 });
 

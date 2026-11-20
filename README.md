@@ -14,7 +14,7 @@ Everything runs on your device: the app talks to public sports APIs directly, wi
 - **TV channels:** each game shows where to watch it, for your country (Canada or US, from your phone's region, or set it in Settings). National channels are bold, and the Scores list shows the first three. The game page has the full list. Games with no listing for your country show nothing.
 - **Spoiler shield** (optional, off by default): hides scores and box scores until you tap Show, for watching games on delay. Reveal one game or all games. Standings and leaders are not hidden. Nothing is saved, so every app launch starts hidden.
 - **Game page:** score, each team's season record and shots on goal, and full box scores for both teams.
-- **Standings** by division.
+- **Standings** by division, with a Record view (GP, W, L, OT, PTS, streak) and a Form view (points, last 10, goal difference, streak).
 - **Stat leaders** for skaters and goalies.
 - **Settings:** light, dark or system theme, team logos on or off (off shows team abbreviations), TV channel country, spoiler shield, favourite teams, reminders and update checks.
 - **Update notice:** a banner when a newer release is available, checked at most once a day (switchable). The app never downloads or installs anything by itself. **Settings > About** shows the version, release notes and a "Report a problem" link that opens a GitHub issue with your app version filled in.

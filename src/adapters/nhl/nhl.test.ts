@@ -253,6 +253,25 @@ describe("NHL adapter", () => {
         streak: "W6",
       });
     });
+
+    it("maps the last 10 games and the goal difference", async () => {
+      const standings = await fixtureAdapter().adapter.getStandings();
+      const rows = standings.groups.flatMap((g) => g.rows);
+      expect(rows.find((r) => r.team.id === "EDM")).toMatchObject({ last10: "8-1-1", goalDifferential: 30 });
+      expect(rows.find((r) => r.team.id === "CHI")).toMatchObject({ last10: "3-5-2", goalDifferential: -34 });
+    });
+
+    it("leaves last 10 out when the API sends only part of it, with a warning only for a wrong type", async () => {
+      const { adapter, warnings } = fixtureAdapter((url, body) => {
+        if (!url.includes("standings")) return;
+        delete body.standings[0].l10OtLosses;
+        body.standings[1].l10Wins = "8";
+      });
+      const rows = (await adapter.getStandings()).groups.flatMap((g) => g.rows);
+      expect(rows[0].last10).toBeUndefined();
+      expect(rows.some((r) => r.last10 === undefined)).toBe(true);
+      expect(warnings.map((w) => w.message)).toEqual([expect.stringContaining("l10Wins")]);
+    });
   });
 
   describe("leaders", () => {

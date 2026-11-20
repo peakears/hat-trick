@@ -22,6 +22,7 @@ import type {
   RawLeadersResponse,
   RawSideStats,
   RawSkater,
+  RawStanding,
   RawStandingsResponse,
   RawTeam,
 } from "./raw-types";
@@ -175,6 +176,12 @@ export function mapBoxscoreSide(stats?: RawSideStats): StatTable[] {
   ];
 }
 
+/** "8-1-1": wins, losses and OT losses over the last 10 games; undefined unless the API sent all three. */
+function mapLast10(s: RawStanding): string | undefined {
+  if (s.l10Wins === undefined || s.l10Losses === undefined || s.l10OtLosses === undefined) return undefined;
+  return `${s.l10Wins}-${s.l10Losses}-${s.l10OtLosses}`;
+}
+
 export function mapStandings(raw: RawStandingsResponse): Standings {
   const groups = new Map<string, StandingsGroup>();
 
@@ -202,6 +209,8 @@ export function mapStandings(raw: RawStandingsResponse): Standings {
       otLosses: s.otLosses,
       points: s.points,
       streak: s.streakCode && s.streakCount ? `${s.streakCode}${s.streakCount}` : undefined,
+      last10: mapLast10(s),
+      goalDifferential: s.goalDifferential,
     });
   }
 
