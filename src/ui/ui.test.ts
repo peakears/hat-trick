@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { DataMeta } from "../data";
 import type { Game, GameStatus } from "../domain";
-import { addDays, dateLabel, gameStatusLabel, localDate, scoresToday, statValue, winner } from "./format";
+import { addDays, dateLabel, gameStatusLabel, localDate, scoresToday, sortGamesForScores, statValue, winner } from "./format";
 import { POLL, combineFetched, nextPollDelay } from "./polling";
 
 const NOW = Date.parse("2026-11-17T23:00:00Z");
@@ -81,6 +81,37 @@ describe("game status", () => {
     expect(winner(game("final", {}, [1, 4]))).toBe("away");
     expect(winner(game("live", {}, [3, 2]))).toBeUndefined();
     expect(winner(game("scheduled", {}, [null, null]))).toBeUndefined();
+  });
+});
+
+describe("scores order", () => {
+  const at = (id: string, status: GameStatus, startTime: string) => game(status, { id, startTime });
+
+  it("puts live games first, then upcoming, then finished, then postponed", () => {
+    const games = [
+      at("final-early", "final", "2026-11-17T23:00:00Z"),
+      at("ppd", "postponed", "2026-11-17T22:00:00Z"),
+      at("later", "scheduled", "2026-11-18T03:00:00Z"),
+      at("live-late", "live", "2026-11-18T01:00:00Z"),
+      at("final-late", "final", "2026-11-18T00:00:00Z"),
+      at("live-early", "live", "2026-11-18T00:00:00Z"),
+      at("sooner", "scheduled", "2026-11-18T02:00:00Z"),
+    ];
+    expect(sortGamesForScores(games).map((g) => g.id)).toEqual([
+      "live-early",
+      "live-late",
+      "sooner",
+      "later",
+      "final-early",
+      "final-late",
+      "ppd",
+    ]);
+  });
+
+  it("breaks start-time ties by id and does not mutate the input", () => {
+    const games = [at("b", "live", "2026-11-18T00:00:00Z"), at("a", "live", "2026-11-18T00:00:00Z")];
+    expect(sortGamesForScores(games).map((g) => g.id)).toEqual(["a", "b"]);
+    expect(games.map((g) => g.id)).toEqual(["b", "a"]);
   });
 });
 
