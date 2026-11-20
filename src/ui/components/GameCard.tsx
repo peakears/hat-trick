@@ -1,5 +1,4 @@
 import { useRouter } from "expo-router";
-import Ionicons from "@expo/vector-icons/Ionicons";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import type { Game, GameSide } from "../../domain";
 import { isFavorite } from "../favorites";
@@ -15,22 +14,30 @@ export function GameCard({ game }: { game: Game }) {
   const { settings } = useSettings();
   const won = winner(game);
   const live = game.status === "live";
+  // The colour alone says "favourite", so say it in words for screen readers too.
+  const favoriteNames = [game.away, game.home]
+    .filter((side) => isFavorite(settings.favoriteTeams, side.team.id))
+    .map((side) => side.team.name);
+  const favoriteNote = favoriteNames.length > 0 ? `. Favourite: ${favoriteNames.join(", ")}` : "";
   const showScores = game.status !== "scheduled" && game.status !== "postponed";
 
   const row = (side: GameSide, which: "home" | "away") => {
     const dim = won !== undefined && won !== which;
+    const favorite = isFavorite(settings.favoriteTeams, side.team.id);
     return (
       <View style={styles.teamRow}>
         <TeamLogo team={side.team} size={28} />
         <Text
           numberOfLines={1}
-          style={[styles.teamName, { color: dim ? colors.muted : colors.text }, !dim && won && styles.bold]}
+          // A favourite team's name is drawn in the accent colour, even when it lost and the rest is dimmed.
+          style={[
+            styles.teamName,
+            { color: favorite ? colors.accent : dim ? colors.muted : colors.text },
+            (favorite || (!dim && won)) && styles.bold,
+          ]}
         >
           {side.team.name}
         </Text>
-        {isFavorite(settings.favoriteTeams, side.team.id) && (
-          <Ionicons name="star" size={14} color={colors.accent} accessibilityLabel="Favourite team" />
-        )}
         {showScores && (
           <Text style={[styles.score, tabular, { color: dim ? colors.muted : colors.text }]}>{side.score ?? "-"}</Text>
         )}
@@ -48,7 +55,7 @@ export function GameCard({ game }: { game: Game }) {
         { backgroundColor: colors.card, borderColor: colors.cardBorder, opacity: pressed ? 0.7 : 1 },
       ]}
       accessibilityRole="button"
-      accessibilityLabel={`${game.away.team.name} at ${game.home.team.name}, ${gameStatusLabel(game)}`}
+      accessibilityLabel={`${game.away.team.name} at ${game.home.team.name}, ${gameStatusLabel(game)}${favoriteNote}`}
     >
       <View style={styles.teams}>
         {row(game.away, "away")}

@@ -9,7 +9,7 @@ Everything runs on your device: the app talks to public sports APIs directly, wi
 ## Features
 
 - **Scores** for any date, with live game clocks. Live games are listed first, then upcoming, then finished. Step a day with the arrows, or tap the calendar to jump to any date; tap the date to return to today.
-- **Favourite teams:** star a team on Standings or a game page. Their games show first on Scores, and Standings marks them.
+- **Favourite teams:** star a team on Standings or a game page. Their games show first on Scores with the team name in the accent colour, and Standings marks them.
 - **Puck drop reminders** (optional): a notification 10 to 60 minutes before your favourite teams' games, even with the app closed.
 - **Game page:** score, each team's season record and shots on goal, and full box scores for both teams.
 - **Standings** by division.
