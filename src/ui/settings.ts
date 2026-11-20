@@ -28,7 +28,7 @@ export interface Settings {
   checkForUpdates: boolean;
   /** Whose TV channels to show: "auto" uses the phone's region. */
   tvRegion: TvRegionPreference;
-  /** Hide scores, box scores, standings and leaders until the user taps to show them (for delayed viewing). */
+  /** Hide scores and box scores until the user taps to show them (for watching games on delay). */
   spoilerShield: boolean;
 }
 

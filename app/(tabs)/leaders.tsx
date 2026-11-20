@@ -2,7 +2,6 @@ import { useState } from "react";
 import { RefreshControl, SectionList, StyleSheet, Text, View } from "react-native";
 import type { FetchOptions } from "../../src/data";
 import { Segmented } from "../../src/ui/components/Segmented";
-import { SpoilerGate } from "../../src/ui/components/ShieldUi";
 import { ErrorView, Loading, OfflineBanner, UpdatedAt } from "../../src/ui/components/States";
 import { TeamLogo } from "../../src/ui/components/TeamLogo";
 import { statValue } from "../../src/ui/format";
@@ -17,16 +16,7 @@ type Kind = "skaters" | "goalies";
 // TODO: when a second league arrives, ask the adapter for its leader categories instead.
 const GOALIE_CATEGORIES = ["wins", "savePctg", "goalsAgainstAverage", "shutouts"];
 
-/** The tab, behind the spoiler shield's gate. */
 export default function LeadersScreen() {
-  return (
-    <SpoilerGate what="Stat leaders">
-      <LeadersScreenContent />
-    </SpoilerGate>
-  );
-}
-
-function LeadersScreenContent() {
   const sports = useSportsData();
   const colors = useColors();
   const [kind, setKind] = useState<Kind>("skaters");

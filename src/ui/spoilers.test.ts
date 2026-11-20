@@ -1,14 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Game, GameStatus } from "../domain";
-import {
-  NO_REVEALS,
-  areTablesHidden,
-  isGameHidden,
-  revealAllGames,
-  revealGame,
-  revealTables,
-  statusLabelFor,
-} from "./spoilers";
+import { NO_REVEALS, isGameHidden, revealAllGames, revealGame, statusLabelFor } from "./spoilers";
 
 const team = (abbrev: string) => ({ id: abbrev, league: "nhl", name: abbrev, abbrev });
 
@@ -59,33 +51,14 @@ describe("isGameHidden", () => {
 
 describe("reveals", () => {
   it("never change the object they were given", () => {
-    const before = { all: false, tables: false, games: ["1"] };
+    const before = { all: false, games: ["1"] };
     revealGame(before, "2");
     revealAllGames(before);
-    revealTables(before);
-    expect(before).toEqual({ all: false, tables: false, games: ["1"] });
+    expect(before).toEqual({ all: false, games: ["1"] });
   });
 
   it("do not add a game twice", () => {
     expect(revealGame(revealGame(NO_REVEALS, "1"), "1").games).toEqual(["1"]);
-  });
-
-  it("keep game reveals and the tables switch apart", () => {
-    expect(revealAllGames(NO_REVEALS).tables).toBe(false);
-    expect(revealTables(NO_REVEALS).all).toBe(false);
-    expect(revealTables(NO_REVEALS).games).toEqual([]);
-  });
-});
-
-describe("areTablesHidden", () => {
-  it("hides Standings and Leaders until opened, only while the shield is on", () => {
-    expect(areTablesHidden(true, NO_REVEALS)).toBe(true);
-    expect(areTablesHidden(true, revealTables(NO_REVEALS))).toBe(false);
-    expect(areTablesHidden(false, NO_REVEALS)).toBe(false);
-  });
-
-  it("is not opened by Show all scores", () => {
-    expect(areTablesHidden(true, revealAllGames(NO_REVEALS))).toBe(true);
   });
 });
 

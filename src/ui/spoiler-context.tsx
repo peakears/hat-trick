@@ -1,16 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import type { Game } from "../domain";
 import { useSettings } from "./settings-context";
-import {
-  NO_REVEALS,
-  areTablesHidden,
-  isGameHidden,
-  revealAllGames,
-  revealGame,
-  revealTables,
-  statusLabelFor,
-  type Reveals,
-} from "./spoilers";
+import { NO_REVEALS, isGameHidden, revealAllGames, revealGame, statusLabelFor, type Reveals } from "./spoilers";
 
 interface SpoilerContextValue {
   /** The Settings switch. */
@@ -19,13 +10,10 @@ interface SpoilerContextValue {
   isHidden: (game: Pick<Game, "id" | "status">) => boolean;
   /** Status text that does not give the result away while the game is hidden. */
   statusLabel: (game: Game) => string;
-  /** Standings and Leaders. */
-  tablesHidden: boolean;
   /** "Show all scores" was tapped, so there is nothing left to reveal on Scores. */
   allRevealed: boolean;
   reveal: (gameId: string) => void;
   revealAll: () => void;
-  revealTables: () => void;
 }
 
 const SpoilerContext = createContext<SpoilerContextValue | null>(null);
@@ -55,11 +43,9 @@ export function SpoilerProvider({ children }: { children: ReactNode }) {
       enabled,
       isHidden,
       statusLabel,
-      tablesHidden: areTablesHidden(enabled, reveals),
       allRevealed: reveals.all,
       reveal: (gameId) => setReveals((r) => revealGame(r, gameId)),
       revealAll: () => setReveals((r) => revealAllGames(r)),
-      revealTables: () => setReveals((r) => revealTables(r)),
     }),
     [enabled, reveals, isHidden, statusLabel],
   );
