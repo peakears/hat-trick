@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.4.0](https://github.com/peakears/hat-trick/compare/v1.3.0...v1.4.0) (2026-11-20)
+
+
+### Features
+
+* **app:** goal summary on the game page ([230e1ef](https://github.com/peakears/hat-trick/commit/230e1efebd928d88fbc90555868c5e22eb47718c)), closes [#19](https://github.com/peakears/hat-trick/issues/19)
+* **app:** show the box score on its own page ([f8dbd95](https://github.com/peakears/hat-trick/commit/f8dbd95460dca444739097ba3105db8cdb5b7829))
+* **app:** show where the game is played ([72552db](https://github.com/peakears/hat-trick/commit/72552db6c31efc6abde4285b4fb60dde809de812))
+* **app:** swipe to change day and limit manual refreshes ([095e3a9](https://github.com/peakears/hat-trick/commit/095e3a9500eb0dd2c5f04b1827f51a2cebf14f9c))
+
+
+### Bug Fixes
+
+* **app:** hide TV channels on finished games' cards ([21b2391](https://github.com/peakears/hat-trick/commit/21b23919b232fbb102921bbad1dcfb3545276346))
+
 ## [1.3.0](https://github.com/peakears/hat-trick/compare/v1.2.1...v1.3.0) (2026-11-20)
 
 
