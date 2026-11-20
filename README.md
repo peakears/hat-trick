@@ -11,6 +11,7 @@ Everything runs on your device: the app talks to public sports APIs directly, wi
 - Scores for any date, with live game clocks
 - Standings
 - Favourite teams: star a team and its games show first
+- A notice when a newer release is available (checked at most once a day, switchable in Settings)
 - Optional puck drop reminders for your favourite teams (a notification before the game starts)
 - Stat leaders
 - Box scores
@@ -25,6 +26,8 @@ Each [release](https://github.com/peakears/hat-trick/releases) has an APK attach
 3. To update, install the newer APK the same way. It replaces the old version and keeps your data.
 
 Android may warn that the app is from an unknown developer, because it is not from the Play Store. That is expected for a sideloaded app.
+
+The app contacts only the NHL's public API (for game data) and GitHub (once a day, to see whether a newer release exists; you can turn this off in Settings). It never downloads or installs updates by itself.
 
 Every pull request also gets a test APK, under **Artifacts** on its CI run. Test APKs are signed with a different key than releases, so Android will not install one over a release (or the other way round): uninstall first.
 

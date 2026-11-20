@@ -5,6 +5,7 @@ import { CrashScreen } from "../src/ui/components/States";
 import { useReminderSync, useReminderTaps } from "../src/ui/use-reminders";
 import { SettingsProvider } from "../src/ui/settings-context";
 import { SportsDataProvider } from "../src/ui/sports-data-context";
+import { UpdateProvider } from "../src/ui/update-context";
 import { darkColors, lightColors } from "../src/ui/theme";
 
 /** Catches a render error anywhere in the app, so a release build never shows a blank screen. */
@@ -38,14 +39,16 @@ export default function RootLayout() {
   return (
     <SettingsProvider>
       <SportsDataProvider>
-        <ThemeProvider value={theme}>
-          <Stack>
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen name="game/[id]" options={{ title: "Game" }} />
-          </Stack>
-          <Reminders />
-          <StatusBar style="auto" />
-        </ThemeProvider>
+        <UpdateProvider>
+          <ThemeProvider value={theme}>
+            <Stack>
+              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+              <Stack.Screen name="game/[id]" options={{ title: "Game" }} />
+            </Stack>
+            <Reminders />
+            <StatusBar style="auto" />
+          </ThemeProvider>
+        </UpdateProvider>
       </SportsDataProvider>
     </SettingsProvider>
   );

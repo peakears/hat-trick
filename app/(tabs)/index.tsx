@@ -4,6 +4,7 @@ import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from "rea
 import { DatePickerButton } from "../../src/ui/components/DatePickerButton";
 import { GameCard } from "../../src/ui/components/GameCard";
 import { Empty, ErrorView, Loading, OfflineBanner, UpdatedAt } from "../../src/ui/components/States";
+import { UpdateBanner } from "../../src/ui/components/UpdateBanner";
 import { addDays, dateLabel, sortGamesForScores } from "../../src/ui/format";
 import { useSettings } from "../../src/ui/settings-context";
 import { LEAGUE, useSportsData } from "../../src/ui/sports-data-context";
@@ -45,6 +46,7 @@ export default function ScoresScreen() {
           <Ionicons name="chevron-forward" size={24} color={colors.accent} />
         </Pressable>
       </View>
+      <UpdateBanner />
       <OfflineBanner meta={scores.meta} />
 
       {scores.loading ? (

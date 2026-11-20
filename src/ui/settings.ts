@@ -23,6 +23,8 @@ export interface Settings {
   /** Notify before a favourite team's game starts. Needs the notification permission. */
   remindersEnabled: boolean;
   reminderLeadMinutes: ReminderLead;
+  /** Look for a newer release on GitHub (at most once a day). The only request the app makes besides game data. */
+  checkForUpdates: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -32,6 +34,7 @@ export const DEFAULT_SETTINGS: Settings = {
   favoriteTeams: [],
   remindersEnabled: false,
   reminderLeadMinutes: 30,
+  checkForUpdates: true,
 };
 
 export const SETTINGS_KEY = "settings:v1";
@@ -49,6 +52,7 @@ const schema = z.object({
     .catch([]),
   remindersEnabled: z.boolean().catch(DEFAULT_SETTINGS.remindersEnabled),
   reminderLeadMinutes: z.literal(REMINDER_LEADS).catch(DEFAULT_SETTINGS.reminderLeadMinutes),
+  checkForUpdates: z.boolean().catch(DEFAULT_SETTINGS.checkForUpdates),
 });
 
 export function parseSettings(raw: string | null): Settings {
