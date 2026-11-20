@@ -18,10 +18,10 @@ export function WhereToWatch({ game }: { game: Game }) {
     <View
       style={[styles.box, { backgroundColor: colors.card }]}
       accessible
-      accessibilityLabel={`Where to watch: ${channelsLabel(channels)}`}
+      accessibilityLabel={`${game.status === "final" ? "Aired on" : "Where to watch"}: ${channelsLabel(channels)}`}
     >
       <Text style={[styles.title, { color: colors.muted }]} importantForAccessibility="no">
-        WHERE TO WATCH
+        {game.status === "final" ? "AIRED ON" : "WHERE TO WATCH"}
       </Text>
       {national.length > 0 && (
         <Text style={[styles.names, { color: colors.text }]} importantForAccessibility="no">

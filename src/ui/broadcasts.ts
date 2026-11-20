@@ -1,4 +1,4 @@
-import type { Broadcast, BroadcastMarket, Game } from "../domain";
+import type { Broadcast, BroadcastMarket, Game, GameStatus } from "../domain";
 
 /**
  * Which TV channels to show for a game. Pure module: no React Native imports, so it is unit tested.
@@ -17,6 +17,14 @@ export interface Channel {
   market: BroadcastMarket;
   /** Abbreviation of the team a home or away feed belongs to, e.g. "FLA". Absent for national channels. */
   teamAbbrev?: string;
+}
+
+/**
+ * Whether a Scores card shows channels: only before and during a game. Once it is over (or called
+ * off) they are noise; the game page still lists where it aired.
+ */
+export function showsChannelsOnCard(status: GameStatus): boolean {
+  return status === "scheduled" || status === "live";
 }
 
 /** The country code to filter by: the manual choice, or the phone's region, or none when unknown. */

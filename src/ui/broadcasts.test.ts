@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Broadcast, Game } from "../domain";
-import { channelsFor, channelsLabel, resolveRegion, summarizeChannels } from "./broadcasts";
+import { channelsFor, channelsLabel, resolveRegion, showsChannelsOnCard, summarizeChannels } from "./broadcasts";
 
 const team = (abbrev: string) => ({ id: abbrev, league: "nhl", name: abbrev, abbrev });
 
@@ -59,6 +59,15 @@ describe("channelsFor", () => {
     expect(channelsFor(game([]), "CA")).toEqual([]);
     expect(channelsFor(game([b("TNT", "US", "national")]), "CA")).toEqual([]);
     expect(channelsFor(g, "GB")).toEqual([]);
+  });
+});
+
+describe("showsChannelsOnCard", () => {
+  it("shows channels before and during a game only", () => {
+    expect(showsChannelsOnCard("scheduled")).toBe(true);
+    expect(showsChannelsOnCard("live")).toBe(true);
+    expect(showsChannelsOnCard("final")).toBe(false);
+    expect(showsChannelsOnCard("postponed")).toBe(false);
   });
 });
 
