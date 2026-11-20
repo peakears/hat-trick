@@ -50,6 +50,14 @@ export const RawClockSchema = z.object({
   inIntermission: bool("clock.inIntermission"),
 });
 
+// One TV listing. "N" national, "H" home team's feed, "A" away team's. Seen countries: "CA", "US".
+export const RawBroadcastSchema = z.object({
+  network: z.string(), // "SN", "TNT", "NESN", sometimes with a trailing space ("ABTV ")
+  countryCode: z.string(),
+  market: z.string(),
+  sequenceNumber: num("tvBroadcasts.sequenceNumber"),
+});
+
 export const RawGameSchema = z.object({
   id: z.number(),
   startTimeUTC: z.string(),
@@ -66,6 +74,8 @@ export const RawGameSchema = z.object({
   clock: minor(RawClockSchema, "clock"),
   // Final games only: "REG" | "OT" | "SO".
   gameOutcome: minor(z.object({ lastPeriodType: z.string() }), "gameOutcome"),
+  // A bad listing is dropped on its own, so TV info can never break the scores.
+  tvBroadcasts: lenientArray(RawBroadcastSchema, "tvBroadcasts"),
 });
 
 export const RawScoreResponseSchema = z.object({
@@ -188,6 +198,7 @@ export const RawLeadersResponseSchema = z.record(z.string(), z.array(RawLeaderSc
 
 export type Localized = z.output<typeof LocalizedSchema>;
 export type RawTeam = z.output<typeof RawTeamSchema>;
+export type RawBroadcast = z.output<typeof RawBroadcastSchema>;
 export type RawGame = z.output<typeof RawGameSchema>;
 export type RawScoreResponse = z.output<typeof RawScoreResponseSchema>;
 export type RawSkater = z.output<typeof RawSkaterSchema>;

@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from "react";
 import { Linking, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
+import { TV_REGIONS, type TvRegionPreference } from "../../src/ui/broadcasts";
 import { Segmented } from "../../src/ui/components/Segmented";
 import { timeLabel } from "../../src/ui/format";
 import { RELEASES_URL, REPO_URL, reportProblemUrl } from "../../src/ui/links";
@@ -15,6 +16,9 @@ const THEME_OPTIONS: { value: ThemePreference; label: string }[] = [
   { value: "light", label: "Light" },
   { value: "dark", label: "Dark" },
 ];
+
+const TV_REGION_LABELS: Record<TvRegionPreference, string> = { auto: "Auto", CA: "Canada", US: "US" };
+const TV_REGION_OPTIONS = TV_REGIONS.map((value) => ({ value, label: TV_REGION_LABELS[value] }));
 
 const LEAD_OPTIONS = REMINDER_LEADS.map((n) => ({ value: String(n), label: `${n} min` }));
 
@@ -53,6 +57,22 @@ export default function SettingsScreen() {
           value={settings.showBetting}
           onChange={(showBetting) => update({ showBetting })}
           last
+        />
+      </Section>
+
+      <Section title="TV channels">
+        <View style={styles.row}>
+          <View style={styles.rowText}>
+            <Text style={[styles.label, { color: colors.text }]}>Show channels for</Text>
+            <Text style={[styles.detail, { color: colors.muted }]}>
+              Auto uses your phone's region. Pick a country if it's wrong, for example when travelling.
+            </Text>
+          </View>
+        </View>
+        <Segmented
+          options={TV_REGION_OPTIONS}
+          value={settings.tvRegion}
+          onChange={(tvRegion) => update({ tvRegion })}
         />
       </Section>
 

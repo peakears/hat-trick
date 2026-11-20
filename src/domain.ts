@@ -43,6 +43,15 @@ export interface GameSide {
   shotsOnGoal?: number;
 }
 
+/** Who a TV feed is for: everyone in a country, or only fans of the home or away team. */
+export type BroadcastMarket = "national" | "home" | "away";
+
+export interface Broadcast {
+  network: string; // "SN", "TNT", "NESN" - as the league names it, trimmed
+  country: string; // ISO 3166 alpha-2, "CA" or "US"
+  market: BroadcastMarket;
+}
+
 export interface Game {
   id: string;
   league: LeagueId;
@@ -52,6 +61,8 @@ export interface Game {
   endedIn?: GameEnding; // only when final
   home: GameSide;
   away: GameSide;
+  /** TV listings in every country the league reports, in the league's order. Empty or absent when none are known. */
+  broadcasts?: Broadcast[];
 }
 
 // ---------- Generic stat tables ----------

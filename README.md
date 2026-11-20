@@ -11,10 +11,11 @@ Everything runs on your device: the app talks to public sports APIs directly, wi
 - **Scores** for any date, with live game clocks. Live games are listed first, then upcoming, then finished. Step a day with the arrows, or tap the calendar to jump to any date; tap the date to return to today.
 - **Favourite teams:** star a team on Standings or a game page. Their games show first on Scores with the team name in the accent colour, and Standings marks them.
 - **Puck drop reminders** (optional): a notification 10 to 60 minutes before your favourite teams' games, even with the app closed.
+- **TV channels:** each game shows where to watch it, for your country (Canada or US, from your phone's region, or set it in Settings). National channels are bold, and the Scores list shows the first three. The game page has the full list. Games with no listing for your country show nothing.
 - **Game page:** score, each team's season record and shots on goal, and full box scores for both teams.
 - **Standings** by division.
 - **Stat leaders** for skaters and goalies.
-- **Settings:** light, dark or system theme, team logos on or off (off shows team abbreviations), favourite teams, reminders and update checks.
+- **Settings:** light, dark or system theme, team logos on or off (off shows team abbreviations), TV channel country, favourite teams, reminders and update checks.
 - **Update notice:** a banner when a newer release is available, checked at most once a day (switchable). The app never downloads or installs anything by itself. **Settings > About** shows the version, release notes and a "Report a problem" link that opens a GitHub issue with your app version filled in.
 - **Works offline** with the last data it fetched. Live games refresh about every 20 seconds while the app is open.
 - No account, no ads, no tracking: the app talks only to the NHL's public API and, for the update notice, GitHub.
@@ -78,7 +79,7 @@ league adapters -> domain model -> on-device cache -> app UI
 - `src/ui/`: React Native pieces shared by screens (polling hook, settings, components, formatting)
 - `app/`: the screens, using [Expo Router](https://docs.expo.dev/router/introduction/) (one file per route): the Scores, Standings, Leaders and Settings tabs, and the game page
 
-Settings (including favourite teams) are stored on the device, separately from cached data. Puck drop reminders are local notifications scheduled on the device. The only other network request is the daily update check against GitHub.
+Settings (including favourite teams) are stored on the device, separately from cached data. Puck drop reminders are local notifications scheduled on the device. The TV country is read from the phone's region setting, with no location permission and no network request. The only other network request is the daily update check against GitHub.
 
 Adding a league means writing a new adapter that implements `LeagueAdapter` and passes the shared contract tests in `src/contract/`. Nothing above it changes.
 
