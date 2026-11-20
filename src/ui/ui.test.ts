@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { DataMeta } from "../data";
-import type { Game, GameStatus } from "../domain";
-import { addDays, dateLabel, dateToPickerValue, gameStatusLabel, localDate, pickerValueToDate, scoresToday, sortGamesForScores, statValue, winner } from "./format";
+import type { Game, GameStatus, Standings } from "../domain";
+import { addDays, dateLabel, dateToPickerValue, gameStatusLabel, localDate, pickerValueToDate, recordLabel, scoresToday, sortGamesForScores, statValue, teamRecord, winner } from "./format";
 import { POLL, combineFetched, nextPollDelay } from "./polling";
 
 const NOW = Date.parse("2026-11-17T23:00:00Z");
@@ -130,6 +130,34 @@ describe("scores order", () => {
     const games = [at("b", "live", "2026-11-18T00:00:00Z"), at("a", "live", "2026-11-18T00:00:00Z")];
     expect(sortGamesForScores(games).map((g) => g.id)).toEqual(["a", "b"]);
     expect(games.map((g) => g.id)).toEqual(["b", "a"]);
+  });
+});
+
+describe("team records", () => {
+  const team = (abbrev: string) => ({ id: abbrev, league: "nhl", name: abbrev, abbrev });
+  const standings: Standings = {
+    league: "nhl",
+    updatedAt: "2026-11-19T12:00:00Z",
+    groups: [
+      { name: "Atlantic", rows: [{ team: team("TOR"), rank: 1, gamesPlayed: 21, wins: 13, losses: 7, otLosses: 1 }] },
+      { name: "Pacific", rows: [{ team: team("LAK"), rank: 1, gamesPlayed: 20, wins: 12, losses: 8, otLosses: 0 }] },
+    ],
+  };
+
+  it("formats W-L-OT, or W-L when the league has no OT losses", () => {
+    expect(recordLabel({ wins: 13, losses: 7, otLosses: 1 })).toBe("13-7-1");
+    expect(recordLabel({ wins: 12, losses: 8, otLosses: 0 })).toBe("12-8-0");
+    expect(recordLabel({ wins: 30, losses: 12 })).toBe("30-12");
+  });
+
+  it("finds a team's record in any standings group", () => {
+    expect(teamRecord(standings, team("TOR"))).toBe("13-7-1");
+    expect(teamRecord(standings, team("LAK"))).toBe("12-8-0");
+  });
+
+  it("returns undefined for a missing team or no standings", () => {
+    expect(teamRecord(standings, team("SEA"))).toBeUndefined();
+    expect(teamRecord(undefined, team("TOR"))).toBeUndefined();
   });
 });
 
