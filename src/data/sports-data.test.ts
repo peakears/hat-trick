@@ -247,8 +247,9 @@ describe("SportsData with the NHL adapter", () => {
     box.playerByGameStats.homeTeam.goalies[1].savePctg = ".905";
     let calls = 0;
     const nhl = new NhlAdapter({
-      fetch: async () => {
-        calls++;
+      fetch: async (input) => {
+        // A game detail also reads the day's scores for the goals; only the box score counts here.
+        if (String(input).endsWith("/boxscore")) calls++;
         return new Response(JSON.stringify(box));
       },
       onWarning: () => {

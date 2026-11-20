@@ -8,6 +8,7 @@ import { Segmented } from "../../src/ui/components/Segmented";
 import { CrashScreen, Empty, ErrorView, Loading, OfflineBanner, UpdatedAt } from "../../src/ui/components/States";
 import { StatTableView } from "../../src/ui/components/StatTableView";
 import { TeamLogo } from "../../src/ui/components/TeamLogo";
+import { GoalSummary } from "../../src/ui/components/GoalSummary";
 import { WhereToWatch } from "../../src/ui/components/WhereToWatch";
 import { teamRecord } from "../../src/ui/format";
 import { useSpoilers } from "../../src/ui/spoiler-context";
@@ -42,7 +43,7 @@ export default function GameScreen() {
     );
   }
 
-  const { game, boxscore } = detail.data;
+  const { game, boxscore, goals } = detail.data;
   const live = game.status === "live";
   // While hidden: no score, shots, box score, and no records (the standings already count a finished game).
   const hidden = spoilers.isHidden(game);
@@ -109,6 +110,8 @@ export default function GameScreen() {
         </View>
 
         <WhereToWatch game={game} />
+
+        {!hidden && goals && <GoalSummary goals={goals} />}
 
         {hidden ? (
           <Empty message="Box score hidden by the spoiler shield. Tap Show score to see it." />

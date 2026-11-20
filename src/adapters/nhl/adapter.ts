@@ -3,6 +3,7 @@ import type {
   AdapterWarning,
   Game,
   GameDetail,
+  Goal,
   LeaderBoard,
   LeaderQuery,
   LeagueAdapter,
@@ -11,7 +12,7 @@ import type {
 } from "../../domain";
 import { NhlClient, type NhlClientOptions } from "./client";
 import { GOALIE_LEADER_CATEGORIES, LEAGUE, SKATER_LEADER_CATEGORIES } from "./constants";
-import { mapBoxscoreSide, mapGame, mapLeaders, mapStandings } from "./mappers";
+import { mapBoxscoreSide, mapGame, mapGoals, mapLeaders, mapStandings } from "./mappers";
 import {
   RawBoxscoreSchema,
   RawLeadersResponseSchema,
@@ -74,12 +75,28 @@ export class NhlAdapter implements LeagueAdapter {
 
   async getGameDetail(gameId: string, options?: RequestOptions): Promise<GameDetail> {
     const raw = await this.fetch(`/gamecenter/${gameId}/boxscore`, RawBoxscoreSchema, options);
+    const game = mapGame(raw);
     return {
-      game: mapGame(raw),
+      game,
+      goals: game.status === "scheduled" ? undefined : await this.getGoals(raw.id, raw.gameDate, options),
       boxscore: {
         home: mapBoxscoreSide(raw.playerByGameStats?.homeTeam),
         away: mapBoxscoreSide(raw.playerByGameStats?.awayTeam),
       },
     };
+  }
+
+  /**
+   * The box score has no scoring summary, but the scores response for the game's date does.
+   * Goals are an extra: if this call fails the game page still shows, without them.
+   */
+  private async getGoals(id: number, date: string | undefined, options?: RequestOptions): Promise<Goal[] | undefined> {
+    if (!date) return undefined;
+    try {
+      const raw = await this.fetch(`/score/${date}`, RawScoreResponseSchema, options);
+      return mapGoals(raw.games?.find((g) => g.id === id)?.goals);
+    } catch {
+      return undefined;
+    }
   }
 }

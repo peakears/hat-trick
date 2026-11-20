@@ -6,6 +6,8 @@ import type {
   GameEnding,
   GameSide,
   GameStatus,
+  Goal,
+  GoalStrength,
   LeaderBoard,
   Player,
   StatColumn,
@@ -18,6 +20,7 @@ import { GOALIE_COLUMNS, LEADER_LABELS, LEAGUE, SKATER_COLUMNS } from "./constan
 import type {
   RawBroadcast,
   RawGame,
+  RawGoal,
   RawGoalie,
   RawLeadersResponse,
   RawSideStats,
@@ -139,6 +142,42 @@ export function mapGame(raw: RawGame): Game {
     away: mapSide(raw.awayTeam, status),
     broadcasts: mapBroadcasts(raw.tvBroadcasts),
   };
+}
+
+const STRENGTHS: Record<string, GoalStrength> = { pp: "powerPlay", sh: "shortHanded" };
+
+function goalPeriodLabel(raw: RawGoal): string {
+  const pd = raw.periodDescriptor;
+  if (pd?.periodType === "SO") return "SO";
+  if (pd?.periodType === "OT") {
+    // Playoff overtimes carry on from the regulation count: period 4 is OT, 5 is 2OT.
+    const n = raw.period - (pd.maxRegulationPeriods ?? 3);
+    return n > 1 ? `${n}OT` : "OT";
+  }
+  return ordinal(raw.period);
+}
+
+/** Goals in the order the API lists them (the order scored). */
+export function mapGoals(raw: RawGoal[] | undefined): Goal[] | undefined {
+  if (!raw) return undefined;
+  return raw.map((g) => ({
+    teamId: g.teamAbbrev,
+    period: g.period,
+    periodLabel: goalPeriodLabel(g),
+    time: g.timeInPeriod,
+    scorer: { id: String(g.playerId), league: LEAGUE, name: g.name.default, teamId: g.teamAbbrev },
+    assists: (g.assists ?? []).map((a) => ({
+      id: String(a.playerId),
+      league: LEAGUE,
+      name: a.name.default,
+      teamId: g.teamAbbrev,
+    })),
+    strength: STRENGTHS[g.strength ?? ""] ?? "even",
+    emptyNet: g.goalModifier === "empty-net",
+    penaltyShot: g.goalModifier === "penalty-shot",
+    homeScore: g.homeScore,
+    awayScore: g.awayScore,
+  }));
 }
 
 function mapPlayer(raw: { playerId: number; name: { default: string }; position?: string }): Player {
