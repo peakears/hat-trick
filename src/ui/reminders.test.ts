@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 import type { Game, GameStatus } from "../domain";
-import { diffReminders, planReminders, reminderId, type Reminder } from "./reminders";
+import {
+  diffReminders,
+  parseScheduled,
+  planReminders,
+  reminderId,
+  serializeScheduled,
+  type Reminder,
+} from "./reminders";
 
 const NOW = Date.parse("2026-11-20T12:00:00Z");
 
@@ -96,5 +103,33 @@ describe("diffReminders", () => {
       cancel: [reminderId("a")],
       schedule: [changed],
     });
+  });
+});
+
+describe("parseScheduled / serializeScheduled", () => {
+  it("round-trips", () => {
+    const list = [
+      { id: reminderId("a"), fireAt: 1 },
+      { id: reminderId("b"), fireAt: 2 },
+    ];
+    expect(parseScheduled(serializeScheduled(list))).toEqual(list);
+  });
+
+  it("returns an empty list for nothing stored, corrupt JSON or the wrong shape", () => {
+    expect(parseScheduled(null)).toEqual([]);
+    expect(parseScheduled("{not json")).toEqual([]);
+    expect(parseScheduled('{"id":"x"}')).toEqual([]);
+  });
+
+  it("drops entries that are malformed or not ours", () => {
+    const raw = JSON.stringify([
+      { id: reminderId("ok"), fireAt: 5 },
+      { id: "someone-else:1", fireAt: 5 },
+      { id: reminderId("no-time") },
+      { id: reminderId("bad-time"), fireAt: "soon" },
+      null,
+      7,
+    ]);
+    expect(parseScheduled(raw)).toEqual([{ id: reminderId("ok"), fireAt: 5 }]);
   });
 });

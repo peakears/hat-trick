@@ -2,6 +2,7 @@ import { DarkTheme, DefaultTheme, Stack, ThemeProvider, type ErrorBoundaryProps 
 import { StatusBar } from "expo-status-bar";
 import { useColorScheme } from "react-native";
 import { CrashScreen } from "../src/ui/components/States";
+import { useReminderSync, useReminderTaps } from "../src/ui/use-reminders";
 import { SettingsProvider } from "../src/ui/settings-context";
 import { SportsDataProvider } from "../src/ui/sports-data-context";
 import { darkColors, lightColors } from "../src/ui/theme";
@@ -9,6 +10,13 @@ import { darkColors, lightColors } from "../src/ui/theme";
 /** Catches a render error anywhere in the app, so a release build never shows a blank screen. */
 export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
   return <CrashScreen error={error} retry={retry} />;
+}
+
+/** Mounted inside the providers: schedules puck drop reminders and opens the game when one is tapped. */
+function Reminders() {
+  useReminderSync();
+  useReminderTaps();
+  return null;
 }
 
 export default function RootLayout() {
@@ -35,6 +43,7 @@ export default function RootLayout() {
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             <Stack.Screen name="game/[id]" options={{ title: "Game" }} />
           </Stack>
+          <Reminders />
           <StatusBar style="auto" />
         </ThemeProvider>
       </SportsDataProvider>

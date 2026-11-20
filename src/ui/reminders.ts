@@ -78,3 +78,29 @@ export function diffReminders(scheduled: readonly ScheduledReminder[], planned: 
   const schedule = planned.filter((r) => existing.get(r.id)?.fireAt !== r.fireAt);
   return { cancel, schedule };
 }
+
+/** Where the app remembers what it scheduled (outside `cache:`, so pruning never drops it). */
+export const SCHEDULED_KEY = "reminders:scheduled:v1";
+
+export function serializeScheduled(reminders: readonly ScheduledReminder[]): string {
+  return JSON.stringify(reminders.map(({ id, fireAt }) => ({ id, fireAt })));
+}
+
+/** Reads the stored list back; anything corrupt or malformed is dropped rather than trusted. */
+export function parseScheduled(raw: string | null): ScheduledReminder[] {
+  if (raw == null) return [];
+  let json: unknown;
+  try {
+    json = JSON.parse(raw);
+  } catch {
+    return [];
+  }
+  if (!Array.isArray(json)) return [];
+  return json.flatMap((item): ScheduledReminder[] => {
+    if (typeof item !== "object" || item === null) return [];
+    const { id, fireAt } = item as Record<string, unknown>;
+    return typeof id === "string" && id.startsWith(REMINDER_ID_PREFIX) && typeof fireAt === "number"
+      ? [{ id, fireAt }]
+      : [];
+  });
+}

@@ -1,8 +1,9 @@
 import Constants from "expo-constants";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
 import { Segmented } from "../../src/ui/components/Segmented";
-import type { ThemePreference } from "../../src/ui/settings";
+import { requestReminderPermission } from "../../src/ui/reminders-native";
+import { REMINDER_LEADS, type ReminderLead, type ThemePreference } from "../../src/ui/settings";
 import { useSettings } from "../../src/ui/settings-context";
 import { useColors } from "../../src/ui/theme";
 
@@ -12,9 +13,22 @@ const THEME_OPTIONS: { value: ThemePreference; label: string }[] = [
   { value: "dark", label: "Dark" },
 ];
 
+const LEAD_OPTIONS = REMINDER_LEADS.map((n) => ({ value: String(n), label: `${n} min` }));
+
 export default function SettingsScreen() {
   const colors = useColors();
   const { settings, update } = useSettings();
+  const [permissionDenied, setPermissionDenied] = useState(false);
+
+  // Turning reminders on asks for the notification permission first; it stays off if refused.
+  const setReminders = async (enabled: boolean) => {
+    if (enabled && !(await requestReminderPermission().catch(() => false))) {
+      setPermissionDenied(true);
+      return;
+    }
+    setPermissionDenied(false);
+    update({ remindersEnabled: enabled });
+  };
 
   return (
     <ScrollView style={{ backgroundColor: colors.background }} contentContainerStyle={styles.content}>
@@ -59,6 +73,34 @@ export default function SettingsScreen() {
             </Pressable>
           )}
         </View>
+      </Section>
+
+      <Section title="Reminders">
+        <ToggleRow
+          label="Puck drop reminders"
+          detail={
+            permissionDenied
+              ? "Notifications are blocked. Allow them for Hat Trick in your phone's settings, then try again."
+              : settings.favoriteTeams.length === 0
+                ? "Notifies you before your favourite teams' games. Star a team first."
+                : "Notifies you before your favourite teams' games."
+          }
+          value={settings.remindersEnabled}
+          onChange={setReminders}
+          last={!settings.remindersEnabled}
+        />
+        {settings.remindersEnabled && (
+          <View style={styles.row}>
+            <Text style={[styles.label, { color: colors.text }]}>Remind me</Text>
+            <View style={styles.leadPicker}>
+              <Segmented
+                options={LEAD_OPTIONS}
+                value={String(settings.reminderLeadMinutes)}
+                onChange={(v) => update({ reminderLeadMinutes: Number(v) as ReminderLead })}
+              />
+            </View>
+          </View>
+        )}
       </Section>
 
       <Text style={[styles.footer, { color: colors.muted }]}>
@@ -123,5 +165,6 @@ const styles = StyleSheet.create({
   rowText: { flex: 1, gap: 2 },
   label: { fontSize: 16 },
   detail: { fontSize: 13 },
+  leadPicker: { flex: 1 },
   footer: { textAlign: "center", fontSize: 12, lineHeight: 18 },
 });
