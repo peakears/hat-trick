@@ -1,11 +1,14 @@
-import Constants from "expo-constants";
 import { useState, type ReactNode } from "react";
-import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
+import { Linking, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
 import { Segmented } from "../../src/ui/components/Segmented";
+import { timeLabel } from "../../src/ui/format";
+import { KOFI_URL, RELEASES_URL, REPO_URL, reportProblemUrl } from "../../src/ui/links";
 import { requestReminderPermission } from "../../src/ui/reminders-native";
 import { REMINDER_LEADS, type ReminderLead, type ThemePreference } from "../../src/ui/settings";
 import { useSettings } from "../../src/ui/settings-context";
+import type { UpdateStatus } from "../../src/ui/updates";
 import { useColors } from "../../src/ui/theme";
+import { APP_VERSION, useUpdate } from "../../src/ui/update-context";
 
 const THEME_OPTIONS: { value: ThemePreference; label: string }[] = [
   { value: "system", label: "System" },
@@ -18,6 +21,7 @@ const LEAD_OPTIONS = REMINDER_LEADS.map((n) => ({ value: String(n), label: `${n}
 export default function SettingsScreen() {
   const colors = useColors();
   const { settings, update } = useSettings();
+  const { status, checking, checkNow } = useUpdate();
   const [permissionDenied, setPermissionDenied] = useState(false);
 
   // Turning reminders on asks for the notification permission first; it stays off if refused.
@@ -103,10 +107,46 @@ export default function SettingsScreen() {
         )}
       </Section>
 
-      <Text style={[styles.footer, { color: colors.muted }]}>
-        Hat Trick {Constants.expoConfig?.version ?? ""}
-        {"\n"}Not affiliated with the NHL or any team.
-      </Text>
+      <Section title="About">
+        <View style={[styles.row, styles.divider, { borderBottomColor: colors.border }]}>
+          <View style={styles.rowText}>
+            <Text style={[styles.label, { color: colors.text }]}>Hat Trick {APP_VERSION}</Text>
+            <Text style={[styles.detail, { color: colors.muted }]}>{updateDetail(status, checking)}</Text>
+          </View>
+          {status.kind === "available" ? (
+            <Pressable
+              onPress={() => Linking.openURL(status.release.apkUrl ?? status.release.url).catch(() => {})}
+              hitSlop={8}
+              accessibilityRole="link"
+              accessibilityLabel={`Download version ${status.release.version}`}
+            >
+              <Text style={[styles.label, styles.linkText, { color: colors.accent }]}>Download</Text>
+            </Pressable>
+          ) : (
+            <Pressable onPress={checkNow} disabled={checking} hitSlop={8} accessibilityRole="button">
+              <Text style={[styles.label, styles.linkText, { color: checking ? colors.muted : colors.accent }]}>
+                Check now
+              </Text>
+            </Pressable>
+          )}
+        </View>
+        <ToggleRow
+          label="Check for updates automatically"
+          detail="Asks GitHub for the latest release at most once a day. Nothing is downloaded or installed without you."
+          value={settings.checkForUpdates}
+          onChange={(checkForUpdates) => update({ checkForUpdates })}
+        />
+        <LinkRow label="GitHub repository" detail="peakears/hat-trick" url={REPO_URL} />
+        <LinkRow label="Release notes" url={RELEASES_URL} />
+        <LinkRow
+          label="Report a problem"
+          detail="Opens a new issue with your app version filled in."
+          url={reportProblemUrl({ version: APP_VERSION, platform: Platform.OS, osVersion: Platform.Version })}
+        />
+        <LinkRow label="Support on Ko-fi" url={KOFI_URL} last />
+      </Section>
+
+      <Text style={[styles.footer, { color: colors.muted }]}>Not affiliated with the NHL or any team.</Text>
     </ScrollView>
   );
 }
@@ -118,6 +158,38 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
       <Text style={[styles.sectionTitle, { color: colors.muted }]}>{title.toUpperCase()}</Text>
       <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>{children}</View>
     </View>
+  );
+}
+
+/** What the About section says under the version. */
+function updateDetail(status: UpdateStatus, checking: boolean): string {
+  if (checking) return "Checking for updates...";
+  switch (status.kind) {
+    case "available":
+      return `Version ${status.release.version} is available.`;
+    case "up-to-date":
+      return `Up to date. Checked ${timeLabel(new Date(status.checkedAt).toISOString())}.`;
+    case "error":
+      return `${status.message}.`;
+    case "unknown":
+      return "Not checked yet.";
+  }
+}
+
+/** A row that opens a web page in the browser. */
+function LinkRow({ label, detail, url, last = false }: { label: string; detail?: string; url: string; last?: boolean }) {
+  const colors = useColors();
+  return (
+    <Pressable
+      onPress={() => Linking.openURL(url).catch(() => {})}
+      accessibilityRole="link"
+      style={[styles.row, !last && styles.divider, !last && { borderBottomColor: colors.border }]}
+    >
+      <View style={styles.rowText}>
+        <Text style={[styles.label, { color: colors.text }]}>{label}</Text>
+        {detail ? <Text style={[styles.detail, { color: colors.muted }]}>{detail}</Text> : null}
+      </View>
+    </Pressable>
   );
 }
 
@@ -166,5 +238,7 @@ const styles = StyleSheet.create({
   label: { fontSize: 16 },
   detail: { fontSize: 13 },
   leadPicker: { flex: 1 },
+  divider: { borderBottomWidth: StyleSheet.hairlineWidth },
+  linkText: { fontWeight: "600" },
   footer: { textAlign: "center", fontSize: 12, lineHeight: 18 },
 });

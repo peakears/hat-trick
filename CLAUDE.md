@@ -40,6 +40,7 @@ adapters -> domain model -> on-device cache -> Expo app UI
 - Cached entries are stored under `cache:` keys with a `CACHE_VERSION`. Bump it whenever the shape of a domain type changes, or old cached data will be read as the new shape.
 - Tests never hit the live API. Use recorded fixtures; simulate drift by editing a fixture in the test.
 - API keys (for future leagues that need them) are entered by the user in the app and stored with `expo-secure-store`. Never commit keys; keyless leagues like NHL must work with no setup.
+- Update checks (`src/ui/updates.ts`, `update-context.tsx`): the app asks `api.github.com/repos/peakears/hat-trick/releases/latest` at most once a day (switch in Settings; "Check now" forces it) and shows a banner on Scores plus a row in Settings > About. It never downloads or installs anything: it opens the release or APK link in the browser, and only links under `https://github.com/peakears/hat-trick/` are accepted. This and the NHL API are the app's only network calls; keep it that way and keep the README's privacy line true.
 - Never commit league logos or other trademarked assets. Logo URLs are fetched from the API at runtime. The app's own icon in `assets/images/` is original artwork.
 
 ## On-device constraints

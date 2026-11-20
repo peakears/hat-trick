@@ -16,7 +16,7 @@ describe("parseSettings", () => {
     expect(parseSettings(null)).toEqual(DEFAULT_SETTINGS);
   });
 
-  it("has betting off, logos on, no favourite teams and reminders off by default", () => {
+  it("has betting off, logos on, no favourite teams, reminders off and update checks on by default", () => {
     expect(DEFAULT_SETTINGS).toEqual({
       theme: "system",
       showLogos: true,
@@ -24,6 +24,7 @@ describe("parseSettings", () => {
       favoriteTeams: [],
       remindersEnabled: false,
       reminderLeadMinutes: 30,
+      checkForUpdates: true,
     });
   });
 
@@ -42,6 +43,7 @@ describe("parseSettings", () => {
       favoriteTeams: [],
       remindersEnabled: false,
       reminderLeadMinutes: 30,
+      checkForUpdates: true,
     });
     expect(parseSettings(JSON.stringify({ theme: "purple", showBetting: true }))).toEqual({
       theme: "system",
@@ -50,6 +52,7 @@ describe("parseSettings", () => {
       favoriteTeams: [],
       remindersEnabled: false,
       reminderLeadMinutes: 30,
+      checkForUpdates: true,
     });
   });
 
@@ -83,6 +86,7 @@ describe("loadSettings / saveSettings", () => {
       favoriteTeams: ["TOR"],
       remindersEnabled: true,
       reminderLeadMinutes: 15,
+      checkForUpdates: false,
     };
     await saveSettings(store, settings);
     expect(await loadSettings(store)).toEqual(settings);
