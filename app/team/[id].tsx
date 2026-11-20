@@ -27,8 +27,8 @@ function recordParts(row: StandingRow): { label: string; value: number }[] {
 /** The smaller numbers under the record, skipping any the league does not have. */
 function statTiles(row: StandingRow): { label: string; value: string }[] {
   const tiles = [
-    { label: "Points", value: row.points?.toString() },
     { label: "Games", value: row.gamesPlayed.toString() },
+    { label: "Points", value: row.points?.toString() },
     { label: "Streak", value: row.streak },
     {
       label: "Goal diff",
