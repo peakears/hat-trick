@@ -86,20 +86,17 @@ Adding a league means writing a new adapter that implements `LeagueAdapter` and 
 
 ## Roadmap
 
-Released:
-
-- **1.0:** Android app with scores, standings, leaders and box scores; on-device cache with offline support
-- **1.1:** Settings tab (theme, team logos), calendar date picker, live games first on Scores, season records on the game page
-- **1.2:** Favourite teams, optional puck drop reminders, an update notice, and Settings > About with version info and links
-- **1.3:** TV channels for your country on every game, an optional spoiler shield, team records on upcoming games, and section headers on Scores
+What each version added is on the [Releases page](https://github.com/peakears/hat-trick/releases) and in [CHANGELOG.md](CHANGELOG.md).
 
 Planned (each links to its issue):
 
+- [Team pages](https://github.com/peakears/hat-trick/issues/52): tap a team for its record, last 10 and roster with season stats; the favourite star moves there
 - [Player pages](https://github.com/peakears/hat-trick/issues/15): bio (age, hometown, position, draft) and season/career stats, including goalie stats
 - [Play-by-play and penalty log](https://github.com/peakears/hat-trick/issues/28) on the game page
 - [Three stars](https://github.com/peakears/hat-trick/issues/39) for finished games and [more standings views](https://github.com/peakears/hat-trick/issues/38) (conference, wild card, league)
 - [Spoiler shield](https://github.com/peakears/hat-trick/issues/29) (hide scores until tapped) and [starting goalies](https://github.com/peakears/hat-trick/issues/30) on upcoming games
 - [Betting odds](https://github.com/peakears/hat-trick/issues/7), if a usable source exists (off by default)
+- [More customization](https://github.com/peakears/hat-trick/issues/53) in Settings (colours, what each game card shows)
 - [Alternate app icons](https://github.com/peakears/hat-trick/issues/9), picked in Settings
 - [A second league](https://github.com/peakears/hat-trick/issues/8) (NBA or NFL), with a league switcher; golf (PGA) later
 
