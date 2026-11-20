@@ -168,7 +168,7 @@ function updateDetail(status: UpdateStatus, checking: boolean): string {
     case "available":
       return `Version ${status.release.version} is available.`;
     case "up-to-date":
-      return `Up to date. Checked ${timeLabel(new Date(status.checkedAt).toISOString())}.`;
+      return `Up to date. Checked at ${timeLabel(new Date(status.checkedAt).toISOString())}.`;
     case "error":
       return `${status.message}.`;
     case "unknown":
