@@ -153,6 +153,64 @@ describe("NHL adapter", () => {
     });
   });
 
+  describe("TV broadcasts", () => {
+    it("maps channels with their country and market, in the league's order", async () => {
+      const games = await fixtureAdapter().adapter.getScores("2026-11-17");
+      const edmFla = games.find((g) => g.away.team.id === "EDM")!;
+      expect(edmFla.broadcasts).toEqual([
+        { network: "SN", country: "CA", market: "national" },
+        { network: "TVAS", country: "CA", market: "national" },
+        { network: "SCRIPPS", country: "US", market: "home" },
+      ]);
+    });
+
+    it("trims network names", async () => {
+      const games = await fixtureAdapter().adapter.getScores("2026-11-17");
+      const lakBos = games.find((g) => g.away.team.id === "LAK")!;
+      expect(lakBos.broadcasts).toEqual([
+        { network: "ABTV", country: "US", market: "away" },
+        { network: "NESN", country: "US", market: "home" },
+      ]);
+    });
+
+    it("includes the channels in the box score's game", async () => {
+      const { game } = await fixtureAdapter().adapter.getGameDetail("2026020333");
+      expect(game.broadcasts?.map((b) => b.network)).toEqual(["ABTV", "NESN"]);
+    });
+
+    it("leaves broadcasts absent when the API sends none", async () => {
+      const { adapter, warnings } = fixtureAdapter((_url, body) => {
+        delete body.games[0].tvBroadcasts;
+      });
+      const [game] = await adapter.getScores("2026-11-17");
+      expect(game.broadcasts).toBeUndefined();
+      expect(warnings).toEqual([]);
+    });
+
+    it("drops a broken listing or an unknown market and keeps the rest, with a warning for the broken one", async () => {
+      const { adapter, warnings } = fixtureAdapter((_url, body) => {
+        body.games[0].tvBroadcasts = [
+          { id: 1, market: "N", countryCode: "US", network: "TNT", sequenceNumber: 1 },
+          { id: 2, market: "N", countryCode: "US" },
+          { id: 3, market: "X", countryCode: "US", network: "MYSTERY", sequenceNumber: 3 },
+          { id: 4, market: "N", countryCode: "US", network: "TNT ", sequenceNumber: 4 },
+        ];
+      });
+      const [game] = await adapter.getScores("2026-11-17");
+      expect(game.broadcasts).toEqual([{ network: "TNT", country: "US", market: "national" }]);
+      expect(warnings.map((w) => w.message)).toEqual([expect.stringContaining("tvBroadcasts[1] dropped")]);
+    });
+
+    it("never fails the scores when tvBroadcasts has the wrong type", async () => {
+      const { adapter, warnings } = fixtureAdapter((_url, body) => {
+        body.games[0].tvBroadcasts = "TNT";
+      });
+      const [game] = await adapter.getScores("2026-11-17");
+      expect(game.broadcasts).toBeUndefined();
+      expect(warnings.some((w) => w.message.startsWith("tvBroadcasts:"))).toBe(true);
+    });
+  });
+
   describe("box scores", () => {
     it("leaves out stats a backup goalie does not have", async () => {
       const detail = await fixtureAdapter().adapter.getGameDetail("2026020333");

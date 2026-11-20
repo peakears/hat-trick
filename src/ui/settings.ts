@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { KeyValueStore } from "../data";
+import { TV_REGIONS, type TvRegionPreference } from "./broadcasts";
 
 /**
  * User preferences, stored on the device under their own key (never under `cache:`,
@@ -25,6 +26,8 @@ export interface Settings {
   reminderLeadMinutes: ReminderLead;
   /** Look for a newer release on GitHub (at most once a day). The only request the app makes besides game data. */
   checkForUpdates: boolean;
+  /** Whose TV channels to show: "auto" uses the phone's region. */
+  tvRegion: TvRegionPreference;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -35,6 +38,7 @@ export const DEFAULT_SETTINGS: Settings = {
   remindersEnabled: false,
   reminderLeadMinutes: 30,
   checkForUpdates: true,
+  tvRegion: "auto",
 };
 
 export const SETTINGS_KEY = "settings:v1";
@@ -53,6 +57,7 @@ const schema = z.object({
   remindersEnabled: z.boolean().catch(DEFAULT_SETTINGS.remindersEnabled),
   reminderLeadMinutes: z.literal(REMINDER_LEADS).catch(DEFAULT_SETTINGS.reminderLeadMinutes),
   checkForUpdates: z.boolean().catch(DEFAULT_SETTINGS.checkForUpdates),
+  tvRegion: z.enum(TV_REGIONS).catch(DEFAULT_SETTINGS.tvRegion),
 });
 
 export function parseSettings(raw: string | null): Settings {

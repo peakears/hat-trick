@@ -1,4 +1,6 @@
 import type {
+  Broadcast,
+  BroadcastMarket,
   Game,
   GameClock,
   GameEnding,
@@ -14,6 +16,7 @@ import type {
 } from "../../domain";
 import { GOALIE_COLUMNS, LEADER_LABELS, LEAGUE, SKATER_COLUMNS } from "./constants";
 import type {
+  RawBroadcast,
   RawGame,
   RawGoalie,
   RawLeadersResponse,
@@ -102,6 +105,26 @@ function mapSide(raw: RawTeam, status: GameStatus): GameSide {
   };
 }
 
+const MARKETS: Record<string, BroadcastMarket> = { N: "national", H: "home", A: "away" };
+
+/** Keeps the league's order, drops listings with an unknown market or no name, and drops repeats. */
+function mapBroadcasts(raw: RawBroadcast[] | undefined): Broadcast[] | undefined {
+  if (!raw) return undefined;
+  const seen = new Set<string>();
+  const out: Broadcast[] = [];
+  for (const b of raw) {
+    const market = MARKETS[b.market];
+    const network = b.network.trim();
+    const country = b.countryCode.trim().toUpperCase();
+    if (!market || !network || !country) continue;
+    const key = `${country}|${market}|${network.toLowerCase()}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push({ network, country, market });
+  }
+  return out;
+}
+
 export function mapGame(raw: RawGame): Game {
   const status = mapStatus(raw.gameState);
   return {
@@ -113,6 +136,7 @@ export function mapGame(raw: RawGame): Game {
     endedIn: status === "final" ? mapEnding(raw) : undefined,
     home: mapSide(raw.homeTeam, status),
     away: mapSide(raw.awayTeam, status),
+    broadcasts: mapBroadcasts(raw.tvBroadcasts),
   };
 }
 

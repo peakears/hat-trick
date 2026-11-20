@@ -16,7 +16,7 @@ describe("parseSettings", () => {
     expect(parseSettings(null)).toEqual(DEFAULT_SETTINGS);
   });
 
-  it("has betting off, logos on, no favourite teams, reminders off and update checks on by default", () => {
+  it("has betting off, logos on, no favourite teams, reminders off, update checks on and TV region auto by default", () => {
     expect(DEFAULT_SETTINGS).toEqual({
       theme: "system",
       showLogos: true,
@@ -25,6 +25,7 @@ describe("parseSettings", () => {
       remindersEnabled: false,
       reminderLeadMinutes: 30,
       checkForUpdates: true,
+      tvRegion: "auto",
     });
   });
 
@@ -44,6 +45,7 @@ describe("parseSettings", () => {
       remindersEnabled: false,
       reminderLeadMinutes: 30,
       checkForUpdates: true,
+      tvRegion: "auto",
     });
     expect(parseSettings(JSON.stringify({ theme: "purple", showBetting: true }))).toEqual({
       theme: "system",
@@ -53,6 +55,7 @@ describe("parseSettings", () => {
       remindersEnabled: false,
       reminderLeadMinutes: 30,
       checkForUpdates: true,
+      tvRegion: "auto",
     });
   });
 
@@ -71,6 +74,14 @@ describe("parseSettings", () => {
     expect(parseSettings(JSON.stringify({ favoriteTeams: ["TOR", 7] })).favoriteTeams).toEqual([]);
   });
 
+  it("keeps a valid TV region and defaults an unknown one to auto", () => {
+    expect(DEFAULT_SETTINGS.tvRegion).toBe("auto");
+    expect(parseSettings(JSON.stringify({ tvRegion: "CA" })).tvRegion).toBe("CA");
+    expect(parseSettings(JSON.stringify({ tvRegion: "US" })).tvRegion).toBe("US");
+    expect(parseSettings(JSON.stringify({ tvRegion: "GB" })).tvRegion).toBe("auto");
+    expect(parseSettings(JSON.stringify({ tvRegion: 1 })).tvRegion).toBe("auto");
+  });
+
   it("drops unknown fields", () => {
     expect(parseSettings(JSON.stringify({ ...DEFAULT_SETTINGS, old: 1 }))).toEqual(DEFAULT_SETTINGS);
   });
@@ -87,6 +98,7 @@ describe("loadSettings / saveSettings", () => {
       remindersEnabled: true,
       reminderLeadMinutes: 15,
       checkForUpdates: false,
+      tvRegion: "CA",
     };
     await saveSettings(store, settings);
     expect(await loadSettings(store)).toEqual(settings);

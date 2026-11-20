@@ -7,6 +7,7 @@ import { Segmented } from "../../src/ui/components/Segmented";
 import { CrashScreen, Empty, ErrorView, Loading, OfflineBanner, UpdatedAt } from "../../src/ui/components/States";
 import { StatTableView } from "../../src/ui/components/StatTableView";
 import { TeamLogo } from "../../src/ui/components/TeamLogo";
+import { WhereToWatch } from "../../src/ui/components/WhereToWatch";
 import { gameStatusLabel, teamRecord } from "../../src/ui/format";
 import { LEAGUE, useSportsData } from "../../src/ui/sports-data-context";
 import { tabular, useColors } from "../../src/ui/theme";
@@ -96,6 +97,8 @@ export default function GameScreen() {
           </View>
           {team(game.home)}
         </View>
+
+        <WhereToWatch game={game} />
 
         <Segmented
           options={[

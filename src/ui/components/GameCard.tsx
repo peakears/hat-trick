@@ -3,8 +3,11 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import type { Game, GameSide } from "../../domain";
 import { isFavorite } from "../favorites";
 import { gameStatusLabel, winner } from "../format";
+import { channelsFor, channelsLabel } from "../broadcasts";
 import { useSettings } from "../settings-context";
 import { tabular, useColors } from "../theme";
+import { useTvRegion } from "../use-tv-region";
+import { ChannelLine } from "./ChannelLine";
 import { TeamLogo } from "./TeamLogo";
 
 /** One game in the scores list: away team on top, home below, status on the right. */
@@ -19,6 +22,7 @@ export function GameCard({ game }: { game: Game }) {
     .filter((side) => isFavorite(settings.favoriteTeams, side.team.id))
     .map((side) => side.team.name);
   const favoriteNote = favoriteNames.length > 0 ? `. Favourite: ${favoriteNames.join(", ")}` : "";
+  const channels = channelsFor(game, useTvRegion());
   const showScores = game.status !== "scheduled" && game.status !== "postponed";
 
   const row = (side: GameSide, which: "home" | "away") => {
@@ -55,34 +59,36 @@ export function GameCard({ game }: { game: Game }) {
         { backgroundColor: colors.card, borderColor: colors.cardBorder, opacity: pressed ? 0.7 : 1 },
       ]}
       accessibilityRole="button"
-      accessibilityLabel={`${game.away.team.name} at ${game.home.team.name}, ${gameStatusLabel(game)}${favoriteNote}`}
+      accessibilityLabel={`${game.away.team.name} at ${game.home.team.name}, ${gameStatusLabel(game)}${favoriteNote}${channels.length > 0 ? `. On TV: ${channelsLabel(channels)}` : ""}`}
     >
-      <View style={styles.teams}>
-        {row(game.away, "away")}
-        {row(game.home, "home")}
+      <View style={styles.main}>
+        <View style={styles.teams}>
+          {row(game.away, "away")}
+          {row(game.home, "home")}
+        </View>
+        <View style={[styles.status, { borderLeftColor: colors.border }]}>
+          {live && <Text style={[styles.liveDot, { color: colors.live }]}>● LIVE</Text>}
+          <Text style={[styles.statusText, tabular, { color: live ? colors.text : colors.muted }]}>
+            {gameStatusLabel(game)}
+          </Text>
+        </View>
       </View>
-      <View style={[styles.status, { borderLeftColor: colors.border }]}>
-        {live && <Text style={[styles.liveDot, { color: colors.live }]}>● LIVE</Text>}
-        <Text style={[styles.statusText, tabular, { color: live ? colors.text : colors.muted }]}>
-          {gameStatusLabel(game)}
-        </Text>
-      </View>
+      <ChannelLine channels={channels} />
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
-    flexDirection: "row",
     borderRadius: 12,
+    overflow: "hidden",
     // A visible outline plus a wide gap keeps each game apart, even when the card is close to the
     // background (dark mode).
     borderWidth: 1,
     marginHorizontal: 12,
     marginVertical: 9,
-    paddingVertical: 12,
-    paddingLeft: 14,
   },
+  main: { flexDirection: "row", paddingVertical: 12, paddingLeft: 14 },
   teams: { flex: 1, gap: 8 },
   teamRow: { flexDirection: "row", alignItems: "center", gap: 10 },
   teamName: { flex: 1, fontSize: 16 },
