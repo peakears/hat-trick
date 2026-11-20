@@ -4,18 +4,20 @@ A clean, open-source sports scores app for Android. NHL first, more leagues late
 
 Everything runs on your device: the app talks to public sports APIs directly, with no backend server to host.
 
-> **Status: early development.** The NHL app runs, but has not had much testing on real devices yet. See [Roadmap](#roadmap).
+> **Status: released.** The NHL app works on Android phones. Download the latest APK from [Releases](https://github.com/peakears/hat-trick/releases) (see [Install](#install)). New features are on the [Roadmap](#roadmap).
 
 ## Features
 
-- Scores for any date, with live game clocks
-- Standings
-- Favourite teams: star a team and its games show first
-- A notice when a newer release is available (checked at most once a day, switchable in Settings)
-- Optional puck drop reminders for your favourite teams (a notification before the game starts)
-- Stat leaders
-- Box scores
-- Works offline with the last data it fetched
+- **Scores** for any date, with live game clocks. Live games are listed first, then upcoming, then finished. Step a day with the arrows, or tap the calendar to jump to any date; tap the date to return to today.
+- **Favourite teams:** star a team on Standings or a game page. Their games show first on Scores, and Standings marks them.
+- **Puck drop reminders** (optional): a notification 10 to 60 minutes before your favourite teams' games, even with the app closed.
+- **Game page:** score, each team's season record and shots on goal, and full box scores for both teams.
+- **Standings** by division.
+- **Stat leaders** for skaters and goalies.
+- **Settings:** light, dark or system theme, team logos on or off (off shows team abbreviations), favourite teams, reminders and update checks.
+- **Update notice:** a banner when a newer release is available, checked at most once a day (switchable). The app never downloads or installs anything by itself. **Settings > About** shows the version, release notes and a "Report a problem" link that opens a GitHub issue with your app version filled in.
+- **Works offline** with the last data it fetched. Live games refresh about every 20 seconds while the app is open.
+- No account, no ads, no tracking: the app talks only to the NHL's public API and, for the update notice, GitHub.
 
 ## Install
 
@@ -23,7 +25,7 @@ Each [release](https://github.com/peakears/hat-trick/releases) has an APK attach
 
 1. On your Android phone, open the latest release and download the `.apk`.
 2. Open the downloaded file. Android asks you to allow installs from that app (your browser or Files): allow it, then tap **Install**.
-3. To update, install the newer APK the same way. It replaces the old version and keeps your data.
+3. To update, install the newer APK the same way. It replaces the old version and keeps your data. The app shows a notice when a newer release is available.
 
 Android may warn that the app is from an unknown developer, because it is not from the Play Store. That is expected for a sideloaded app.
 
@@ -73,25 +75,32 @@ league adapters -> domain model -> on-device cache -> app UI
 - `src/registry.ts`: looks up an adapter by league id
 - `src/adapters/nhl/`: the NHL adapter
 - `src/data/`: on-device cache; refreshes live games every 20 seconds, keeps finished games for days, and serves the last known data when offline
-- `src/ui/`: React Native pieces shared by screens (polling hook, components, formatting)
-- `app/`: the screens, using [Expo Router](https://docs.expo.dev/router/introduction/) (one file per route)
+- `src/ui/`: React Native pieces shared by screens (polling hook, settings, components, formatting)
+- `app/`: the screens, using [Expo Router](https://docs.expo.dev/router/introduction/) (one file per route): the Scores, Standings, Leaders and Settings tabs, and the game page
+
+Settings (including favourite teams) are stored on the device, separately from cached data. Puck drop reminders are local notifications scheduled on the device. The only other network request is the daily update check against GitHub.
 
 Adding a league means writing a new adapter that implements `LeagueAdapter` and passes the shared contract tests in `src/contract/`. Nothing above it changes.
 
 ## Roadmap
 
-1. ~~Project housekeeping~~
-2. ~~Verify NHL data types against live API responses~~
-3. ~~Runtime validation of API responses (zod)~~
-4. ~~Shared contract tests for adapters~~
-5. ~~On-device cache, refreshed based on game status~~
-6. Android app (Expo / React Native): scores, standings, leaders and box scores work; needs real-device testing
-7. After 1.0:
-   - Settings: theme (system, light or dark), team logos on or off, betting info on or off
-   - A calendar to jump to any date
-   - Favourite teams, with game-start notifications
-   - Betting odds, if a public source is available (off by default)
-   - A second league (NBA or NFL), with a league switcher; golf (PGA) later
+Released:
+
+- **1.0:** Android app with scores, standings, leaders and box scores; on-device cache with offline support
+- **1.1:** Settings tab (theme, team logos), calendar date picker, live games first on Scores, season records on the game page
+- **1.2:** Favourite teams, optional puck drop reminders, an update notice, and Settings > About with version info and links
+
+Planned (each links to its issue):
+
+- [Player pages](https://github.com/peakears/hat-trick/issues/15): bio (age, hometown, position, draft) and season/career stats, including goalie stats
+- [Play-by-play and penalty log](https://github.com/peakears/hat-trick/issues/28) on the game page
+- [Three stars](https://github.com/peakears/hat-trick/issues/39) for finished games and [more standings views](https://github.com/peakears/hat-trick/issues/38) (conference, wild card, league)
+- [Spoiler shield](https://github.com/peakears/hat-trick/issues/29) (hide scores until tapped) and [starting goalies](https://github.com/peakears/hat-trick/issues/30) on upcoming games
+- [Betting odds](https://github.com/peakears/hat-trick/issues/7), if a usable source exists (off by default)
+- [Alternate app icons](https://github.com/peakears/hat-trick/issues/9), picked in Settings
+- [A second league](https://github.com/peakears/hat-trick/issues/8) (NBA or NFL), with a league switcher; golf (PGA) later
+
+See the [changelog](CHANGELOG.md) for what changed in each release.
 
 ## Contributing
 
@@ -105,6 +114,8 @@ Commit messages follow [Conventional Commits](https://www.conventionalcommits.or
 | `docs:`, `test:`, `refactor:`, `chore:`, `ci:` ... | `docs: fix typo`                        | none                       |
 
 `npm install` sets up a git hook that checks each commit message. Releases are made by merging the release PR that release-please keeps open.
+
+Work on a branch from `main`, one feature per pull request. CI runs typecheck and tests on every PR and builds a test APK. When testing with Expo Go, press `r` in the `npm start` terminal (or shake the phone and tap **Reload**) after switching branches: restarting the dev server alone does not reload the app on the phone.
 
 ### Release signing (maintainers)
 
