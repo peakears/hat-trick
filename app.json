@@ -26,6 +26,13 @@
       "expo-status-bar",
       "expo-image",
       [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/adaptive-monochrome.png",
+          "color": "#2563eb"
+        }
+      ],
+      [
         "expo-splash-screen",
         {
           "image": "./assets/images/splash.png",

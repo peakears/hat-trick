@@ -10,6 +10,8 @@ Everything runs on your device: the app talks to public sports APIs directly, wi
 
 - Scores for any date, with live game clocks
 - Standings
+- Favourite teams: star a team and its games show first
+- Optional puck drop reminders for your favourite teams (a notification before the game starts)
 - Stat leaders
 - Box scores
 - Works offline with the last data it fetched

@@ -12,6 +12,8 @@ const store = new AsyncStorageStore();
 
 interface SettingsContextValue {
   settings: Settings;
+  /** False until the stored settings are read. Until then `settings` holds defaults, so act on it only when true. */
+  loaded: boolean;
   update: (patch: Partial<Settings>) => void;
   /** Stars the team, or un-stars it if it already is a favourite. */
   toggleFavoriteTeam: (teamId: string) => void;
@@ -21,16 +23,20 @@ const SettingsContext = createContext<SettingsContextValue | null>(null);
 
 export function SettingsProvider({ children }: { children: ReactNode }) {
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     let active = true;
     loadSettings(store)
-      .then((loaded) => {
+      .then((stored) => {
         if (!active) return;
-        Appearance.setColorScheme(colorSchemeOverride(loaded.theme));
-        setSettings(loaded);
+        Appearance.setColorScheme(colorSchemeOverride(stored.theme));
+        setSettings(stored);
       })
-      .finally(() => SplashScreen.hideAsync().catch(() => {}));
+      .finally(() => {
+        if (active) setLoaded(true);
+        SplashScreen.hideAsync().catch(() => {});
+      });
     return () => {
       active = false;
     };
@@ -51,7 +57,10 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     [settings.favoriteTeams, update],
   );
 
-  const value = useMemo(() => ({ settings, update, toggleFavoriteTeam }), [settings, update, toggleFavoriteTeam]);
+  const value = useMemo(
+    () => ({ settings, loaded, update, toggleFavoriteTeam }),
+    [settings, loaded, update, toggleFavoriteTeam],
+  );
   return <SettingsContext.Provider value={value}>{children}</SettingsContext.Provider>;
 }
 
