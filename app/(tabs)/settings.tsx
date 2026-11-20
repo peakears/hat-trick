@@ -1,6 +1,6 @@
 import Constants from "expo-constants";
 import type { ReactNode } from "react";
-import { ScrollView, StyleSheet, Switch, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
 import { Segmented } from "../../src/ui/components/Segmented";
 import type { ThemePreference } from "../../src/ui/settings";
 import { useSettings } from "../../src/ui/settings-context";
@@ -36,6 +36,29 @@ export default function SettingsScreen() {
           onChange={(showBetting) => update({ showBetting })}
           last
         />
+      </Section>
+
+      <Section title="Favourite teams">
+        <View style={styles.row}>
+          <View style={styles.rowText}>
+            <Text style={[styles.label, { color: colors.text }]}>
+              {settings.favoriteTeams.length > 0 ? settings.favoriteTeams.join(", ") : "None yet"}
+            </Text>
+            <Text style={[styles.detail, { color: colors.muted }]}>
+              Star a team on the Standings tab or a game page. Their games show first on Scores.
+            </Text>
+          </View>
+          {settings.favoriteTeams.length > 0 && (
+            <Pressable
+              onPress={() => update({ favoriteTeams: [] })}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel="Clear favourite teams"
+            >
+              <Text style={[styles.label, { color: colors.accent }]}>Clear</Text>
+            </Pressable>
+          )}
+        </View>
       </Section>
 
       <Text style={[styles.footer, { color: colors.muted }]}>

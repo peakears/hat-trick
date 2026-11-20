@@ -5,6 +5,7 @@ import { DatePickerButton } from "../../src/ui/components/DatePickerButton";
 import { GameCard } from "../../src/ui/components/GameCard";
 import { Empty, ErrorView, Loading, OfflineBanner, UpdatedAt } from "../../src/ui/components/States";
 import { addDays, dateLabel, sortGamesForScores } from "../../src/ui/format";
+import { useSettings } from "../../src/ui/settings-context";
 import { LEAGUE, useSportsData } from "../../src/ui/sports-data-context";
 import { useColors } from "../../src/ui/theme";
 import { usePolled } from "../../src/ui/use-polled";
@@ -13,14 +14,19 @@ import { useScoresToday } from "../../src/ui/use-today";
 export default function ScoresScreen() {
   const sports = useSportsData();
   const colors = useColors();
+  const { settings } = useSettings();
   const today = useScoresToday();
   // null means "follow today", so the list moves on to the new day instead of staying on yesterday.
   const [picked, setPicked] = useState<string | null>(null);
   const date = picked ?? today;
   const go = (d: string) => setPicked(d === today ? null : d);
   const scores = usePolled(`scores:${date}`, (o) => sports.getScores(LEAGUE, date, o));
-  // Live games on top, finished ones below; re-sorted on each poll as games start and end.
-  const games = useMemo(() => (scores.data ? sortGamesForScores(scores.data) : undefined), [scores.data]);
+  // Favourite teams' games first, then live games on top and finished ones below; re-sorted on each
+  // poll as games start and end.
+  const games = useMemo(
+    () => (scores.data ? sortGamesForScores(scores.data, settings.favoriteTeams) : undefined),
+    [scores.data, settings.favoriteTeams],
+  );
 
   return (
     <View style={styles.screen}>

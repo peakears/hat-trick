@@ -1,7 +1,10 @@
 import { useRouter } from "expo-router";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import type { Game, GameSide } from "../../domain";
+import { isFavorite } from "../favorites";
 import { gameStatusLabel, winner } from "../format";
+import { useSettings } from "../settings-context";
 import { tabular, useColors } from "../theme";
 import { TeamLogo } from "./TeamLogo";
 
@@ -9,6 +12,7 @@ import { TeamLogo } from "./TeamLogo";
 export function GameCard({ game }: { game: Game }) {
   const colors = useColors();
   const router = useRouter();
+  const { settings } = useSettings();
   const won = winner(game);
   const live = game.status === "live";
   const showScores = game.status !== "scheduled" && game.status !== "postponed";
@@ -24,6 +28,9 @@ export function GameCard({ game }: { game: Game }) {
         >
           {side.team.name}
         </Text>
+        {isFavorite(settings.favoriteTeams, side.team.id) && (
+          <Ionicons name="star" size={14} color={colors.accent} accessibilityLabel="Favourite team" />
+        )}
         {showScores && (
           <Text style={[styles.score, tabular, { color: dim ? colors.muted : colors.text }]}>
             {side.score ?? "-"}

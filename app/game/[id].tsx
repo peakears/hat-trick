@@ -2,6 +2,7 @@ import { Stack, useLocalSearchParams, type ErrorBoundaryProps } from "expo-route
 import { useState } from "react";
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import type { GameSide } from "../../src/domain";
+import { FavoriteStar } from "../../src/ui/components/FavoriteStar";
 import { Segmented } from "../../src/ui/components/Segmented";
 import { CrashScreen, Empty, ErrorView, Loading, OfflineBanner, UpdatedAt } from "../../src/ui/components/States";
 import { StatTableView } from "../../src/ui/components/StatTableView";
@@ -46,9 +47,12 @@ export default function GameScreen() {
     return (
       <View style={styles.team}>
         <TeamLogo team={s.team} size={56} />
-        <Text style={[styles.teamName, { color: colors.text }]} numberOfLines={1}>
-          {s.team.name}
-        </Text>
+        <View style={styles.nameRow}>
+          <Text style={[styles.teamName, { color: colors.text }]} numberOfLines={1}>
+            {s.team.name}
+          </Text>
+          <FavoriteStar team={s.team} size={18} />
+        </View>
         {record && (
           <Text style={[styles.record, tabular, { color: colors.muted }]} accessibilityLabel={`Season record ${record}`}>
             {record}
@@ -119,7 +123,8 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   team: { flex: 1, alignItems: "center", gap: 6 },
-  teamName: { fontSize: 14, fontWeight: "600" },
+  nameRow: { flexDirection: "row", alignItems: "center", gap: 6, maxWidth: "100%" },
+  teamName: { flexShrink: 1, fontSize: 14, fontWeight: "600" },
   record: { fontSize: 12, fontWeight: "600" },
   sogPill: {
     flexDirection: "row",
