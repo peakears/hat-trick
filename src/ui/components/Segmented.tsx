@@ -1,0 +1,38 @@
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useColors } from "../theme";
+
+/** A small two-or-three option switch, e.g. Skaters | Goalies. */
+export function Segmented<T extends string>({
+  options,
+  value,
+  onChange,
+}: {
+  options: { value: T; label: string }[];
+  value: T;
+  onChange: (value: T) => void;
+}) {
+  const colors = useColors();
+  return (
+    <View style={[styles.container, { backgroundColor: colors.border }]} accessibilityRole="tablist">
+      {options.map((o) => {
+        const selected = o.value === value;
+        return (
+          <Pressable
+            key={o.value}
+            onPress={() => onChange(o.value)}
+            style={[styles.option, selected && { backgroundColor: colors.card }]}
+            accessibilityRole="tab"
+            accessibilityState={{ selected }}
+          >
+            <Text style={{ color: selected ? colors.text : colors.muted, fontWeight: "600" }}>{o.label}</Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flexDirection: "row", borderRadius: 10, padding: 3, margin: 12 },
+  option: { flex: 1, alignItems: "center", paddingVertical: 7, borderRadius: 8 },
+});

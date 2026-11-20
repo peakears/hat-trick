@@ -52,3 +52,18 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       - run: npm test
+      # Catches anything Metro cannot bundle for Android (bad imports, Node-only modules) without a device.
+      - name: Bundle Android app
+        run: npx expo export --platform android --output-dir "$RUNNER_TEMP/expo-export"
+        env:
+          CI: 1
+
+  # A test APK for each pull request, under the run's Artifacts. It is signed with a debug key,
+  # so uninstall a release build before installing it.
+  apk:
+    name: Test APK
+    if: github.event_name == 'pull_request'
+    needs: check
+    uses: ./.github/workflows/android-apk.yml
+    with:
+      apk-name: hat-trick-pr${{ github.event.pull_request.number }}.apk

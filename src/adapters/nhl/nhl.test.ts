@@ -283,5 +283,23 @@ describe("NHL adapter", () => {
       });
       await expect(adapter.getScores("2026-11-17")).rejects.toThrow(/NHL API request failed/);
     });
+
+    it("times out a request that never answers, without AbortSignal.timeout (missing in Hermes)", async () => {
+      const original = AbortSignal.timeout;
+      // @ts-expect-error simulate React Native, where AbortSignal.timeout does not exist
+      AbortSignal.timeout = undefined;
+      try {
+        const adapter = new NhlAdapter({
+          timeoutMs: 10,
+          fetch: (_url, init) =>
+            new Promise((_resolve, reject) => {
+              init?.signal?.addEventListener("abort", () => reject(new Error("Aborted")));
+            }),
+        });
+        await expect(adapter.getStandings()).rejects.toThrow("NHL API request failed: timed out after 10 ms");
+      } finally {
+        AbortSignal.timeout = original;
+      }
+    });
   });
 });
