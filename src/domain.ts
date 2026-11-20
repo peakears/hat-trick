@@ -148,11 +148,7 @@ export interface StandingRow {
   last10?: RecordSplit;
   home?: RecordSplit;
   road?: RecordSplit;
-  /** 1-based positions, for the team page. Absent when the league does not send them. */
-  conferenceRank?: number;
-  leagueRank?: number;
   divisionName?: string;
-  conferenceName?: string;
 }
 
 export interface StandingsGroup {

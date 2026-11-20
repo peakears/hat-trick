@@ -272,11 +272,7 @@ export function mapStandings(raw: RawStandingsResponse): Standings {
       last10: mapSplit(s, "l10"),
       home: mapSplit(s, "home"),
       road: mapSplit(s, "road"),
-      conferenceRank: s.conferenceSequence,
-      leagueRank: s.leagueSequence,
       divisionName: s.divisionName,
-      // Same wording as the group names of a conference-grouped league ("Western Conference").
-      conferenceName: s.conferenceName ? `${s.conferenceName} Conference` : undefined,
     });
   }
 

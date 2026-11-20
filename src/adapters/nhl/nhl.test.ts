@@ -345,16 +345,14 @@ describe("NHL adapter", () => {
       });
     });
 
-    it("maps the team page fields: splits, goal difference and ranks", async () => {
+    it("maps the team page fields: splits, goal difference and division", async () => {
       const standings = await fixtureAdapter().adapter.getStandings();
       expect(standings.groups[0].rows[0]).toMatchObject({
         goalDifferential: 30,
         last10: { wins: 8, losses: 1, otLosses: 1, goalsFor: 36, goalsAgainst: 19 },
         home: { wins: 7, losses: 3, otLosses: 2, goalsFor: 43, goalsAgainst: 40 },
         road: { wins: 10, losses: 0, otLosses: 1, goalsFor: 49, goalsAgainst: 22 },
-        conferenceRank: 1,
         divisionName: "Pacific",
-        conferenceName: "Western Conference",
       });
     });
 

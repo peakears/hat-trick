@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { StandingRow, Standings } from "../domain";
-import { findStandingRow, goalDifferentialLabel, ordinal, rankLines, splitLines } from "./team";
+import { findStandingRow, goalDifferentialLabel, ordinal, rankLine, splitLines } from "./team";
 
 function row(id: string, extra: Partial<StandingRow> = {}): StandingRow {
   return {
@@ -60,20 +60,13 @@ describe("goalDifferentialLabel", () => {
   });
 });
 
-describe("rankLines", () => {
-  it("lists division, conference and league positions", () => {
-    const r = row("EDM", {
-      rank: 1,
-      divisionName: "Pacific",
-      conferenceRank: 2,
-      conferenceName: "Western Conference",
-      leagueRank: 3,
-    });
-    expect(rankLines(r)).toEqual(["1st in Pacific", "2nd in Western Conference", "3rd in the league"]);
+describe("rankLine", () => {
+  it("gives the position in the division", () => {
+    expect(rankLine(row("EDM", { rank: 1, divisionName: "Pacific" }))).toBe("1st in Pacific");
   });
 
-  it("leaves out what the league did not send", () => {
-    expect(rankLines(row("EDM", { rank: 4 }))).toEqual(["4th"]);
+  it("is just the position when the league names no division", () => {
+    expect(rankLine(row("EDM", { rank: 4 }))).toBe("4th");
   });
 });
 

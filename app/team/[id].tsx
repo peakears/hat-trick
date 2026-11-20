@@ -6,7 +6,7 @@ import { CrashScreen, Empty, ErrorView, Loading, OfflineBanner, UpdatedAt } from
 import { TeamLogo } from "../../src/ui/components/TeamLogo";
 import { recordLabel } from "../../src/ui/format";
 import { LEAGUE, useSportsData } from "../../src/ui/sports-data-context";
-import { findStandingRow, goalDifferentialLabel, rankLines, splitLines } from "../../src/ui/team";
+import { findStandingRow, goalDifferentialLabel, rankLine, splitLines } from "../../src/ui/team";
 import { tabular, useColors } from "../../src/ui/theme";
 import { usePolled } from "../../src/ui/use-polled";
 
@@ -15,10 +15,9 @@ export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
   return <CrashScreen error={error} retry={retry} />;
 }
 
-/** The headline numbers, skipping any the league does not have. */
-function summaryTiles(row: StandingRow): { label: string; value: string }[] {
+/** The smaller numbers under the record, skipping any the league does not have. */
+function statTiles(row: StandingRow): { label: string; value: string }[] {
   const tiles = [
-    { label: "Record", value: recordLabel(row) },
     { label: "Points", value: row.points?.toString() },
     { label: "Games", value: row.gamesPlayed.toString() },
     { label: "Streak", value: row.streak },
@@ -66,27 +65,34 @@ export default function TeamScreen() {
         <View style={[styles.header, { backgroundColor: colors.card }]}>
           <TeamLogo team={team} size={72} />
           <View style={styles.headerText}>
-            <View style={styles.nameRow}>
-              <Text style={[styles.name, { color: colors.text }]} numberOfLines={2}>
-                {team.name}
-              </Text>
-              <FavoriteStar team={team} size={24} />
-            </View>
-            {rankLines(row).map((line) => (
-              <Text key={line} style={[styles.rankLine, { color: colors.muted }]}>
-                {line}
-              </Text>
-            ))}
+            <Text style={[styles.name, { color: colors.text }]} numberOfLines={2}>
+              {team.name}
+            </Text>
+            <Text style={[styles.rankLine, { color: colors.muted }]}>{rankLine(row)}</Text>
+          </View>
+          <View style={styles.star}>
+            <FavoriteStar team={team} size={26} />
           </View>
         </View>
 
-        <View style={styles.tiles}>
-          {summaryTiles(row).map((t) => (
-            <View key={t.label} style={[styles.tile, { backgroundColor: colors.card }]}>
-              <Text style={[styles.tileValue, tabular, { color: colors.text }]}>{t.value}</Text>
-              <Text style={[styles.tileLabel, { color: colors.muted }]}>{t.label}</Text>
-            </View>
-          ))}
+        <View style={[styles.recordCard, { backgroundColor: colors.card }]}>
+          <Text
+            style={[styles.record, tabular, { color: colors.text }]}
+            accessibilityLabel={`Record ${recordLabel(row)}`}
+          >
+            {recordLabel(row)}
+          </Text>
+          <Text style={[styles.recordCaption, { color: colors.muted }]}>
+            {row.otLosses === undefined ? "Wins - Losses" : "Wins - Losses - OT losses"}
+          </Text>
+          <View style={[styles.tiles, { borderTopColor: colors.border }]}>
+            {statTiles(row).map((t) => (
+              <View key={t.label} style={styles.tile}>
+                <Text style={[styles.tileValue, tabular, { color: colors.text }]}>{t.value}</Text>
+                <Text style={[styles.tileLabel, { color: colors.muted }]}>{t.label}</Text>
+              </View>
+            ))}
+          </View>
         </View>
 
         {splits.length > 0 && (
@@ -122,20 +128,16 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 12,
   },
-  headerText: { flex: 1, gap: 2 },
-  nameRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  name: { flexShrink: 1, fontSize: 22, fontWeight: "800" },
+  headerText: { flex: 1, gap: 2, paddingRight: 28 },
+  star: { position: "absolute", top: 12, right: 12 },
+  name: { fontSize: 22, fontWeight: "800" },
   rankLine: { fontSize: 13 },
-  tiles: { flexDirection: "row", flexWrap: "wrap", gap: 8, margin: 12, marginBottom: 0 },
-  tile: {
-    flexGrow: 1,
-    minWidth: 90,
-    alignItems: "center",
-    paddingVertical: 12,
-    paddingHorizontal: 8,
-    borderRadius: 12,
-  },
-  tileValue: { fontSize: 20, fontWeight: "800" },
+  recordCard: { margin: 12, marginBottom: 0, paddingTop: 16, borderRadius: 12, alignItems: "center" },
+  record: { fontSize: 44, fontWeight: "800" },
+  recordCaption: { fontSize: 12, fontWeight: "600", marginBottom: 14 },
+  tiles: { flexDirection: "row", alignSelf: "stretch", borderTopWidth: StyleSheet.hairlineWidth, paddingVertical: 12 },
+  tile: { flex: 1, alignItems: "center" },
+  tileValue: { fontSize: 18, fontWeight: "700" },
   tileLabel: { fontSize: 11, fontWeight: "600", marginTop: 2 },
   card: { margin: 12, borderRadius: 12, paddingHorizontal: 14 },
   splitRow: { flexDirection: "row", alignItems: "center", paddingVertical: 12, gap: 12 },

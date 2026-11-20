@@ -23,14 +23,9 @@ export function goalDifferentialLabel(n: number): string {
   return n > 0 ? `+${n}` : `${n}`;
 }
 
-/** Where the team stands: "1st in Pacific", "1st in Western Conference", "3rd in the league". */
-export function rankLines(row: StandingRow): string[] {
-  const lines = [`${ordinal(row.rank)}${row.divisionName ? ` in ${row.divisionName}` : ""}`];
-  if (row.conferenceRank !== undefined && row.conferenceName) {
-    lines.push(`${ordinal(row.conferenceRank)} in ${row.conferenceName}`);
-  }
-  if (row.leagueRank !== undefined) lines.push(`${ordinal(row.leagueRank)} in the league`);
-  return lines;
+/** Where the team stands in its division: "1st in Pacific" ("4th" when the league names no division). */
+export function rankLine(row: StandingRow): string {
+  return `${ordinal(row.rank)}${row.divisionName ? ` in ${row.divisionName}` : ""}`;
 }
 
 export interface SplitLine {
