@@ -41,6 +41,8 @@ export interface GameSide {
   team: Team;
   score: number | null; // null before puck drop
   shotsOnGoal?: number;
+  /** Season record before the game, "13-7-1" (W-L-OT in hockey). Only sent for games that have not started. */
+  record?: string;
 }
 
 /** Who a TV feed is for: everyone in a country, or only fans of the home or away team. */

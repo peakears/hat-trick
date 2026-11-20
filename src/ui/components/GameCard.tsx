@@ -48,6 +48,12 @@ export function GameCard({ game }: { game: Game }) {
         >
           {side.team.name}
         </Text>
+        {!showScores && side.record && (
+          // Before puck drop there is no score, so the season record takes that spot.
+          <Text style={[styles.record, tabular, { color: colors.muted }]} accessibilityLabel={`Record ${side.record}`}>
+            {side.record}
+          </Text>
+        )}
         {showScores && (
           <Text style={[styles.score, tabular, { color: dim || hidden ? colors.muted : colors.text }]}>
             {hidden ? "•" : (side.score ?? "-")}
@@ -100,6 +106,7 @@ const styles = StyleSheet.create({
   teamRow: { flexDirection: "row", alignItems: "center", gap: 10 },
   teamName: { flex: 1, fontSize: 16 },
   bold: { fontWeight: "700" },
+  record: { fontSize: 13, fontWeight: "600", marginRight: 12 },
   score: { fontSize: 20, fontWeight: "700", minWidth: 28, textAlign: "right", marginRight: 12 },
   status: {
     width: 96,
