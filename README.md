@@ -12,7 +12,7 @@ Everything runs on your device: the app talks to public sports APIs directly, wi
 - **Favourite teams:** star a team on Standings or a game page. Their games show first on Scores with the team name in the accent colour, and Standings marks them.
 - **Puck drop reminders** (optional): a notification 10 to 60 minutes before your favourite teams' games, even with the app closed.
 - **TV channels:** each game shows where to watch it, for your country (Canada or US, from your phone's region, or set it in Settings). National channels are bold, and the Scores list shows the first three. The game page has the full list. Games with no listing for your country show nothing.
-- **Spoiler shield** (optional, off by default): hides scores, box scores, standings and leaders until you tap Show, for watching games on delay. Reveal one game, all games, or the standings. Nothing is saved, so every app launch starts hidden.
+- **Spoiler shield** (optional, off by default): hides scores and box scores until you tap Show, for watching games on delay. Reveal one game or all games. Standings and leaders are not hidden. Nothing is saved, so every app launch starts hidden.
 - **Game page:** score, each team's season record and shots on goal, and full box scores for both teams.
 - **Standings** by division.
 - **Stat leaders** for skaters and goalies.

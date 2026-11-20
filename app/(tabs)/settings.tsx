@@ -63,7 +63,7 @@ export default function SettingsScreen() {
       <Section title="Spoilers">
         <ToggleRow
           label="Spoiler shield"
-          detail="Hides scores, box scores, standings and leaders until you tap Show. Useful for watching games on delay."
+          detail="Hides scores and box scores until you tap Show. Useful for watching games on delay."
           value={settings.spoilerShield}
           onChange={(spoilerShield) => update({ spoilerShield })}
           last

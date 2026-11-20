@@ -1,7 +1,6 @@
 import { RefreshControl, SectionList, StyleSheet, Text, View } from "react-native";
 import type { StandingRow } from "../../src/domain";
 import { FavoriteStar } from "../../src/ui/components/FavoriteStar";
-import { SpoilerGate } from "../../src/ui/components/ShieldUi";
 import { ErrorView, Loading, OfflineBanner, UpdatedAt } from "../../src/ui/components/States";
 import { TeamLogo } from "../../src/ui/components/TeamLogo";
 import { isFavorite } from "../../src/ui/favorites";
@@ -22,16 +21,7 @@ const COLUMNS: { label: string; width: number; value: (r: StandingRow) => string
   { label: "STRK", width: 36, value: (r) => r.streak },
 ];
 
-/** The tab, behind the spoiler shield's gate. */
 export default function StandingsScreen() {
-  return (
-    <SpoilerGate what="Standings">
-      <StandingsScreenContent />
-    </SpoilerGate>
-  );
-}
-
-function StandingsScreenContent() {
   const sports = useSportsData();
   const colors = useColors();
   const { settings } = useSettings();
