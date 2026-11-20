@@ -2,6 +2,7 @@ import { DarkTheme, DefaultTheme, Stack, ThemeProvider, type ErrorBoundaryProps 
 import { StatusBar } from "expo-status-bar";
 import { useColorScheme } from "react-native";
 import { CrashScreen } from "../src/ui/components/States";
+import { SettingsProvider } from "../src/ui/settings-context";
 import { SportsDataProvider } from "../src/ui/sports-data-context";
 import { darkColors, lightColors } from "../src/ui/theme";
 
@@ -27,14 +28,16 @@ export default function RootLayout() {
   };
 
   return (
-    <SportsDataProvider>
-      <ThemeProvider value={theme}>
-        <Stack>
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="game/[id]" options={{ title: "Game" }} />
-        </Stack>
-        <StatusBar style="auto" />
-      </ThemeProvider>
-    </SportsDataProvider>
+    <SettingsProvider>
+      <SportsDataProvider>
+        <ThemeProvider value={theme}>
+          <Stack>
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="game/[id]" options={{ title: "Game" }} />
+          </Stack>
+          <StatusBar style="auto" />
+        </ThemeProvider>
+      </SportsDataProvider>
+    </SettingsProvider>
   );
 }
