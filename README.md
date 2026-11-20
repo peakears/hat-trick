@@ -8,7 +8,7 @@ Everything runs on your device: the app talks to public sports APIs directly, wi
 
 ## Features
 
-- **Scores** for any date, with live game clocks. Games are grouped under Live, Upcoming and Final headers. Upcoming games show each team's season record. Step a day with the arrows, or tap the calendar to jump to any date; tap the date to return to today.
+- **Scores** for any date, with live game clocks. Games are grouped under Live, Upcoming and Final headers. Upcoming games show each team's season record. Swipe left or right, or use the arrows, to step a day, or tap the calendar to jump to any date; tap the date to return to today. Pull down to refresh; a pull within 30 seconds of the last update is ignored, to save requests.
 - **Favourite teams:** star a team on Standings or a game page. Their games show first on Scores with the team name in the accent colour, and Standings marks them.
 - **Puck drop reminders** (optional): a notification 10 to 60 minutes before your favourite teams' games, even with the app closed.
 - **TV channels:** each game shows where to watch it, for your country (Canada or US, from your phone's region, or set it in Settings). National channels are bold, and the Scores list shows the first three. The game page has the full list. Games with no listing for your country show nothing.

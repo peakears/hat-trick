@@ -10,8 +10,13 @@ import { addDays, dateLabel, groupGamesForScores } from "../../src/ui/format";
 import { useSettings } from "../../src/ui/settings-context";
 import { LEAGUE, useSportsData } from "../../src/ui/sports-data-context";
 import { useColors } from "../../src/ui/theme";
+import { useDebounced } from "../../src/ui/use-debounced";
 import { usePolled } from "../../src/ui/use-polled";
+import { useDaySwipe } from "../../src/ui/use-swipe";
 import { useScoresToday } from "../../src/ui/use-today";
+
+/** How long the date must stay put before its scores are loaded. */
+const DAY_SETTLE_MS = 250;
 
 export default function ScoresScreen() {
   const sports = useSportsData();
@@ -22,7 +27,11 @@ export default function ScoresScreen() {
   const [picked, setPicked] = useState<string | null>(null);
   const date = picked ?? today;
   const go = (d: string) => setPicked(d === today ? null : d);
-  const scores = usePolled(`scores:${date}`, (o) => sports.getScores(LEAGUE, date, o));
+  // Swiping or tapping through days quickly only loads the day you stop on, not every one passed.
+  const settledDate = useDebounced(date, DAY_SETTLE_MS);
+  const switching = settledDate !== date;
+  const scores = usePolled(`scores:${settledDate}`, (o) => sports.getScores(LEAGUE, settledDate, o));
+  const swipe = useDaySwipe((step) => go(addDays(date, step)));
   // Favourite teams' games first, then live games on top and finished ones below, each group under its own
   // header; regrouped on each poll as games start and end.
   const sections = useMemo(
@@ -32,7 +41,7 @@ export default function ScoresScreen() {
   const games = useMemo(() => sections?.flatMap((s) => s.data), [sections]);
 
   return (
-    <View style={styles.screen}>
+    <View style={styles.screen} {...swipe.panHandlers}>
       <View style={[styles.dateBar, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
         <Pressable onPress={() => go(addDays(date, -1))} hitSlop={12} accessibilityLabel="Previous day">
           <Ionicons name="chevron-back" size={24} color={colors.accent} />
@@ -52,7 +61,7 @@ export default function ScoresScreen() {
       <ShieldBanner games={games} />
       <OfflineBanner meta={scores.meta} />
 
-      {scores.loading ? (
+      {scores.loading || switching ? (
         <Loading />
       ) : !scores.data && scores.error ? (
         <ErrorView title="Couldn't load scores" error={scores.error} onRetry={scores.refresh} />
