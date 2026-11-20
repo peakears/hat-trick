@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { DataMeta } from "../data";
-import type { Game, GameStatus, Standings } from "../domain";
+import type { Game, GameStatus, Goal, Standings } from "../domain";
+import { assistsLabel, goalTags, groupGoalsByPeriod, scoreAfterLabel } from "./goals";
 import {
   addDays,
   dateLabel,
@@ -147,6 +148,54 @@ describe("scores order", () => {
     const games = [at("b", "live", "2026-11-18T00:00:00Z"), at("a", "live", "2026-11-18T00:00:00Z")];
     expect(sortGamesForScores(games).map((g) => g.id)).toEqual(["a", "b"]);
     expect(games.map((g) => g.id)).toEqual(["b", "a"]);
+  });
+});
+
+describe("goal summary helpers", () => {
+  const goal = (over: Partial<Goal> = {}): Goal => ({
+    teamId: "LAK",
+    period: 1,
+    periodLabel: "1st",
+    time: "15:46",
+    scorer: { id: "1", league: "nhl", name: "M. Zuccarello" },
+    assists: [],
+    strength: "even",
+    emptyNet: false,
+    penaltyShot: false,
+    ...over,
+  });
+
+  it("groups goals by period in the order scored", () => {
+    const periods = groupGoalsByPeriod([
+      goal(),
+      goal({ time: "02:00" }),
+      goal({ periodLabel: "2nd", period: 2 }),
+      goal({ periodLabel: "OT", period: 4 }),
+    ]);
+    expect(periods.map((p) => [p.label, p.goals.length])).toEqual([
+      ["1st", 2],
+      ["2nd", 1],
+      ["OT", 1],
+    ]);
+    expect(groupGoalsByPeriod([])).toEqual([]);
+  });
+
+  it("tags power-play, short-handed, empty-net and penalty-shot goals", () => {
+    expect(goalTags(goal())).toEqual([]);
+    expect(goalTags(goal({ strength: "powerPlay" }))).toEqual(["PP"]);
+    expect(goalTags(goal({ strength: "shortHanded", emptyNet: true }))).toEqual(["SH", "EN"]);
+    expect(goalTags(goal({ penaltyShot: true }))).toEqual(["PS"]);
+  });
+
+  it("lists assists, or says unassisted", () => {
+    expect(assistsLabel(goal())).toBe("Unassisted");
+    const a = (name: string) => ({ id: name, league: "nhl", name });
+    expect(assistsLabel(goal({ assists: [a("E. Gustafsson"), a("B. Clarke")] }))).toBe("E. Gustafsson, B. Clarke");
+  });
+
+  it("shows the score after the goal, away first", () => {
+    expect(scoreAfterLabel(goal({ awayScore: 2, homeScore: 1 }))).toBe("2–1");
+    expect(scoreAfterLabel(goal())).toBeUndefined();
   });
 });
 

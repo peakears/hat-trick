@@ -223,6 +223,73 @@ describe("NHL adapter", () => {
     });
   });
 
+  describe("goal summary", () => {
+    it("lists a final game's goals in the order scored", async () => {
+      const { goals } = await fixtureAdapter().adapter.getGameDetail("2026020333");
+      expect(goals).toHaveLength(3);
+      expect(goals!.map((g) => [g.teamId, g.periodLabel, g.time])).toEqual([
+        ["LAK", "1st", "15:46"],
+        ["LAK", "2nd", "16:35"],
+        ["LAK", "3rd", "16:53"],
+      ]);
+      expect(goals![0].scorer).toMatchObject({ id: "8475692", name: "M. Zuccarello", teamId: "LAK" });
+      expect(goals![0].assists.map((a) => a.name)).toEqual(["E. Gustafsson", "B. Clarke"]);
+      expect([goals![0].awayScore, goals![0].homeScore]).toEqual([1, 0]);
+    });
+
+    it("tags empty-net and power-play goals", async () => {
+      const { goals } = await fixtureAdapter().adapter.getGameDetail("2026020333");
+      expect(goals![2]).toMatchObject({ emptyNet: true, strength: "even", penaltyShot: false });
+      const { adapter } = fixtureAdapter((_url, body) => {
+        if (body.games) body.games.find((g: any) => g.id === 2026020333).goals[0].strength = "pp";
+      });
+      expect((await adapter.getGameDetail("2026020333")).goals![0].strength).toBe("powerPlay");
+    });
+
+    it("reads the goals from the scores response for the game's date", async () => {
+      const { adapter, urls } = fixtureAdapter();
+      await adapter.getGameDetail("2026020333");
+      expect(urls).toEqual([
+        "https://api-web.nhle.com/v1/gamecenter/2026020333/boxscore",
+        "https://api-web.nhle.com/v1/score/2026-11-17",
+      ]);
+    });
+
+    it("works for a live game", async () => {
+      const { goals } = await fixtureAdapter().adapter.getGameDetail("2026020342");
+      expect(goals).toBeDefined();
+    });
+
+    it("still returns the game when the scores call fails", async () => {
+      const adapter = new NhlAdapter({
+        fetch: async (input) => {
+          const url = String(input);
+          if (url.includes("/score/")) throw new TypeError("Network request failed");
+          return jsonResponse(fixtureFor(url));
+        },
+      });
+      const detail = await adapter.getGameDetail("2026020333");
+      expect(detail.game.id).toBe("2026020333");
+      expect(detail.goals).toBeUndefined();
+    });
+
+    it("drops one broken goal without failing the game", async () => {
+      const { adapter, warnings } = fixtureAdapter((_url, body) => {
+        if (body.games) delete body.games.find((g: any) => g.id === 2026020333).goals[1].playerId;
+      });
+      const { goals } = await adapter.getGameDetail("2026020333");
+      expect(goals).toHaveLength(2);
+      expect(warnings.some((w) => w.message.includes("goals[1] dropped"))).toBe(true);
+    });
+
+    it("treats a missing assists list as unassisted", async () => {
+      const { adapter } = fixtureAdapter((_url, body) => {
+        if (body.games) delete body.games.find((g: any) => g.id === 2026020333).goals[0].assists;
+      });
+      expect((await adapter.getGameDetail("2026020333")).goals![0].assists).toEqual([]);
+    });
+  });
+
   describe("box scores", () => {
     it("leaves out stats a backup goalie does not have", async () => {
       const detail = await fixtureAdapter().adapter.getGameDetail("2026020333");

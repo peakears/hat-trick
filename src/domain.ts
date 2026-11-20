@@ -88,9 +88,30 @@ export interface StatTable {
   rows: StatRow[];
 }
 
+/** Strength of a goal. Even strength is the default and has no tag. */
+export type GoalStrength = "even" | "powerPlay" | "shortHanded";
+
+export interface Goal {
+  /** Team that scored. */
+  teamId: string;
+  period: number;
+  periodLabel: string; // "1st", "OT", "2OT", "SO" - adapter formats it
+  time: string; // elapsed in the period, "15:46"
+  scorer: Player;
+  assists: Player[]; // empty for an unassisted goal
+  strength: GoalStrength;
+  emptyNet: boolean;
+  penaltyShot: boolean;
+  /** Score right after this goal. */
+  homeScore?: number;
+  awayScore?: number;
+}
+
 export interface GameDetail {
   game: Game;
   boxscore: { home: StatTable[]; away: StatTable[] };
+  /** In the order scored. Absent when the league has no goal list for this game (yet); empty when no goals. */
+  goals?: Goal[];
 }
 
 // ---------- Standings ----------

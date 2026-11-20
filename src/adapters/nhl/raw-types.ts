@@ -58,6 +58,27 @@ export const RawBroadcastSchema = z.object({
   sequenceNumber: num("tvBroadcasts.sequenceNumber"),
 });
 
+// One goal of the scoring summary in /score (the box score has none). Seen strength: "ev", "pp"
+// ("sh" unverified); seen goalModifier: "none", "empty-net" ("penalty-shot" unverified).
+export const RawGoalAssistSchema = z.object({
+  playerId: z.number(),
+  name: LocalizedSchema, // abbreviated, "E. Gustafsson"
+});
+
+export const RawGoalSchema = z.object({
+  period: z.number(),
+  periodDescriptor: minor(RawPeriodDescriptorSchema, "goals.periodDescriptor"),
+  timeInPeriod: z.string(), // elapsed, "15:46"
+  playerId: z.number(),
+  name: LocalizedSchema, // abbreviated scorer, "M. Zuccarello"
+  teamAbbrev: z.string(),
+  goalModifier: str("goals.goalModifier"),
+  strength: str("goals.strength"),
+  assists: lenientArray(RawGoalAssistSchema, "goals.assists"),
+  homeScore: num("goals.homeScore"),
+  awayScore: num("goals.awayScore"),
+});
+
 export const RawGameSchema = z.object({
   id: z.number(),
   startTimeUTC: z.string(),
@@ -76,6 +97,8 @@ export const RawGameSchema = z.object({
   gameOutcome: minor(z.object({ lastPeriodType: z.string() }), "gameOutcome"),
   // A bad listing is dropped on its own, so TV info can never break the scores.
   tvBroadcasts: lenientArray(RawBroadcastSchema, "tvBroadcasts"),
+  // /score only, in the order scored. A bad goal is dropped on its own.
+  goals: lenientArray(RawGoalSchema, "goals"),
 });
 
 export const RawScoreResponseSchema = z.object({
@@ -199,6 +222,7 @@ export const RawLeadersResponseSchema = z.record(z.string(), z.array(RawLeaderSc
 export type Localized = z.output<typeof LocalizedSchema>;
 export type RawTeam = z.output<typeof RawTeamSchema>;
 export type RawBroadcast = z.output<typeof RawBroadcastSchema>;
+export type RawGoal = z.output<typeof RawGoalSchema>;
 export type RawGame = z.output<typeof RawGameSchema>;
 export type RawScoreResponse = z.output<typeof RawScoreResponseSchema>;
 export type RawSkater = z.output<typeof RawSkaterSchema>;
