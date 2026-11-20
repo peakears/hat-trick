@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import type { Game, GameSide } from "../../domain";
 import { isFavorite } from "../favorites";
 import { winner } from "../format";
-import { channelsFor, channelsLabel } from "../broadcasts";
+import { channelsFor, channelsLabel, showsChannelsOnCard } from "../broadcasts";
 import { useSettings } from "../settings-context";
 import { useSpoilers } from "../spoiler-context";
 import { tabular, useColors } from "../theme";
@@ -28,7 +28,8 @@ export function GameCard({ game }: { game: Game }) {
     .filter((side) => isFavorite(settings.favoriteTeams, side.team.id))
     .map((side) => side.team.name);
   const favoriteNote = favoriteNames.length > 0 ? `. Favourite: ${favoriteNames.join(", ")}` : "";
-  const channels = channelsFor(game, useTvRegion());
+  const region = useTvRegion();
+  const channels = showsChannelsOnCard(game.status) ? channelsFor(game, region) : [];
   const showScores = game.status !== "scheduled" && game.status !== "postponed";
 
   const row = (side: GameSide, which: "home" | "away") => {
