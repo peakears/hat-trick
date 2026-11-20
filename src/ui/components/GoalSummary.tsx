@@ -40,7 +40,14 @@ export function GoalSummary({ goals }: { goals: Goal[] }) {
 }
 
 const styles = StyleSheet.create({
-  card: { borderRadius: 12, marginHorizontal: 12, marginBottom: 12, paddingVertical: 6, paddingHorizontal: 12 },
+  card: {
+    borderRadius: 12,
+    marginHorizontal: 12,
+    marginTop: 8,
+    marginBottom: 12,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+  },
   title: { fontSize: 12, fontWeight: "600", textTransform: "uppercase", paddingVertical: 6 },
   period: {
     fontSize: 12,
