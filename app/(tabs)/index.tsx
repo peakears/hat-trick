@@ -1,12 +1,12 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useMemo, useState } from "react";
-import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from "react-native";
+import { Pressable, RefreshControl, SectionList, StyleSheet, Text, View } from "react-native";
 import { DatePickerButton } from "../../src/ui/components/DatePickerButton";
 import { GameCard } from "../../src/ui/components/GameCard";
 import { Empty, ErrorView, Loading, OfflineBanner, UpdatedAt } from "../../src/ui/components/States";
 import { ShieldBanner } from "../../src/ui/components/ShieldBanner";
 import { UpdateBanner } from "../../src/ui/components/UpdateBanner";
-import { addDays, dateLabel, sortGamesForScores } from "../../src/ui/format";
+import { addDays, dateLabel, groupGamesForScores } from "../../src/ui/format";
 import { useSettings } from "../../src/ui/settings-context";
 import { LEAGUE, useSportsData } from "../../src/ui/sports-data-context";
 import { useColors } from "../../src/ui/theme";
@@ -23,12 +23,13 @@ export default function ScoresScreen() {
   const date = picked ?? today;
   const go = (d: string) => setPicked(d === today ? null : d);
   const scores = usePolled(`scores:${date}`, (o) => sports.getScores(LEAGUE, date, o));
-  // Favourite teams' games first, then live games on top and finished ones below; re-sorted on each
-  // poll as games start and end.
-  const games = useMemo(
-    () => (scores.data ? sortGamesForScores(scores.data, settings.favoriteTeams) : undefined),
+  // Favourite teams' games first, then live games on top and finished ones below, each group under its own
+  // header; regrouped on each poll as games start and end.
+  const sections = useMemo(
+    () => (scores.data ? groupGamesForScores(scores.data, settings.favoriteTeams) : undefined),
     [scores.data, settings.favoriteTeams],
   );
+  const games = useMemo(() => sections?.flatMap((s) => s.data), [sections]);
 
   return (
     <View style={styles.screen}>
@@ -56,10 +57,19 @@ export default function ScoresScreen() {
       ) : !scores.data && scores.error ? (
         <ErrorView title="Couldn't load scores" error={scores.error} onRetry={scores.refresh} />
       ) : (
-        <FlatList
-          data={games}
+        <SectionList
+          sections={sections ?? []}
           keyExtractor={(g) => g.id}
           renderItem={({ item }) => <GameCard game={item} />}
+          renderSectionHeader={({ section }) => (
+            <Text
+              style={[styles.sectionTitle, { color: section.key === "live" ? colors.live : colors.muted }]}
+              accessibilityRole="header"
+            >
+              {section.title.toUpperCase()}
+            </Text>
+          )}
+          stickySectionHeadersEnabled={false}
           contentContainerStyle={styles.list}
           refreshControl={
             <RefreshControl refreshing={scores.refreshing} onRefresh={scores.refresh} colors={[colors.accent]} />
@@ -85,4 +95,12 @@ const styles = StyleSheet.create({
   dateCenter: { flexDirection: "row", alignItems: "center", gap: 10 },
   dateText: { fontSize: 17, fontWeight: "600" },
   list: { paddingVertical: 3 },
+  sectionTitle: {
+    fontSize: 12,
+    fontWeight: "700",
+    letterSpacing: 0.5,
+    marginHorizontal: 16,
+    marginTop: 12,
+    marginBottom: 2,
+  },
 });

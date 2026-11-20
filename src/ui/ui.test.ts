@@ -6,6 +6,7 @@ import {
   dateLabel,
   dateToPickerValue,
   gameStatusLabel,
+  groupGamesForScores,
   localDate,
   pickerValueToDate,
   recordLabel,
@@ -146,6 +147,53 @@ describe("scores order", () => {
     const games = [at("b", "live", "2026-11-18T00:00:00Z"), at("a", "live", "2026-11-18T00:00:00Z")];
     expect(sortGamesForScores(games).map((g) => g.id)).toEqual(["a", "b"]);
     expect(games.map((g) => g.id)).toEqual(["b", "a"]);
+  });
+});
+
+describe("scores sections", () => {
+  const g = (id: string, status: GameStatus, away = "MTL", home = "TOR"): Game => {
+    const team = (abbrev: string) => ({ id: abbrev, league: "nhl", name: abbrev, abbrev });
+    return {
+      id,
+      league: "nhl",
+      startTime: "2026-11-18T00:00:00Z",
+      status,
+      home: { team: team(home), score: null },
+      away: { team: team(away), score: null },
+    };
+  };
+
+  it("groups by status in Scores order, with a title for each", () => {
+    const sections = groupGamesForScores([g("f", "final"), g("u", "scheduled"), g("l", "live"), g("p", "postponed")]);
+    expect(sections.map((s) => [s.title, s.data.map((x) => x.id)])).toEqual([
+      ["Live", ["l"]],
+      ["Upcoming", ["u"]],
+      ["Final", ["f"]],
+      ["Postponed", ["p"]],
+    ]);
+  });
+
+  it("leaves out sections with no games", () => {
+    expect(groupGamesForScores([g("a", "final"), g("b", "final")]).map((s) => s.title)).toEqual(["Final"]);
+    expect(groupGamesForScores([])).toEqual([]);
+  });
+
+  it("puts favourite teams' games in their own first section, in Scores order inside it", () => {
+    const sections = groupGamesForScores(
+      [g("x", "live", "BOS", "NYR"), g("fin", "final", "EDM", "CGY"), g("up", "scheduled", "TOR", "OTT")],
+      ["TOR", "CGY"],
+    );
+    expect(sections.map((s) => [s.title, s.data.map((x) => x.id)])).toEqual([
+      ["Your teams", ["up", "fin"]],
+      ["Live", ["x"]],
+    ]);
+    expect(sections[0].key).toBe("favorites");
+  });
+
+  it("keeps exactly the order sortGamesForScores gives", () => {
+    const games = [g("1", "final"), g("2", "live", "TOR", "BOS"), g("3", "scheduled"), g("4", "live")];
+    const flat = groupGamesForScores(games, ["TOR"]).flatMap((s) => s.data.map((x) => x.id));
+    expect(flat).toEqual(sortGamesForScores(games, ["TOR"]).map((x) => x.id));
   });
 });
 
