@@ -84,6 +84,13 @@ Settings (including favourite teams) are stored on the device, separately from c
 
 Adding a league means writing a new adapter that implements `LeagueAdapter` and passes the shared contract tests in `src/contract/`. Nothing above it changes.
 
+### Tech stack
+
+- **App:** [Expo](https://expo.dev/) and React Native, written in TypeScript, with [Expo Router](https://docs.expo.dev/router/introduction/) for screens.
+- **Data:** [zod](https://zod.dev/) validates the responses of the unofficial NHL API, AsyncStorage holds the on-device cache and settings, and expo-image draws team logos.
+- **Tests and tooling:** [vitest](https://vitest.dev/) (tests run on recorded API responses, never the live API), Prettier, and commitlint with husky for Conventional Commits.
+- **Releases:** GitHub Actions builds the APKs, and release-please keeps the release PR and changelog.
+
 ## Roadmap
 
 What each version added is on the [Releases page](https://github.com/peakears/hat-trick/releases) and in [CHANGELOG.md](CHANGELOG.md).
