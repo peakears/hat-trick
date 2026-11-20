@@ -1,7 +1,7 @@
 // Display formatting for the app. Pure functions over domain types (no React Native imports),
 // so they are unit tested under Node.
 
-import type { Game, GameStatus } from "../domain";
+import type { Game, GameStatus, StandingRow, Standings, Team } from "../domain";
 
 /** A Date's local calendar date as YYYY-MM-DD. */
 export function localDate(d: Date = new Date()): string {
@@ -105,6 +105,23 @@ export function sortGamesForScores(games: readonly Game[]): Game[] {
       Date.parse(a.startTime) - Date.parse(b.startTime) ||
       a.id.localeCompare(b.id),
   );
+}
+
+/** A season record: "W-L-OT" when the league has OT losses (hockey), otherwise "W-L". */
+export function recordLabel(row: Pick<StandingRow, "wins" | "losses" | "otLosses">): string {
+  return row.otLosses === undefined ? `${row.wins}-${row.losses}` : `${row.wins}-${row.losses}-${row.otLosses}`;
+}
+
+/**
+ * A team's current season record from the standings, or undefined if the team is not in them.
+ * Standings are "now", so for an older game this is today's record, not the record at the time.
+ */
+export function teamRecord(standings: Standings | undefined, team: Team): string | undefined {
+  for (const group of standings?.groups ?? []) {
+    const row = group.rows.find((r) => r.team.id === team.id);
+    if (row) return recordLabel(row);
+  }
+  return undefined;
 }
 
 /** The winning side of a final game, or undefined (not final, or tied scores). */
