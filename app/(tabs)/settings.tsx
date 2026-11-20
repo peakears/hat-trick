@@ -3,6 +3,7 @@ import { Linking, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, Vie
 import { TV_REGIONS, type TvRegionPreference } from "../../src/ui/broadcasts";
 import { Segmented } from "../../src/ui/components/Segmented";
 import { timeLabel } from "../../src/ui/format";
+import { installStatusText, isBusy } from "../../src/ui/install-update";
 import { RELEASES_URL, REPO_URL, reportProblemUrl } from "../../src/ui/links";
 import { requestReminderPermission } from "../../src/ui/reminders-native";
 import { REMINDER_LEADS, type ReminderLead, type ThemePreference } from "../../src/ui/settings";
@@ -25,7 +26,7 @@ const LEAD_OPTIONS = REMINDER_LEADS.map((n) => ({ value: String(n), label: `${n}
 export default function SettingsScreen() {
   const colors = useColors();
   const { settings, update } = useSettings();
-  const { status, checking, checkNow } = useUpdate();
+  const { status, checking, checkNow, install, installNow, openInBrowser, canInstallInApp } = useUpdate();
   const [permissionDenied, setPermissionDenied] = useState(false);
 
   // Turning reminders on asks for the notification permission first; it stays off if refused.
@@ -141,16 +142,21 @@ export default function SettingsScreen() {
         <View style={[styles.row, styles.divider, { borderBottomColor: colors.border }]}>
           <View style={styles.rowText}>
             <Text style={[styles.label, { color: colors.text }]}>Hat Trick {APP_VERSION}</Text>
-            <Text style={[styles.detail, { color: colors.muted }]}>{updateDetail(status, checking)}</Text>
+            <Text style={[styles.detail, { color: colors.muted }]}>
+              {installStatusText(install) ?? updateDetail(status, checking)}
+            </Text>
           </View>
           {status.kind === "available" ? (
             <Pressable
-              onPress={() => Linking.openURL(status.release.apkUrl ?? status.release.url).catch(() => {})}
+              onPress={install.kind === "failed" ? openInBrowser : installNow}
+              disabled={isBusy(install)}
               hitSlop={8}
-              accessibilityRole="link"
-              accessibilityLabel={`Download version ${status.release.version}`}
+              accessibilityRole="button"
+              accessibilityLabel={`${canInstallInApp ? "Update to" : "Download"} version ${status.release.version}`}
             >
-              <Text style={[styles.label, styles.linkText, { color: colors.accent }]}>Download</Text>
+              <Text style={[styles.label, styles.linkText, { color: isBusy(install) ? colors.muted : colors.accent }]}>
+                {install.kind === "failed" ? "Open in browser" : canInstallInApp ? "Update" : "Download"}
+              </Text>
             </Pressable>
           ) : (
             <Pressable onPress={checkNow} disabled={checking} hitSlop={8} accessibilityRole="button">
@@ -162,7 +168,7 @@ export default function SettingsScreen() {
         </View>
         <ToggleRow
           label="Check for updates automatically"
-          detail="Asks GitHub for the latest release at most once a day. Nothing is downloaded or installed without you."
+          detail="Asks GitHub for the latest release at most once a day. Nothing is downloaded until you tap Update."
           value={settings.checkForUpdates}
           onChange={(checkForUpdates) => update({ checkForUpdates })}
         />
