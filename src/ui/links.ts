@@ -2,7 +2,6 @@
 
 export const REPO_URL = "https://github.com/peakears/hat-trick";
 export const RELEASES_URL = `${REPO_URL}/releases`;
-export const KOFI_URL = "https://ko-fi.com/peakears";
 
 /** A new-issue page with the app version and device filled in, so reports say what they ran. */
 export function reportProblemUrl(info: { version: string; platform: string; osVersion: string | number }): string {

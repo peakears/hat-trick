@@ -2,7 +2,7 @@ import { useState, type ReactNode } from "react";
 import { Linking, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
 import { Segmented } from "../../src/ui/components/Segmented";
 import { timeLabel } from "../../src/ui/format";
-import { KOFI_URL, RELEASES_URL, REPO_URL, reportProblemUrl } from "../../src/ui/links";
+import { RELEASES_URL, REPO_URL, reportProblemUrl } from "../../src/ui/links";
 import { requestReminderPermission } from "../../src/ui/reminders-native";
 import { REMINDER_LEADS, type ReminderLead, type ThemePreference } from "../../src/ui/settings";
 import { useSettings } from "../../src/ui/settings-context";
@@ -142,8 +142,8 @@ export default function SettingsScreen() {
           label="Report a problem"
           detail="Opens a new issue with your app version filled in."
           url={reportProblemUrl({ version: APP_VERSION, platform: Platform.OS, osVersion: Platform.Version })}
+          last
         />
-        <LinkRow label="Support on Ko-fi" url={KOFI_URL} last />
       </Section>
 
       <Text style={[styles.footer, { color: colors.muted }]}>Not affiliated with the NHL or any team.</Text>
