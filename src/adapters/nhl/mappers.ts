@@ -102,6 +102,7 @@ function mapSide(raw: RawTeam, status: GameStatus): GameSide {
     team: mapTeam(raw),
     score: status === "scheduled" ? null : (raw.score ?? 0),
     shotsOnGoal: raw.sog,
+    record: raw.record,
   };
 }
 
