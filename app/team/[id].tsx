@@ -15,6 +15,15 @@ export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
   return <CrashScreen error={error} retry={retry} />;
 }
 
+/** The big record numbers, each with its own label (no OT losses where the league has none). */
+function recordParts(row: StandingRow): { label: string; value: number }[] {
+  const parts = [
+    { label: "W", value: row.wins },
+    { label: "L", value: row.losses },
+  ];
+  return row.otLosses === undefined ? parts : [...parts, { label: "OT", value: row.otLosses }];
+}
+
 /** The smaller numbers under the record, skipping any the league does not have. */
 function statTiles(row: StandingRow): { label: string; value: string }[] {
   const tiles = [
@@ -76,15 +85,14 @@ export default function TeamScreen() {
         </View>
 
         <View style={[styles.recordCard, { backgroundColor: colors.card }]}>
-          <Text
-            style={[styles.record, tabular, { color: colors.text }]}
-            accessibilityLabel={`Record ${recordLabel(row)}`}
-          >
-            {recordLabel(row)}
-          </Text>
-          <Text style={[styles.recordCaption, { color: colors.muted }]}>
-            {row.otLosses === undefined ? "Wins - Losses" : "Wins - Losses - OT losses"}
-          </Text>
+          <View style={styles.recordRow} accessible accessibilityLabel={`Record ${recordLabel(row)}`}>
+            {recordParts(row).map((p) => (
+              <View key={p.label} style={styles.recordPart}>
+                <Text style={[styles.record, tabular, { color: colors.text }]}>{p.value}</Text>
+                <Text style={[styles.recordLabel, { color: colors.muted }]}>{p.label}</Text>
+              </View>
+            ))}
+          </View>
           <View style={[styles.tiles, { borderTopColor: colors.border }]}>
             {statTiles(row).map((t) => (
               <View key={t.label} style={styles.tile}>
@@ -133,8 +141,10 @@ const styles = StyleSheet.create({
   name: { fontSize: 22, fontWeight: "800" },
   rankLine: { fontSize: 13 },
   recordCard: { margin: 12, marginBottom: 0, paddingTop: 16, borderRadius: 12, alignItems: "center" },
+  recordRow: { flexDirection: "row", gap: 28, marginBottom: 14 },
+  recordPart: { alignItems: "center" },
   record: { fontSize: 44, fontWeight: "800" },
-  recordCaption: { fontSize: 12, fontWeight: "600", marginBottom: 14 },
+  recordLabel: { fontSize: 12, fontWeight: "700" },
   tiles: { flexDirection: "row", alignSelf: "stretch", borderTopWidth: StyleSheet.hairlineWidth, paddingVertical: 12 },
   tile: { flex: 1, alignItems: "center" },
   tileValue: { fontSize: 18, fontWeight: "700" },
