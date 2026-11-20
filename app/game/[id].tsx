@@ -2,13 +2,15 @@ import { Stack, useLocalSearchParams, type ErrorBoundaryProps } from "expo-route
 import { useState } from "react";
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import type { GameSide } from "../../src/domain";
+import { RevealButton } from "../../src/ui/components/ShieldUi";
 import { FavoriteStar } from "../../src/ui/components/FavoriteStar";
 import { Segmented } from "../../src/ui/components/Segmented";
 import { CrashScreen, Empty, ErrorView, Loading, OfflineBanner, UpdatedAt } from "../../src/ui/components/States";
 import { StatTableView } from "../../src/ui/components/StatTableView";
 import { TeamLogo } from "../../src/ui/components/TeamLogo";
 import { WhereToWatch } from "../../src/ui/components/WhereToWatch";
-import { gameStatusLabel, teamRecord } from "../../src/ui/format";
+import { teamRecord } from "../../src/ui/format";
+import { useSpoilers } from "../../src/ui/spoiler-context";
 import { LEAGUE, useSportsData } from "../../src/ui/sports-data-context";
 import { tabular, useColors } from "../../src/ui/theme";
 import { usePolled } from "../../src/ui/use-polled";
@@ -22,6 +24,7 @@ export default function GameScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const sports = useSportsData();
   const colors = useColors();
+  const spoilers = useSpoilers();
   const [side, setSide] = useState<"away" | "home">("away");
   const detail = usePolled(`game:${id}`, (o) => sports.getGameDetail(LEAGUE, id, o));
   // Season records come from the standings (shared with the Standings tab's cache). Optional:
@@ -41,10 +44,12 @@ export default function GameScreen() {
 
   const { game, boxscore } = detail.data;
   const live = game.status === "live";
+  // While hidden: no score, shots, box score, and no records (the standings already count a finished game).
+  const hidden = spoilers.isHidden(game);
   const tables = boxscore[side].filter((t) => t.rows.length > 0);
 
   const team = (s: GameSide) => {
-    const record = teamRecord(standings.data, s.team);
+    const record = hidden && game.status === "final" ? undefined : teamRecord(standings.data, s.team);
     return (
       <View style={styles.team}>
         <TeamLogo team={s.team} size={56} />
@@ -62,7 +67,7 @@ export default function GameScreen() {
             {record}
           </Text>
         )}
-        {s.shotsOnGoal !== undefined && (
+        {s.shotsOnGoal !== undefined && !hidden && (
           // A pill, so shots read as a live game stat rather than another line of team info.
           <View
             style={[styles.sogPill, { backgroundColor: colors.background, borderColor: colors.border }]}
@@ -88,27 +93,36 @@ export default function GameScreen() {
         <View style={[styles.summary, { backgroundColor: colors.card }]}>
           {team(game.away)}
           <View style={styles.middle}>
-            <Text style={[styles.score, tabular, { color: colors.text }]}>
-              {game.away.score ?? "-"} – {game.home.score ?? "-"}
-            </Text>
+            {hidden ? (
+              <Text style={[styles.hiddenScore, { color: colors.muted }]}>Score hidden</Text>
+            ) : (
+              <Text style={[styles.score, tabular, { color: colors.text }]}>
+                {game.away.score ?? "-"} – {game.home.score ?? "-"}
+              </Text>
+            )}
             <Text style={[styles.status, tabular, { color: live ? colors.live : colors.muted }]}>
-              {gameStatusLabel(game)}
+              {spoilers.statusLabel(game)}
             </Text>
+            {hidden && <RevealButton label="Show score" onPress={() => spoilers.reveal(game.id)} />}
           </View>
           {team(game.home)}
         </View>
 
         <WhereToWatch game={game} />
 
-        <Segmented
-          options={[
-            { value: "away", label: game.away.team.abbrev },
-            { value: "home", label: game.home.team.abbrev },
-          ]}
-          value={side}
-          onChange={setSide}
-        />
-        {tables.length === 0 ? (
+        {hidden ? (
+          <Empty message="Box score hidden by the spoiler shield. Tap Show score to see it." />
+        ) : (
+          <Segmented
+            options={[
+              { value: "away", label: game.away.team.abbrev },
+              { value: "home", label: game.home.team.abbrev },
+            ]}
+            value={side}
+            onChange={setSide}
+          />
+        )}
+        {hidden ? null : tables.length === 0 ? (
           <Empty message={game.status === "scheduled" ? "Box score starts at puck drop." : "No box score yet."} />
         ) : (
           tables.map((t) => <StatTableView key={t.title} table={t} />)
@@ -146,5 +160,6 @@ const styles = StyleSheet.create({
   sogLabel: { fontSize: 10, fontWeight: "600", letterSpacing: 0.5 },
   middle: { alignItems: "center", paddingHorizontal: 8, gap: 4 },
   score: { fontSize: 30, fontWeight: "800" },
+  hiddenScore: { fontSize: 16, fontWeight: "600" },
   status: { fontSize: 13, fontWeight: "600" },
 });

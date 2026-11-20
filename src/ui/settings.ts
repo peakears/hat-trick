@@ -28,6 +28,8 @@ export interface Settings {
   checkForUpdates: boolean;
   /** Whose TV channels to show: "auto" uses the phone's region. */
   tvRegion: TvRegionPreference;
+  /** Hide scores and box scores until the user taps to show them (for watching games on delay). */
+  spoilerShield: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -39,6 +41,7 @@ export const DEFAULT_SETTINGS: Settings = {
   reminderLeadMinutes: 30,
   checkForUpdates: true,
   tvRegion: "auto",
+  spoilerShield: false,
 };
 
 export const SETTINGS_KEY = "settings:v1";
@@ -58,6 +61,7 @@ const schema = z.object({
   reminderLeadMinutes: z.literal(REMINDER_LEADS).catch(DEFAULT_SETTINGS.reminderLeadMinutes),
   checkForUpdates: z.boolean().catch(DEFAULT_SETTINGS.checkForUpdates),
   tvRegion: z.enum(TV_REGIONS).catch(DEFAULT_SETTINGS.tvRegion),
+  spoilerShield: z.boolean().catch(DEFAULT_SETTINGS.spoilerShield),
 });
 
 export function parseSettings(raw: string | null): Settings {

@@ -26,6 +26,7 @@ describe("parseSettings", () => {
       reminderLeadMinutes: 30,
       checkForUpdates: true,
       tvRegion: "auto",
+      spoilerShield: false,
     });
   });
 
@@ -46,6 +47,7 @@ describe("parseSettings", () => {
       reminderLeadMinutes: 30,
       checkForUpdates: true,
       tvRegion: "auto",
+      spoilerShield: false,
     });
     expect(parseSettings(JSON.stringify({ theme: "purple", showBetting: true }))).toEqual({
       theme: "system",
@@ -56,6 +58,7 @@ describe("parseSettings", () => {
       reminderLeadMinutes: 30,
       checkForUpdates: true,
       tvRegion: "auto",
+      spoilerShield: false,
     });
   });
 
@@ -82,6 +85,12 @@ describe("parseSettings", () => {
     expect(parseSettings(JSON.stringify({ tvRegion: 1 })).tvRegion).toBe("auto");
   });
 
+  it("has the spoiler shield off by default and keeps a stored value", () => {
+    expect(DEFAULT_SETTINGS.spoilerShield).toBe(false);
+    expect(parseSettings(JSON.stringify({ spoilerShield: true })).spoilerShield).toBe(true);
+    expect(parseSettings(JSON.stringify({ spoilerShield: "yes" })).spoilerShield).toBe(false);
+  });
+
   it("drops unknown fields", () => {
     expect(parseSettings(JSON.stringify({ ...DEFAULT_SETTINGS, old: 1 }))).toEqual(DEFAULT_SETTINGS);
   });
@@ -99,6 +108,7 @@ describe("loadSettings / saveSettings", () => {
       reminderLeadMinutes: 15,
       checkForUpdates: false,
       tvRegion: "CA",
+      spoilerShield: true,
     };
     await saveSettings(store, settings);
     expect(await loadSettings(store)).toEqual(settings);

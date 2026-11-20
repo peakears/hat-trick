@@ -2,12 +2,14 @@ import { useRouter } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import type { Game, GameSide } from "../../domain";
 import { isFavorite } from "../favorites";
-import { gameStatusLabel, winner } from "../format";
+import { winner } from "../format";
 import { channelsFor, channelsLabel } from "../broadcasts";
 import { useSettings } from "../settings-context";
+import { useSpoilers } from "../spoiler-context";
 import { tabular, useColors } from "../theme";
 import { useTvRegion } from "../use-tv-region";
 import { ChannelLine } from "./ChannelLine";
+import { RevealButton } from "./ShieldUi";
 import { TeamLogo } from "./TeamLogo";
 
 /** One game in the scores list: away team on top, home below, status on the right. */
@@ -15,7 +17,11 @@ export function GameCard({ game }: { game: Game }) {
   const colors = useColors();
   const router = useRouter();
   const { settings } = useSettings();
-  const won = winner(game);
+  const spoilers = useSpoilers();
+  const hidden = spoilers.isHidden(game);
+  const statusLabel = spoilers.statusLabel(game);
+  // A hidden game must not give the winner away through bold or dimmed names either.
+  const won = hidden ? undefined : winner(game);
   const live = game.status === "live";
   // The colour alone says "favourite", so say it in words for screen readers too.
   const favoriteNames = [game.away, game.home]
@@ -43,7 +49,9 @@ export function GameCard({ game }: { game: Game }) {
           {side.team.name}
         </Text>
         {showScores && (
-          <Text style={[styles.score, tabular, { color: dim ? colors.muted : colors.text }]}>{side.score ?? "-"}</Text>
+          <Text style={[styles.score, tabular, { color: dim || hidden ? colors.muted : colors.text }]}>
+            {hidden ? "•" : (side.score ?? "-")}
+          </Text>
         )}
       </View>
     );
@@ -59,7 +67,7 @@ export function GameCard({ game }: { game: Game }) {
         { backgroundColor: colors.card, borderColor: colors.cardBorder, opacity: pressed ? 0.7 : 1 },
       ]}
       accessibilityRole="button"
-      accessibilityLabel={`${game.away.team.name} at ${game.home.team.name}, ${gameStatusLabel(game)}${favoriteNote}${channels.length > 0 ? `. On TV: ${channelsLabel(channels)}` : ""}`}
+      accessibilityLabel={`${game.away.team.name} at ${game.home.team.name}, ${statusLabel}${hidden ? ". Score hidden" : ""}${favoriteNote}${channels.length > 0 ? `. On TV: ${channelsLabel(channels)}` : ""}`}
     >
       <View style={styles.main}>
         <View style={styles.teams}>
@@ -68,9 +76,8 @@ export function GameCard({ game }: { game: Game }) {
         </View>
         <View style={[styles.status, { borderLeftColor: colors.border }]}>
           {live && <Text style={[styles.liveDot, { color: colors.live }]}>● LIVE</Text>}
-          <Text style={[styles.statusText, tabular, { color: live ? colors.text : colors.muted }]}>
-            {gameStatusLabel(game)}
-          </Text>
+          <Text style={[styles.statusText, tabular, { color: live ? colors.text : colors.muted }]}>{statusLabel}</Text>
+          {hidden && <RevealButton label="Show score" onPress={() => spoilers.reveal(game.id)} />}
         </View>
       </View>
       <ChannelLine channels={channels} />

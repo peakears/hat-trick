@@ -4,6 +4,7 @@ import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from "rea
 import { DatePickerButton } from "../../src/ui/components/DatePickerButton";
 import { GameCard } from "../../src/ui/components/GameCard";
 import { Empty, ErrorView, Loading, OfflineBanner, UpdatedAt } from "../../src/ui/components/States";
+import { ShieldBanner } from "../../src/ui/components/ShieldBanner";
 import { UpdateBanner } from "../../src/ui/components/UpdateBanner";
 import { addDays, dateLabel, sortGamesForScores } from "../../src/ui/format";
 import { useSettings } from "../../src/ui/settings-context";
@@ -47,6 +48,7 @@ export default function ScoresScreen() {
         </Pressable>
       </View>
       <UpdateBanner />
+      <ShieldBanner games={games} />
       <OfflineBanner meta={scores.meta} />
 
       {scores.loading ? (
