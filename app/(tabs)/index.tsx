@@ -1,6 +1,7 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useMemo, useState } from "react";
 import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from "react-native";
+import { DatePickerButton } from "../../src/ui/components/DatePickerButton";
 import { GameCard } from "../../src/ui/components/GameCard";
 import { Empty, ErrorView, Loading, OfflineBanner, UpdatedAt } from "../../src/ui/components/States";
 import { addDays, dateLabel, sortGamesForScores } from "../../src/ui/format";
@@ -27,9 +28,13 @@ export default function ScoresScreen() {
         <Pressable onPress={() => go(addDays(date, -1))} hitSlop={12} accessibilityLabel="Previous day">
           <Ionicons name="chevron-back" size={24} color={colors.accent} />
         </Pressable>
-        <Pressable onPress={() => setPicked(null)} accessibilityLabel="Go to today">
-          <Text style={[styles.dateText, { color: colors.text }]}>{dateLabel(date, today)}</Text>
-        </Pressable>
+        <View style={styles.dateCenter}>
+          <Pressable onPress={() => setPicked(null)} accessibilityLabel="Go to today">
+            <Text style={[styles.dateText, { color: colors.text }]}>{dateLabel(date, today)}</Text>
+          </Pressable>
+          {/* Picking today goes through go(), so it stores no fixed date and keeps following today. */}
+          <DatePickerButton date={date} onPick={go} onToday={() => setPicked(null)} />
+        </View>
         <Pressable onPress={() => go(addDays(date, 1))} hitSlop={12} accessibilityLabel="Next day">
           <Ionicons name="chevron-forward" size={24} color={colors.accent} />
         </Pressable>
@@ -67,6 +72,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
+  dateCenter: { flexDirection: "row", alignItems: "center", gap: 10 },
   dateText: { fontSize: 17, fontWeight: "600" },
   list: { paddingVertical: 3 },
 });
