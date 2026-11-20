@@ -132,6 +132,8 @@ export interface TeamDetail {
   recent?: Game[];
   /** Up to 5 games still to play, soonest first. Absent when the schedule could not be loaded. */
   upcoming?: Game[];
+  /** The team's home arena: the venue most of its home games in the schedule use. Absent when unknown. */
+  arena?: string;
 }
 
 // ---------- Standings ----------

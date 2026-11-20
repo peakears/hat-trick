@@ -450,6 +450,10 @@ describe("NHL adapter", () => {
       expect([...recent!, ...upcoming!].some((g) => g.id.startsWith("2026010"))).toBe(false);
     });
 
+    it("takes the arena from the venue most home games use", async () => {
+      expect((await fixtureAdapter().adapter.getTeam("TOR")).arena).toBe("Scotiabank Arena");
+    });
+
     it("still returns the stats when the schedule cannot be loaded", async () => {
       const adapter = new NhlAdapter({
         fetch: async (input) => {
@@ -462,6 +466,7 @@ describe("NHL adapter", () => {
       expect(detail.stats.length).toBe(3);
       expect(detail.recent).toBeUndefined();
       expect(detail.upcoming).toBeUndefined();
+      expect(detail.arena).toBeUndefined();
     });
 
     it("fails when the club stats cannot be loaded", async () => {

@@ -107,7 +107,7 @@ export class NhlAdapter implements LeagueAdapter {
     const team = encodeURIComponent(teamId);
     const [stats, schedule] = await Promise.all([
       this.fetch(`/club-stats/${team}/now`, RawClubStatsSchema, options),
-      this.getTeamSchedule(team, options),
+      this.getTeamSchedule(team, teamId, options),
     ]);
     return { teamId, stats: mapClubStats(stats), ...schedule };
   }
@@ -115,10 +115,14 @@ export class NhlAdapter implements LeagueAdapter {
   /** Games are an extra on the team page: if this call fails the stats still show, without them. */
   private async getTeamSchedule(
     team: string,
+    teamId: string,
     options?: RequestOptions,
-  ): Promise<Pick<TeamDetail, "recent" | "upcoming">> {
+  ): Promise<Pick<TeamDetail, "recent" | "upcoming" | "arena">> {
     try {
-      return mapTeamSchedule(await this.fetch(`/club-schedule-season/${team}/now`, RawClubScheduleSchema, options));
+      return mapTeamSchedule(
+        await this.fetch(`/club-schedule-season/${team}/now`, RawClubScheduleSchema, options),
+        teamId,
+      );
     } catch {
       return {};
     }

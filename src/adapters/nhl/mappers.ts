@@ -425,12 +425,27 @@ export function mapClubStats(raw: RawClubStats): StatTable[] {
  * The games around now from a team's season schedule: the last few that started (newest first) and the
  * next few still to play (soonest first). Preseason games and postponed ones are left out.
  */
-export function mapTeamSchedule(raw: RawClubSchedule): Pick<TeamDetail, "recent" | "upcoming"> {
+/** The venue used by most of the team's home games, so a one-off outdoor or neutral-site game does not win. */
+function homeArena(games: Game[], teamId: string): string | undefined {
+  const counts = new Map<string, number>();
+  for (const g of games) {
+    if (g.home.team.id === teamId && g.venue) counts.set(g.venue.name, (counts.get(g.venue.name) ?? 0) + 1);
+  }
+  let best: string | undefined;
+  for (const [name, n] of counts) if (best === undefined || n > (counts.get(best) ?? 0)) best = name;
+  return best;
+}
+
+export function mapTeamSchedule(
+  raw: RawClubSchedule,
+  teamId: string,
+): Pick<TeamDetail, "recent" | "upcoming" | "arena"> {
   const games = (raw.games ?? [])
     .filter((g) => g.gameType !== 1) // 1 is preseason
     .map(mapGame)
     .sort((a, b) => Date.parse(a.startTime) - Date.parse(b.startTime));
   return {
+    arena: homeArena(games, teamId),
     recent: games
       .filter((g) => g.status === "final" || g.status === "live")
       .slice(-TEAM_GAMES_SHOWN)

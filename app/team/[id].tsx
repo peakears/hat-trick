@@ -145,6 +145,11 @@ export default function TeamScreen() {
               {team.name}
             </Text>
             <Text style={[styles.rankLine, { color: colors.muted }]}>{rankLine(row)}</Text>
+            {detail.data?.arena && (
+              <Text style={[styles.rankLine, { color: colors.muted }]} numberOfLines={1}>
+                {detail.data.arena}
+              </Text>
+            )}
           </View>
           <View style={styles.star}>
             <FavoriteStar team={team} size={26} />
