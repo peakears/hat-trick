@@ -14,12 +14,15 @@ export interface Settings {
   showLogos: boolean;
   /** Does nothing until betting info (issue #7) lands. */
   showBetting: boolean;
+  /** Team ids (three-letter abbreviations) the user starred. Their games sort to the top of Scores. */
+  favoriteTeams: string[];
 }
 
 export const DEFAULT_SETTINGS: Settings = {
   theme: "system",
   showLogos: true,
   showBetting: false,
+  favoriteTeams: [],
 };
 
 export const SETTINGS_KEY = "settings:v1";
@@ -30,6 +33,11 @@ const schema = z.object({
   theme: z.enum(THEMES).catch(DEFAULT_SETTINGS.theme),
   showLogos: z.boolean().catch(DEFAULT_SETTINGS.showLogos),
   showBetting: z.boolean().catch(DEFAULT_SETTINGS.showBetting),
+  // Duplicates are dropped, so a hand-edited or doubled-up list stays a set.
+  favoriteTeams: z
+    .array(z.string())
+    .transform((ids) => [...new Set(ids)])
+    .catch([]),
 });
 
 export function parseSettings(raw: string | null): Settings {

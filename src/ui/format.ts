@@ -2,6 +2,7 @@
 // so they are unit tested under Node.
 
 import type { Game, GameStatus, StandingRow, Standings, Team } from "../domain";
+import { involvesFavorite } from "./favorites";
 
 /** A Date's local calendar date as YYYY-MM-DD. */
 export function localDate(d: Date = new Date()): string {
@@ -95,12 +96,14 @@ export function gameStatusLabel(game: Game): string {
 const STATUS_ORDER: Record<GameStatus, number> = { live: 0, scheduled: 1, final: 2, postponed: 3 };
 
 /**
- * Games in Scores tab order: by status (STATUS_ORDER), then by start time, then by id so the
- * order never jumps between polls. Returns a new array.
+ * Games in Scores tab order: games involving a favourite team first, then by status (STATUS_ORDER),
+ * then by start time, then by id so the order never jumps between polls. Returns a new array.
  */
-export function sortGamesForScores(games: readonly Game[]): Game[] {
+export function sortGamesForScores(games: readonly Game[], favorites: readonly string[] = []): Game[] {
+  const rank = (g: Game) => (involvesFavorite(g, favorites) ? 0 : 1);
   return [...games].sort(
     (a, b) =>
+      rank(a) - rank(b) ||
       STATUS_ORDER[a.status] - STATUS_ORDER[b.status] ||
       Date.parse(a.startTime) - Date.parse(b.startTime) ||
       a.id.localeCompare(b.id),

@@ -8,6 +8,7 @@ import {
   loadSettings,
   parseSettings,
   saveSettings,
+  type Settings,
 } from "./settings";
 
 describe("parseSettings", () => {
@@ -15,8 +16,8 @@ describe("parseSettings", () => {
     expect(parseSettings(null)).toEqual(DEFAULT_SETTINGS);
   });
 
-  it("has betting off and logos on by default", () => {
-    expect(DEFAULT_SETTINGS).toEqual({ theme: "system", showLogos: true, showBetting: false });
+  it("has betting off, logos on and no favourite teams by default", () => {
+    expect(DEFAULT_SETTINGS).toEqual({ theme: "system", showLogos: true, showBetting: false, favoriteTeams: [] });
   });
 
   it("returns defaults for corrupt JSON or a non-object", () => {
@@ -31,12 +32,23 @@ describe("parseSettings", () => {
       theme: "dark",
       showLogos: true,
       showBetting: false,
+      favoriteTeams: [],
     });
     expect(parseSettings(JSON.stringify({ theme: "purple", showBetting: true }))).toEqual({
       theme: "system",
       showLogos: true,
       showBetting: true,
+      favoriteTeams: [],
     });
+  });
+
+  it("keeps stored favourite teams, drops duplicates, and defaults a bad value to none", () => {
+    expect(parseSettings(JSON.stringify({ favoriteTeams: ["TOR", "MTL", "TOR"] })).favoriteTeams).toEqual([
+      "TOR",
+      "MTL",
+    ]);
+    expect(parseSettings(JSON.stringify({ favoriteTeams: "TOR" })).favoriteTeams).toEqual([]);
+    expect(parseSettings(JSON.stringify({ favoriteTeams: ["TOR", 7] })).favoriteTeams).toEqual([]);
   });
 
   it("drops unknown fields", () => {
@@ -47,7 +59,7 @@ describe("parseSettings", () => {
 describe("loadSettings / saveSettings", () => {
   it("round-trips through a store", async () => {
     const store = new MemoryStore();
-    const settings = { theme: "light", showLogos: false, showBetting: true } as const;
+    const settings: Settings = { theme: "light", showLogos: false, showBetting: true, favoriteTeams: ["TOR"] };
     await saveSettings(store, settings);
     expect(await loadSettings(store)).toEqual(settings);
   });

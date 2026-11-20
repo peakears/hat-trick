@@ -1,7 +1,10 @@
 import { RefreshControl, SectionList, StyleSheet, Text, View } from "react-native";
 import type { StandingRow } from "../../src/domain";
+import { FavoriteStar } from "../../src/ui/components/FavoriteStar";
 import { ErrorView, Loading, OfflineBanner, UpdatedAt } from "../../src/ui/components/States";
 import { TeamLogo } from "../../src/ui/components/TeamLogo";
+import { isFavorite } from "../../src/ui/favorites";
+import { useSettings } from "../../src/ui/settings-context";
 import { LEAGUE, useSportsData } from "../../src/ui/sports-data-context";
 import { tabular, useColors } from "../../src/ui/theme";
 import { usePolled } from "../../src/ui/use-polled";
@@ -21,6 +24,7 @@ const COLUMNS: { label: string; width: number; value: (r: StandingRow) => string
 export default function StandingsScreen() {
   const sports = useSportsData();
   const colors = useColors();
+  const { settings } = useSettings();
   const standings = usePolled("standings", (o) => sports.getStandings(LEAGUE, o));
 
   if (standings.loading) return <Loading />;
@@ -54,8 +58,20 @@ export default function StandingsScreen() {
           </View>
         )}
         renderItem={({ item }) => (
-          <View style={[styles.row, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
+          <View
+            style={[
+              styles.row,
+              styles.teamRow,
+              {
+                backgroundColor: colors.card,
+                borderBottomColor: colors.border,
+                // A favourite team gets an accent bar on the left edge.
+                borderLeftColor: isFavorite(settings.favoriteTeams, item.team.id) ? colors.accent : "transparent",
+              },
+            ]}
+          >
             <Text style={[styles.rank, tabular, { color: colors.muted }]}>{item.rank}</Text>
+            <FavoriteStar team={item.team} size={20} />
             <TeamLogo team={item.team} size={24} />
             {/* Two lines, so long names ("Golden Knights") wrap on narrow screens instead of being cut off. */}
             <Text numberOfLines={2} style={[styles.team, { color: colors.text }]}>
@@ -88,6 +104,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: "transparent",
   },
+  teamRow: { borderLeftWidth: 3 },
   headerRow: { paddingTop: 16 },
   groupName: { flex: 1, fontSize: 15, fontWeight: "700" },
   headerText: { fontSize: 11, fontWeight: "700" },
