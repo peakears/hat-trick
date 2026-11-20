@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.3.0](https://github.com/peakears/hat-trick/compare/v1.2.1...v1.3.0) (2026-11-20)
+
+
+### Features
+
+* **app:** add section headers to the Scores list ([#50](https://github.com/peakears/hat-trick/issues/50)) ([fd291b6](https://github.com/peakears/hat-trick/commit/fd291b6b4d3f8e40f1c77f1c88b59442b3a7d38a)), closes [#23](https://github.com/peakears/hat-trick/issues/23)
+* **app:** show team records on upcoming game cards ([#49](https://github.com/peakears/hat-trick/issues/49)) ([4d6320e](https://github.com/peakears/hat-trick/commit/4d6320ef2c6b995a04e4af1841969b53cc9009eb)), closes [#21](https://github.com/peakears/hat-trick/issues/21)
+* **app:** show TV channels on each game ([#47](https://github.com/peakears/hat-trick/issues/47)) ([27be47d](https://github.com/peakears/hat-trick/commit/27be47d1d14025a57cb23e429044f8ba054e537c))
+* **app:** spoiler shield ([#48](https://github.com/peakears/hat-trick/issues/48)) ([9756bca](https://github.com/peakears/hat-trick/commit/9756bca7593be438e888d4491b5ad9dea89733df))
+
 ## [1.2.1](https://github.com/peakears/hat-trick/compare/v1.2.0...v1.2.1) (2026-11-20)
 
 
