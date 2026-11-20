@@ -62,11 +62,10 @@ Open work lives in GitHub issues, the source of truth; do not copy it here. Desi
 
 ## Keeping this file short
 
-This file holds what is not obvious from the code: the architecture map, rules and gotchas, workflow and commands. `src/claude-md.test.ts` fails if it grows past 12 KB or 120 lines, or if it contains struck-through "Done" history or a release version number.
+This file holds what is not obvious from the code: the architecture map, rules and gotchas, workflow and commands. Keep it short (about 120 lines).
 
 - Do not add history or "Done" lists (git log, Releases and CHANGELOG.md hold them), version numbers, the current `CACHE_VERSION`, or copies of issue text or feature descriptions (README, issues and code comments have them).
 - When a change alters behaviour, edit the one bullet it affects, in place. Do not append a new paragraph, and delete what has become stale.
-- If the test fails, shorten existing bullets; do not raise the limits.
 
 ## Commands
 
