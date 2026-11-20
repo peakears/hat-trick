@@ -77,7 +77,7 @@ describe("splitLines", () => {
       road: { wins: 10, losses: 0, otLosses: 1 },
     });
     expect(splitLines(r)).toEqual([
-      { label: "Last 10", record: "8-1-1", goals: "36 for, 19 against" },
+      { label: "Last 10", record: "8-1-1", goals: "Scored 36 · Allowed 19" },
       { label: "Road", record: "10-0-1", goals: undefined },
     ]);
   });

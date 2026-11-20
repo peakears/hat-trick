@@ -31,14 +31,14 @@ export function rankLine(row: StandingRow): string {
 export interface SplitLine {
   label: string;
   record: string; // "8-1-1"
-  goals?: string; // "36 for, 19 against"
+  goals?: string; // "Scored 36 · Allowed 19"
 }
 
 function splitLine(label: string, split: RecordSplit | undefined): SplitLine | undefined {
   if (!split) return undefined;
   const goals =
     split.goalsFor !== undefined && split.goalsAgainst !== undefined
-      ? `${split.goalsFor} for, ${split.goalsAgainst} against`
+      ? `Scored ${split.goalsFor} · Allowed ${split.goalsAgainst}`
       : undefined;
   return { label, record: recordLabel(split), goals };
 }
