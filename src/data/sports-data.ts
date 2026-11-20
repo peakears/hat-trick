@@ -6,9 +6,18 @@
 // - If a fetch fails and anything is cached, the last known data is returned, marked stale.
 // - Concurrent requests for the same key share one network call.
 
-import type { Game, GameDetail, LeaderBoard, LeaderQuery, LeagueId, RequestOptions, Standings } from "../domain";
+import type {
+  Game,
+  GameDetail,
+  LeaderBoard,
+  LeaderQuery,
+  LeagueId,
+  RequestOptions,
+  Standings,
+  TeamDetail,
+} from "../domain";
 import type { AdapterRegistry } from "../registry";
-import { FRESHNESS, gameFreshness, scoresFreshness } from "./freshness";
+import { FRESHNESS, gameFreshness, scoresFreshness, teamFreshness } from "./freshness";
 import type { KeyValueStore } from "./store";
 import type { DataMeta, Fetched, FetchOptions } from "./types";
 
@@ -97,6 +106,18 @@ export class SportsData {
         key: `${league}:game:${gameId}`,
         load: (o) => this.registry.get(league).getGameDetail(gameId, o),
         freshFor: (detail, now) => gameFreshness(detail.game, now),
+      },
+      options,
+    );
+  }
+
+  getTeam(league: LeagueId, teamId: string, options?: FetchOptions): Promise<Fetched<TeamDetail>> {
+    return this.get(
+      {
+        league,
+        key: `${league}:team:${teamId}`,
+        load: (o) => this.registry.get(league).getTeam(teamId, o),
+        freshFor: (detail, now) => teamFreshness(detail, now),
       },
       options,
     );

@@ -1,7 +1,7 @@
 // How long each kind of data stays fresh, based on game status.
 // League-agnostic: it only reads domain types.
 
-import type { Game } from "../domain";
+import type { Game, TeamDetail } from "../domain";
 
 const SECOND = 1000;
 const MINUTE = 60 * SECOND;
@@ -25,6 +25,10 @@ export const FRESHNESS = {
   /** No games on the date: the schedule could still be published. */
   noGames: 1 * HOUR,
   standings: 10 * MINUTE,
+  /** Season totals only change when a game ends. */
+  team: 30 * MINUTE,
+  /** The team is playing (or about to): its stats and games are about to change. */
+  teamLive: 1 * MINUTE,
   leaders: 30 * MINUTE,
 } as const;
 
@@ -52,4 +56,18 @@ export function gameFreshness(game: Game, now: number): number {
 export function scoresFreshness(games: Game[], now: number): number {
   if (games.length === 0) return FRESHNESS.noGames;
   return Math.min(...games.map((g) => gameFreshness(g, now)));
+}
+
+/**
+ * A team page is as fresh as the team's games allow: short while it plays or is about to (or just
+ * started on a stale schedule), otherwise a long time, since season totals change once a game ends.
+ */
+export function teamFreshness(detail: TeamDetail, now: number): number {
+  const playingSoon = (detail.recent ?? []).concat(detail.upcoming ?? []).some((g) => {
+    if (g.status === "live") return true;
+    const untilStart = Date.parse(g.startTime) - now;
+    // A scheduled game that should have started up to 3 hours ago is still waiting to be updated.
+    return g.status === "scheduled" && untilStart <= FRESHNESS.startingSoonWindow && untilStart > -3 * HOUR;
+  });
+  return playingSoon ? FRESHNESS.teamLive : FRESHNESS.team;
 }

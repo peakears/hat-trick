@@ -23,6 +23,35 @@ export const GOALIE_COLUMNS: StatColumn[] = [
   { key: "toi", label: "TOI" },
 ];
 
+// Season totals on the team page. Keys are the raw response fields, except `toi` (formatted from seconds).
+export const SEASON_SKATER_COLUMNS: StatColumn[] = [
+  { key: "gamesPlayed", label: "GP" },
+  { key: "goals", label: "G" },
+  { key: "assists", label: "A" },
+  { key: "points", label: "PTS" },
+  { key: "plusMinus", label: "+/-" },
+  { key: "penaltyMinutes", label: "PIM" },
+  { key: "powerPlayGoals", label: "PPG" },
+  { key: "shots", label: "SOG" },
+  { key: "shootingPctg", label: "S%" },
+  { key: "toi", label: "TOI" }, // per game
+];
+
+export const SEASON_GOALIE_COLUMNS: StatColumn[] = [
+  { key: "gamesPlayed", label: "GP" },
+  { key: "gamesStarted", label: "GS" },
+  { key: "wins", label: "W" },
+  { key: "losses", label: "L" },
+  { key: "overtimeLosses", label: "OTL" },
+  { key: "goalsAgainstAverage", label: "GAA" },
+  { key: "savePercentage", label: "SV%" },
+  { key: "shotsAgainst", label: "SA" },
+  { key: "shutouts", label: "SO" },
+];
+
+/** How many recent and upcoming games the team page keeps. */
+export const TEAM_GAMES_SHOWN = 5;
+
 export const SKATER_LEADER_CATEGORIES = ["goals", "assists", "points"];
 export const GOALIE_LEADER_CATEGORIES = ["wins", "savePctg", "goalsAgainstAverage", "shutouts"];
 

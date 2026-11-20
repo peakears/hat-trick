@@ -16,6 +16,7 @@ import type {
   Player,
   StatTable,
   Team,
+  TeamDetail,
 } from "../domain";
 
 const STATUSES: GameStatus[] = ["scheduled", "live", "final", "postponed"];
@@ -27,6 +28,8 @@ export interface ContractInputs {
   gameIds: string[];
   /** Leader queries with recorded fixtures. `{}` (the default boards) should be included. */
   leaderQueries: LeaderQuery[];
+  /** Team ids with recorded team fixtures (season stats and schedule). */
+  teamIds: string[];
 }
 
 export interface ContractOptions {
@@ -219,6 +222,31 @@ export function runLeagueAdapterContract(options: ContractOptions): void {
       });
     });
 
+    describe("getTeam", () => {
+      it.each(inputs.teamIds)("returns season stats and nearby games for %s", async (teamId) => {
+        const detail: TeamDetail = await makeAdapter().getTeam(teamId);
+        expect(detail.teamId).toBe(teamId);
+        expect(detail.stats.length).toBeGreaterThan(0);
+        for (const table of detail.stats) {
+          expectStatTable(table, league);
+          expect(table.rows.length, `${table.title} has no empty tables`).toBeGreaterThan(0);
+        }
+
+        const { recent, upcoming } = detail;
+        for (const g of [...(recent ?? []), ...(upcoming ?? [])]) {
+          expectGame(g, league);
+          expect([g.home.team.id, g.away.team.id], "the team plays in each game").toContain(teamId);
+        }
+        // Recent games are newest first, upcoming ones soonest first, and nothing sits in both lists.
+        const times = (games: Game[] = []) => games.map((g) => Date.parse(g.startTime));
+        expect(times(recent)).toEqual([...times(recent)].sort((a, b) => b - a));
+        expect(times(upcoming)).toEqual([...times(upcoming)].sort((a, b) => a - b));
+        for (const g of recent ?? []) expect(g.status).not.toBe("scheduled");
+        for (const g of upcoming ?? []) expect(g.status).toBe("scheduled");
+        expectJsonSafe(detail);
+      });
+    });
+
     describe("errors", () => {
       it("rejects when the transport fails", async () => {
         const adapter = makeFailingAdapter();
@@ -226,6 +254,7 @@ export function runLeagueAdapterContract(options: ContractOptions): void {
         await expect(adapter.getStandings()).rejects.toThrow();
         await expect(adapter.getLeaders()).rejects.toThrow();
         await expect(adapter.getGameDetail(inputs.gameIds[0])).rejects.toThrow();
+        await expect(adapter.getTeam(inputs.teamIds[0])).rejects.toThrow();
       });
     });
   });
