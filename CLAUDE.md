@@ -60,9 +60,9 @@ Open work lives in GitHub issues, the source of truth; do not copy it here. Desi
 - Workflow: one branch per feature from `main` (`feat/...`, `fix/...`, `docs/...`), one PR each, squash-merged (the PR title becomes the commit, so it must be a Conventional Commit). PR bodies have a summary and a Testing checklist (typecheck, tests, bundle, on a device). Feature PRs update the README and this file in the same PR.
 - Open PRs often conflict in `src/ui/format.ts`, the `ui.test.ts` imports and the docs: merge one, rebase the next onto `main`, keep both sides, run typecheck and tests, push with `--force-with-lease=<branch>:<old sha>`.
 
-## Keeping this file short
+## Keeping this file relevant
 
-This file holds what is not obvious from the code: the architecture map, rules and gotchas, workflow and commands. Keep it short (about 120 lines).
+This file holds what is not obvious from the code: the architecture map, rules and gotchas, workflow and commands. Length is fine as long as everything in it is still relevant; stale or historical content is not.
 
 - Do not add history or "Done" lists (git log, Releases and CHANGELOG.md hold them), version numbers, the current `CACHE_VERSION`, or copies of issue text or feature descriptions (README, issues and code comments have them).
 - When a change alters behaviour, edit the one bullet it affects, in place. Do not append a new paragraph, and delete what has become stale.
