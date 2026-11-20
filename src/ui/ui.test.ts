@@ -18,7 +18,8 @@ import {
   venueLabel,
   winner,
 } from "./format";
-import { POLL, combineFetched, nextPollDelay } from "./polling";
+import { POLL, REFRESH_COOLDOWN_MS, canManualRefresh, combineFetched, nextPollDelay } from "./polling";
+import { isHorizontalDrag, swipeDayStep } from "./swipe";
 
 const NOW = Date.parse("2026-11-17T23:00:00Z");
 
@@ -293,6 +294,45 @@ describe("stat values", () => {
     [undefined, "-"],
   ] as const)("%s -> %s", (value, expected) => {
     expect(statValue(value)).toBe(expected);
+  });
+});
+
+describe("manual refresh limit", () => {
+  const at = (msAgo: number, over: Partial<DataMeta> = {}) =>
+    meta({ fetchedAt: new Date(NOW - msAgo).toISOString(), ...over });
+
+  it("ignores a pull when the data on screen is newer than the cooldown", () => {
+    expect(canManualRefresh(at(5_000), NOW)).toBe(false);
+    expect(canManualRefresh(at(REFRESH_COOLDOWN_MS - 1), NOW)).toBe(false);
+  });
+
+  it("allows it once the cooldown has passed", () => {
+    expect(canManualRefresh(at(REFRESH_COOLDOWN_MS), NOW)).toBe(true);
+    expect(canManualRefresh(at(3 * 86_400_000, { source: "cache" }), NOW)).toBe(true);
+  });
+
+  it("always allows it when nothing loaded, or the data is an offline fallback", () => {
+    expect(canManualRefresh(undefined, NOW)).toBe(true);
+    expect(canManualRefresh(at(1_000, { stale: true, error: "offline", source: "cache" }), NOW)).toBe(true);
+  });
+});
+
+describe("day swipe", () => {
+  it("swipes left to the next day and right to the previous", () => {
+    expect(swipeDayStep(-120, 10)).toBe(1);
+    expect(swipeDayStep(120, -10)).toBe(-1);
+  });
+
+  it("ignores short drags and mostly vertical ones", () => {
+    expect(swipeDayStep(-40, 0)).toBe(0);
+    expect(swipeDayStep(-100, 80)).toBe(0);
+    expect(swipeDayStep(0, 200)).toBe(0);
+  });
+
+  it("only takes over a drag that is clearly sideways", () => {
+    expect(isHorizontalDrag(30, 5)).toBe(true);
+    expect(isHorizontalDrag(10, 0)).toBe(false);
+    expect(isHorizontalDrag(30, 25)).toBe(false);
   });
 });
 

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AppState } from "react-native";
 import type { DataMeta, Fetched, FetchOptions } from "../data";
-import { nextPollDelay } from "./polling";
+import { canManualRefresh, nextPollDelay } from "./polling";
 
 export interface Polled<T> {
   data?: T;
@@ -12,7 +12,7 @@ export interface Polled<T> {
   loading: boolean;
   /** True during a pull-to-refresh. */
   refreshing: boolean;
-  /** Pull-to-refresh: skips the cache. */
+  /** Pull-to-refresh and Retry: skips the cache, but is ignored for 30 seconds after fresh data arrived. */
   refresh: () => void;
 }
 
@@ -81,13 +81,20 @@ export function usePolled<T>(key: string, load: (options: FetchOptions) => Promi
     };
   }, [key]);
 
+  // Until the effect for a new key runs, don't show the previous key's data.
+  const current = state.key === key ? state : { key, refreshing: false };
+
+  // Read by refresh() so it can stay a stable callback.
+  const metaRef = useRef(current.meta);
+  metaRef.current = current.meta;
+
   const refresh = useCallback(() => {
+    // Pulling again right after an update does nothing: no spinner, no request.
+    if (!canManualRefresh(metaRef.current, Date.now())) return;
     setState((s) => ({ ...s, refreshing: true }));
     runRef.current(true);
   }, []);
 
-  // Until the effect for a new key runs, don't show the previous key's data.
-  const current = state.key === key ? state : { key, refreshing: false };
   return {
     data: current.data,
     meta: current.meta,

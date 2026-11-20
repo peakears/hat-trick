@@ -14,6 +14,19 @@ export const POLL = {
   margin: 500,
 } as const;
 
+/** A manual refresh (pull down) is ignored while the data on screen is newer than this. */
+export const REFRESH_COOLDOWN_MS = 30_000;
+
+/**
+ * Whether a pull-to-refresh should go to the network. Not when data from the last 30 seconds is on
+ * screen (a live game refreshes itself every 20 seconds anyway). Always when nothing loaded yet, when
+ * the data is an offline fallback, or when it is old, so Retry after an error is never blocked.
+ */
+export function canManualRefresh(meta: DataMeta | undefined, now: number): boolean {
+  if (!meta || meta.error || meta.stale) return true;
+  return now - Date.parse(meta.fetchedAt) >= REFRESH_COOLDOWN_MS;
+}
+
 /** Milliseconds until the next poll. `meta` is undefined when the last request failed with nothing cached. */
 export function nextPollDelay(meta: DataMeta | undefined, now: number): number {
   if (!meta || meta.error || meta.stale) return POLL.retry;
