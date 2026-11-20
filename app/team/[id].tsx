@@ -86,10 +86,13 @@ export default function TeamScreen() {
 
         <View style={[styles.recordCard, { backgroundColor: colors.card }]}>
           <View style={styles.recordRow} accessible accessibilityLabel={`Record ${recordLabel(row)}`}>
-            {recordParts(row).map((p) => (
-              <View key={p.label} style={styles.recordPart}>
-                <Text style={[styles.record, tabular, { color: colors.text }]}>{p.value}</Text>
-                <Text style={[styles.recordLabel, { color: colors.muted }]}>{p.label}</Text>
+            {recordParts(row).map((p, i) => (
+              <View key={p.label} style={styles.recordItem}>
+                {i > 0 && <Text style={[styles.record, { color: colors.muted }]}>-</Text>}
+                <View style={styles.recordPart}>
+                  <Text style={[styles.record, tabular, { color: colors.text }]}>{p.value}</Text>
+                  <Text style={[styles.recordLabel, { color: colors.muted }]}>{p.label}</Text>
+                </View>
               </View>
             ))}
           </View>
@@ -141,7 +144,8 @@ const styles = StyleSheet.create({
   name: { fontSize: 22, fontWeight: "800" },
   rankLine: { fontSize: 13 },
   recordCard: { margin: 12, marginBottom: 0, paddingTop: 16, borderRadius: 12, alignItems: "center" },
-  recordRow: { flexDirection: "row", gap: 28, marginBottom: 14 },
+  recordRow: { flexDirection: "row", alignItems: "flex-start", marginBottom: 14, marginLeft: -12 },
+  recordItem: { flexDirection: "row", alignItems: "flex-start", gap: 12, marginLeft: 12 },
   recordPart: { alignItems: "center" },
   record: { fontSize: 44, fontWeight: "800" },
   recordLabel: { fontSize: 12, fontWeight: "700" },
