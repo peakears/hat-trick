@@ -362,6 +362,8 @@ export function mapStandings(raw: RawStandingsResponse): Standings {
       home: mapSplit(s, "home"),
       road: mapSplit(s, "road"),
       divisionName: s.divisionName,
+      conferenceName: s.conferenceName ? `${s.conferenceName} Conference` : undefined,
+      leagueRank: s.leagueSequence,
     });
   }
 

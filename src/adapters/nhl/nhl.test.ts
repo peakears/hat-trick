@@ -587,6 +587,8 @@ describe("NHL adapter", () => {
         home: { wins: 7, losses: 3, otLosses: 2, goalsFor: 43, goalsAgainst: 40 },
         road: { wins: 10, losses: 0, otLosses: 1, goalsFor: 49, goalsAgainst: 22 },
         divisionName: "Pacific",
+        conferenceName: "Western Conference",
+        leagueRank: 1,
       });
     });
 

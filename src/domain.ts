@@ -243,6 +243,10 @@ export interface StandingRow {
   home?: RecordSplit;
   road?: RecordSplit;
   divisionName?: string;
+  /** "Eastern Conference"; undefined for leagues without conferences. */
+  conferenceName?: string;
+  /** Position in the whole league (the league's own tiebreakers), 1-based. */
+  leagueRank?: number;
 }
 
 export interface StandingsGroup {
