@@ -51,9 +51,9 @@ describe("player bio", () => {
     expect(heightLabel({ heightCm: 185 })).toBe("185 cm");
     expect(heightLabel({})).toBeUndefined();
     expect(weightLabel(doughty.bio)).toBe("210 lb (95 kg)");
-    expect(handednessLabel("R", false)).toBe("Shoots right");
-    expect(handednessLabel("L", true)).toBe("Catches left");
-    expect(handednessLabel(undefined, true)).toBeUndefined();
+    expect(handednessLabel("R")).toBe("Right");
+    expect(handednessLabel("L")).toBe("Left");
+    expect(handednessLabel(undefined)).toBeUndefined();
     expect(draftLabel(doughty.bio)).toBe("2008, round 1, #2 overall by LAK");
     expect(draftLabel({})).toBe("Undrafted");
     expect(positionLabel("D")).toBe("Defence");
@@ -66,11 +66,11 @@ describe("player bio", () => {
       { label: "Birthplace", value: "London, Ontario, CAN" },
       { label: "Height", value: "6′1″ (185 cm)" },
       { label: "Weight", value: "210 lb (95 kg)" },
-      { label: "Shoots", value: "right" },
+      { label: "Shoots", value: "Right" },
       { label: "Draft", value: "2008, round 1, #2 overall by LAK" },
     ]);
     expect(bioRows({ ...doughty, goalie: true, bio: { handedness: "L" } }, "2026-11-21")).toEqual([
-      { label: "Catches", value: "left" },
+      { label: "Catches", value: "Left" },
       { label: "Draft", value: "Undrafted" },
     ]);
   });
