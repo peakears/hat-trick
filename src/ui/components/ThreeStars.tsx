@@ -1,7 +1,7 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { StyleSheet, Text, View } from "react-native";
 import type { GameStar } from "../../domain";
-import { starAccessibilityLabel, starPlayerLine, starStatLine, starTitle } from "../stars";
+import { starAccessibilityLabel, starPlayerLine, starStatLine } from "../stars";
 import { tabular, useColors } from "../theme";
 import { PlayerHeadshot } from "./PlayerHeadshot";
 
