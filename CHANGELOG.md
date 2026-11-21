@@ -5,6 +5,7 @@
 
 ### Features
 
+* **app:** download and install updates inside the app ([#66](https://github.com/peakears/hat-trick/issues/66)) ([9a03953](https://github.com/peakears/hat-trick/commit/9a03953bed8b8a16453918a5f5461bbf4082d2ad))
 * **app:** make the team page more compact ([#77](https://github.com/peakears/hat-trick/issues/77)) ([c219c02](https://github.com/peakears/hat-trick/commit/c219c02bdfe24ff23c43845827f8eec41ee04685))
 * **app:** show the three stars on finished game pages ([#75](https://github.com/peakears/hat-trick/issues/75)) ([855343d](https://github.com/peakears/hat-trick/commit/855343d2d38d9136c51aa0d20740cbb54cf92bb8))
 
