@@ -1,11 +1,18 @@
 import { useRouter } from "expo-router";
 import { Pressable, RefreshControl, SectionList, StyleSheet, Text, View } from "react-native";
 import type { StandingRow } from "../../src/domain";
+import { Segmented } from "../../src/ui/components/Segmented";
 import { ErrorView, Loading, OfflineBanner, UpdatedAt } from "../../src/ui/components/States";
 import { TeamLogo } from "../../src/ui/components/TeamLogo";
 import { isFavorite } from "../../src/ui/favorites";
 import { useSettings } from "../../src/ui/settings-context";
 import { LEAGUE, useSportsData } from "../../src/ui/sports-data-context";
+import {
+  availableStandingsViews,
+  effectiveStandingsView,
+  STANDINGS_VIEW_LABELS,
+  standingsSections,
+} from "../../src/ui/standings";
 import { tabular, useColors } from "../../src/ui/theme";
 import { usePolled } from "../../src/ui/use-polled";
 
@@ -25,7 +32,7 @@ export default function StandingsScreen() {
   const sports = useSportsData();
   const colors = useColors();
   const router = useRouter();
-  const { settings } = useSettings();
+  const { settings, update } = useSettings();
   const standings = usePolled("standings", (o) => sports.getStandings(LEAGUE, o));
 
   if (standings.loading) return <Loading />;
@@ -36,60 +43,88 @@ export default function StandingsScreen() {
   // Leagues without hockey-style OT losses or points: hide those columns rather than show dashes.
   const rows = standings.data?.groups.flatMap((g) => g.rows) ?? [];
   const columns = COLUMNS.filter((c) => rows.some((r) => c.value(r) !== undefined));
-  const sections = (standings.data?.groups ?? []).map((g) => ({ title: g.name, data: g.rows }));
+  const views = availableStandingsViews(standings.data);
+  const view = effectiveStandingsView(standings.data, settings.standingsView);
+  const sections = standingsSections(standings.data, view);
 
   return (
     <View style={styles.screen}>
+      {views.length > 1 && (
+        <Segmented
+          options={views.map((v) => ({ value: v, label: STANDINGS_VIEW_LABELS[v] }))}
+          value={view}
+          onChange={(standingsView) => update({ standingsView })}
+        />
+      )}
       <OfflineBanner meta={standings.meta} />
       <SectionList
         sections={sections}
-        keyExtractor={(r) => r.team.id}
+        keyExtractor={(item) => item.row.team.id}
         stickySectionHeadersEnabled
         refreshControl={
           <RefreshControl refreshing={standings.refreshing} onRefresh={standings.refresh} colors={[colors.accent]} />
         }
         renderSectionHeader={({ section }) => (
-          <View style={[styles.row, styles.headerRow, { backgroundColor: colors.background }]}>
-            <Text style={[styles.groupName, { color: colors.text }]}>{section.title}</Text>
-            {columns.map((c) => (
-              <Text key={c.label} style={[styles.num, styles.headerText, { width: c.width, color: colors.muted }]}>
-                {c.label}
+          <View style={{ backgroundColor: colors.background }}>
+            {section.conference && (
+              <Text accessibilityRole="header" style={[styles.conference, { color: colors.accent }]}>
+                {section.conference}
               </Text>
-            ))}
+            )}
+            <View style={[styles.row, styles.headerRow, section.conference && styles.underConference]}>
+              <Text accessibilityRole="header" style={[styles.groupName, { color: colors.text }]}>
+                {section.title}
+              </Text>
+              {columns.map((c) => (
+                <Text key={c.label} style={[styles.num, styles.headerText, { width: c.width, color: colors.muted }]}>
+                  {c.label}
+                </Text>
+              ))}
+            </View>
           </View>
         )}
-        renderItem={({ item }) => (
-          <Pressable
-            onPress={() => router.push({ pathname: "/team/[id]", params: { id: item.team.id } })}
-            accessibilityRole="button"
-            accessibilityLabel={`${item.team.name}, open team page`}
-            style={[
-              styles.row,
-              styles.teamRow,
-              {
-                backgroundColor: colors.card,
-                borderBottomColor: colors.border,
-                // A favourite team gets an accent bar on the left edge.
-                borderLeftColor: isFavorite(settings.favoriteTeams, item.team.id) ? colors.accent : "transparent",
-              },
-            ]}
-          >
-            <Text style={[styles.rank, tabular, { color: colors.muted }]}>{item.rank}</Text>
-            <TeamLogo team={item.team} size={24} />
-            {/* Two lines, so long names ("Golden Knights") wrap on narrow screens instead of being cut off. */}
-            <Text numberOfLines={2} style={[styles.team, { color: colors.text }]}>
-              {item.team.name}
-            </Text>
-            {columns.map((c) => (
-              <Text
-                key={c.label}
-                style={[styles.num, tabular, { width: c.width, color: colors.text }, c.label === "PTS" && styles.bold]}
-              >
-                {c.value(item) ?? "-"}
+        renderItem={({ item: { row: item, rank }, index, section }) => {
+          // Wild card view: a heavier line under the last team in a playoff spot.
+          const lastIn = section.playoffLine === index + 1 && index + 1 < section.data.length;
+          return (
+            <Pressable
+              onPress={() => router.push({ pathname: "/team/[id]", params: { id: item.team.id } })}
+              accessibilityRole="button"
+              accessibilityLabel={`${item.team.name}${lastIn ? ", last wild card spot" : ""}, open team page`}
+              style={[
+                styles.row,
+                styles.teamRow,
+                {
+                  backgroundColor: colors.card,
+                  borderBottomColor: lastIn ? colors.muted : colors.border,
+                  // A favourite team gets an accent bar on the left edge.
+                  borderLeftColor: isFavorite(settings.favoriteTeams, item.team.id) ? colors.accent : "transparent",
+                },
+                lastIn && styles.playoffLine,
+              ]}
+            >
+              <Text style={[styles.rank, tabular, { color: colors.muted }]}>{rank}</Text>
+              <TeamLogo team={item.team} size={24} />
+              {/* Two lines, so long names ("Golden Knights") wrap on narrow screens instead of being cut off. */}
+              <Text numberOfLines={2} style={[styles.team, { color: colors.text }]}>
+                {item.team.name}
               </Text>
-            ))}
-          </Pressable>
-        )}
+              {columns.map((c) => (
+                <Text
+                  key={c.label}
+                  style={[
+                    styles.num,
+                    tabular,
+                    { width: c.width, color: colors.text },
+                    c.label === "PTS" && styles.bold,
+                  ]}
+                >
+                  {c.value(item) ?? "-"}
+                </Text>
+              ))}
+            </Pressable>
+          );
+        }}
         ListFooterComponent={<UpdatedAt meta={standings.meta} />}
       />
     </View>
@@ -108,7 +143,17 @@ const styles = StyleSheet.create({
     borderBottomColor: "transparent",
   },
   teamRow: { borderLeftWidth: 3 },
+  playoffLine: { borderBottomWidth: 2 },
   headerRow: { paddingTop: 16 },
+  conference: {
+    paddingHorizontal: 12,
+    paddingTop: 20,
+    fontSize: 13,
+    fontWeight: "800",
+    letterSpacing: 0.6,
+    textTransform: "uppercase",
+  },
+  underConference: { paddingTop: 6 },
   groupName: { flex: 1, fontSize: 15, fontWeight: "700" },
   headerText: { fontSize: 11, fontWeight: "700" },
   rank: { width: 20, textAlign: "right", fontSize: 13 },
