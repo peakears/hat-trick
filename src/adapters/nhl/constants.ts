@@ -91,13 +91,19 @@ export const PLAYER_SEASON_GOALIE_COLUMNS: StatColumn[] = [
 export const TEAM_GAMES_SHOWN = 5;
 
 // In display order: points first, as the league and most apps list them.
-export const SKATER_LEADER_CATEGORIES = ["points", "goals", "assists"];
+export const SKATER_LEADER_CATEGORIES = ["points", "goals", "assists", "goalsPp", "faceoffLeaders", "penaltyMins"];
 export const GOALIE_LEADER_CATEGORIES = ["wins", "savePctg", "goalsAgainstAverage", "shutouts"];
+
+/** Categories whose value is a 0-1 fraction (0.640 for 64.0% of faceoffs won). */
+export const PERCENT_LEADER_CATEGORIES = ["faceoffLeaders"];
 
 export const LEADER_LABELS: Record<string, string> = {
   goals: "Goals",
   assists: "Assists",
   points: "Points",
+  goalsPp: "Power-play goals",
+  faceoffLeaders: "Faceoff %",
+  penaltyMins: "Penalty minutes",
   wins: "Wins",
   savePctg: "Save percentage",
   goalsAgainstAverage: "Goals against average",

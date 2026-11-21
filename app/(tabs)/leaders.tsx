@@ -7,7 +7,7 @@ import { Segmented } from "../../src/ui/components/Segmented";
 import { ErrorView, Loading, OfflineBanner, UpdatedAt } from "../../src/ui/components/States";
 import { TeamLogo } from "../../src/ui/components/TeamLogo";
 import { statValue } from "../../src/ui/format";
-import { LEADERS_MAX, leaderSectionKey, visibleLeaders } from "../../src/ui/leaders";
+import { LEADERS_MAX, leaderSectionKey, leaderValue, visibleLeaders } from "../../src/ui/leaders";
 import { combineFetched } from "../../src/ui/polling";
 import { LEAGUE, useSportsData } from "../../src/ui/sports-data-context";
 import { tabular, useColors } from "../../src/ui/theme";
@@ -48,7 +48,7 @@ export default function LeadersScreen() {
     const key = leaderSectionKey(kind, b.category);
     const isExpanded = expanded.has(key);
     const { shown, hasMore } = visibleLeaders(b.entries, isExpanded);
-    return { title: b.label, key, data: shown, hasMore, expanded: isExpanded };
+    return { title: b.label, key, format: b.format, data: shown, hasMore, expanded: isExpanded };
   });
 
   return (
@@ -109,11 +109,11 @@ export default function LeadersScreen() {
               </Pressable>
             ) : null
           }
-          renderItem={({ item }) => (
+          renderItem={({ item, section }) => (
             <Pressable
               onPress={() => router.push({ pathname: "/player/[id]", params: { id: item.player.id } })}
               accessibilityRole="button"
-              accessibilityLabel={`${item.rank}. ${item.player.name}, ${item.team.abbrev}, ${statValue(item.value)}. Open player page`}
+              accessibilityLabel={`${item.rank}. ${item.player.name}, ${item.team.abbrev}, ${leaderValue(item.value, section.format, statValue)}. Open player page`}
               style={[styles.row, { backgroundColor: colors.card, borderBottomColor: colors.border }]}
             >
               <Text style={[styles.rank, tabular, { color: colors.muted }]}>{item.rank}</Text>
@@ -124,7 +124,9 @@ export default function LeadersScreen() {
                 </Text>
                 <Text style={{ color: colors.muted, fontSize: 12 }}>{item.team.abbrev}</Text>
               </View>
-              <Text style={[styles.value, tabular, { color: colors.text }]}>{statValue(item.value)}</Text>
+              <Text style={[styles.value, tabular, { color: colors.text }]}>
+                {leaderValue(item.value, section.format, statValue)}
+              </Text>
             </Pressable>
           )}
           ListFooterComponent={<UpdatedAt meta={leaders.meta} />}

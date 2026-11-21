@@ -268,6 +268,8 @@ export interface LeaderEntry {
 export interface LeaderBoard {
   category: string; // "goals", "assists", "points"
   label: string;
+  /** "percent": values are 0-1 fractions, shown as "64.0%". Absent: show values as they are. */
+  format?: "percent";
   entries: LeaderEntry[];
 }
 

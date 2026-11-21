@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { LEADERS_MAX, LEADERS_SHOWN, leaderSectionKey, spotlightDetail, visibleLeaders } from "./leaders";
+import { statValue } from "./format";
+import { LEADERS_MAX, LEADERS_SHOWN, leaderSectionKey, leaderValue, spotlightDetail, visibleLeaders } from "./leaders";
 
 const list = (n: number) => Array.from({ length: n }, (_, i) => i + 1);
 
@@ -34,5 +35,18 @@ describe("spotlightDetail", () => {
     expect(spotlightDetail({ team, sweaterNumber: 97, player: { position: "C" } })).toBe("EDM · #97 · C");
     expect(spotlightDetail({ team, sweaterNumber: 0, player: {} })).toBe("EDM · #0");
     expect(spotlightDetail({ team, player: {} })).toBe("EDM");
+  });
+});
+
+describe("leaderValue", () => {
+  it("shows a percent board's fractions as percentages, one decimal", () => {
+    expect(leaderValue(0.640167, "percent", statValue)).toBe("64.0%");
+    expect(leaderValue(0.5632, "percent", statValue)).toBe("56.3%");
+  });
+
+  it("shows other values as usual", () => {
+    expect(leaderValue(80, undefined, statValue)).toBe("80");
+    expect(leaderValue(0.925, undefined, statValue)).toBe(".925");
+    expect(leaderValue(2.31, undefined, statValue)).toBe("2.31");
   });
 });
