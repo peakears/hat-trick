@@ -17,9 +17,9 @@ Everything runs on your device: the app talks to public sports APIs directly, wi
 - **Standings** by division. Tap a team (here or on a game page) for its team page: record, points, streak, goal difference, last 10, home and road records, its division rank, its home arena, its recent and upcoming games (three of each, one compact line per game, with up to five behind "Show more"; each opens the game), and season stats for every skater and goalie.
 - **Stat leaders** for skaters and goalies.
 - **Settings:** light, dark or system theme, team logos and player photos on or off (off shows abbreviations and initials), TV channel country, spoiler shield, favourite teams, reminders and update checks.
-- **Update notice:** a banner when a newer release is available, checked at most once a day (switchable). The app never downloads or installs anything by itself. **Settings > About** shows the version, release notes and a "Report a problem" link that opens a GitHub issue with your app version filled in.
+- **Update notice:** a banner when a newer release is available, checked at most once a day (switchable). Tap **Update** in the banner (or in **Settings > About**) and the app downloads the new APK into its own private cache, checks its size and checksum, and opens Android's installer; you tap Install. You can cancel the download, and one that stops for 30 seconds is given up. The file is deleted afterwards, so nothing piles up in your Downloads folder. If that fails, **Open in browser** is the fallback. **Settings > About** shows the version, release notes and a "Report a problem" link that opens a GitHub issue with your app version filled in.
 - **Works offline** with the last data it fetched. Live games refresh about every 20 seconds while the app is open.
-- No account, no ads, no tracking: the app talks only to the NHL's public API and, for the update notice, GitHub.
+- No account, no ads, no tracking: the app talks only to the NHL's public API and GitHub (the update notice, and the update itself when you tap Update).
 
 ## Install
 
@@ -27,11 +27,11 @@ Each [release](https://github.com/peakears/hat-trick/releases) has an APK attach
 
 1. On your Android phone, open the latest release and download the `.apk`.
 2. Open the downloaded file. Android asks you to allow installs from that app (your browser or Files): allow it, then tap **Install**.
-3. To update, install the newer APK the same way. It replaces the old version and keeps your data. The app shows a notice when a newer release is available.
+3. To update, install the newer APK the same way. It replaces the old version and keeps your data. The app shows a notice when a newer release is available, and can install it for you (Android asks once to allow installs from Hat Trick).
 
 Android may warn that the app is from an unknown developer, because it is not from the Play Store. That is expected for a sideloaded app.
 
-The app contacts only the NHL's public API (for game data) and GitHub (once a day, to see whether a newer release exists; you can turn this off in Settings). It never downloads or installs updates by itself.
+The app contacts only the NHL's public API (for game data) and GitHub (once a day, to see whether a newer release exists; you can turn this off in Settings). The app only downloads an update when you tap Update, only from this project's GitHub releases, and Android's installer accepts it only if it is signed with the same release key.
 
 Every pull request also gets a test APK, under **Artifacts** on its CI run. Test APKs are signed with a different key than releases, so Android will not install one over a release (or the other way round): uninstall first.
 

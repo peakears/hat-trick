@@ -66,6 +66,11 @@ describe("parseRelease", () => {
     });
   });
 
+  it("keeps the release notes", () => {
+    expect(parseRelease(releaseJson("1.2.0", { body: "### Features\n* x" }))?.notes).toBe("### Features\n* x");
+    expect(parseRelease(releaseJson("1.2.0", { body: null }))?.notes).toBeUndefined();
+  });
+
   it("works without an APK asset", () => {
     expect(parseRelease(releaseJson("1.2.0", { assets: [] }))?.apkUrl).toBeUndefined();
   });
@@ -77,6 +82,29 @@ describe("parseRelease", () => {
     expect(parseRelease(releaseJson("1.2.0", { html_url: "https://evil.example/release" }))).toBeNull();
     expect(parseRelease(null)).toBeNull();
     expect(parseRelease({ tag_name: 5 })).toBeNull();
+  });
+
+  it("reads the APK's size and SHA-256 when GitHub lists them", () => {
+    const sha = "ab".repeat(32);
+    const json = releaseJson("1.2.0", {
+      assets: [
+        {
+          name: "x.apk",
+          browser_download_url: apkUrl("1.2.0"),
+          size: 61_000_000,
+          digest: `sha256:${sha.toUpperCase()}`,
+        },
+      ],
+    });
+    expect(parseRelease(json)).toMatchObject({ apkSize: 61_000_000, apkSha256: sha });
+  });
+
+  it("leaves the checksum out when the digest is missing or not SHA-256", () => {
+    expect(parseRelease(releaseJson("1.2.0"))?.apkSha256).toBeUndefined();
+    const json = releaseJson("1.2.0", {
+      assets: [{ name: "x.apk", browser_download_url: apkUrl("1.2.0"), digest: "md5:abc" }],
+    });
+    expect(parseRelease(json)?.apkSha256).toBeUndefined();
   });
 
   it("ignores an APK link that points outside the repo", () => {

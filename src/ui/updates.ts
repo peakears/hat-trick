@@ -1,10 +1,11 @@
 import { z } from "zod";
 import type { KeyValueStore } from "../data";
+import { MAX_NOTES_LENGTH } from "./release-notes";
 
 /**
  * Update checks for the sideloaded APK: ask GitHub for the latest release and compare it with the
- * running version. The app never downloads or installs anything itself; it only points the user
- * at the release. No React Native imports (the HTTP client is passed in), so it is unit tested.
+ * running version. Installing is in install-update.ts. No React Native imports (the HTTP client is
+ * passed in), so it is unit tested.
  */
 
 export const LATEST_RELEASE_URL = "https://api.github.com/repos/peakears/hat-trick/releases/latest";
@@ -21,6 +22,12 @@ export interface Release {
   url: string;
   /** Direct link to the APK, when the release has one. */
   apkUrl?: string;
+  /** The APK's size in bytes, to catch a cut-off download. */
+  apkSize?: number;
+  /** The APK's SHA-256 (lowercase hex) as GitHub lists it for the asset. Absent on older releases. */
+  apkSha256?: string;
+  /** The release body (release-please's Markdown notes), shown in the "What's new" sheet. */
+  notes?: string;
 }
 
 export type UpdateStatus =
@@ -51,10 +58,20 @@ const releaseSchema = z.object({
   html_url: z.string(),
   draft: z.boolean().optional(),
   prerelease: z.boolean().optional(),
-  assets: z.array(z.object({ name: z.string(), browser_download_url: z.string() })).catch([]),
+  body: z.string().nullish().catch(undefined),
+  assets: z
+    .array(
+      z.object({
+        name: z.string(),
+        browser_download_url: z.string(),
+        size: z.number().optional().catch(undefined),
+        digest: z.string().optional().catch(undefined), // "sha256:<hex>"
+      }),
+    )
+    .catch([]),
 });
 
-// Only this project's release pages and APKs are ever opened, whatever the response (or the stored
+// Only this project's release pages and APKs are ever opened or downloaded, whatever the response (or the stored
 // state) says. Each link must match its whole shape, not just start with the repo URL: a prefix check
 // accepts ".../hat-trick/../../other/repo/...", which the HTTP client resolves to another repo.
 // No part below can hold "/", "%" or "\", so a link can never leave the repo. The tag allows a
@@ -72,11 +89,19 @@ export const isReleaseApkUrl = (url: string) => RELEASE_APK.test(url);
 export function parseRelease(json: unknown): Release | null {
   const parsed = releaseSchema.safeParse(json);
   if (!parsed.success) return null;
-  const { tag_name, html_url, draft, prerelease, assets } = parsed.data;
+  const { tag_name, html_url, draft, prerelease, body, assets } = parsed.data;
   const version = tag_name.replace(/^v/, "");
   if (draft || prerelease || !parseVersion(version) || !isReleasePageUrl(html_url)) return null;
   const apk = assets.find((a) => a.name.endsWith(".apk") && isReleaseApkUrl(a.browser_download_url));
-  return { version, url: html_url, apkUrl: apk?.browser_download_url };
+  const sha256 = /^sha256:([0-9a-f]{64})$/i.exec(apk?.digest ?? "")?.[1]?.toLowerCase();
+  return {
+    version,
+    url: html_url,
+    apkUrl: apk?.browser_download_url,
+    apkSize: apk?.size,
+    apkSha256: sha256,
+    notes: body ? body.slice(0, MAX_NOTES_LENGTH) : undefined,
+  };
 }
 
 // ---------- Stored state ----------
@@ -97,6 +122,9 @@ const storedSchema = z.object({
       version: z.string(),
       url: z.string().refine(isReleasePageUrl),
       apkUrl: z.string().refine(isReleaseApkUrl).optional().catch(undefined),
+      apkSize: z.number().optional().catch(undefined),
+      apkSha256: z.string().optional().catch(undefined),
+      notes: z.string().optional().catch(undefined),
     })
     .optional()
     .catch(undefined),
