@@ -3,7 +3,7 @@
 //
 // Verified against live responses on 2026-11-17 (season 20262027): /score,
 // /gamecenter/{id}/boxscore (live and final), /standings/now, and both
-// stats-leaders endpoints.
+// stats-leaders endpoints. /gamecenter/{id}/landing (three stars only): 2026-11-20.
 //
 // Core fields (plain schemas) throw on mismatch. Minor fields (`minor()`) are
 // dropped with a warning. See validate.ts for the policy.
@@ -282,6 +282,33 @@ export const RawLeaderSchema = z.object({
 // Keyed by category name, e.g. { goals: [...], assists: [...] }.
 export const RawLeadersResponseSchema = z.record(z.string(), z.array(RawLeaderSchema));
 
+// ---------- Game landing (/gamecenter/{id}/landing) ----------
+// Verified on 2026-11-20 against a final game (summary.threeStars present) and a scheduled one
+// (no summary at all). Live games and the short "FINAL" state are unverified. Only the three
+// stars are read; the rest of the response (scoring, penalties) is ignored.
+
+export const RawThreeStarSchema = z.object({
+  star: z.number(), // 1, 2, 3
+  playerId: z.number(),
+  teamAbbrev: z.string(),
+  name: LocalizedSchema, // abbreviated, "D. Kuemper"
+  headshot: str("threeStars.headshot"),
+  sweaterNo: num("threeStars.sweaterNo"),
+  position: str("threeStars.position"), // "C" | "L" | "R" | "D" | "G"
+  // Skaters only.
+  goals: num("threeStars.goals"),
+  assists: num("threeStars.assists"),
+  points: num("threeStars.points"),
+  // Goalies only.
+  goalsAgainstAverage: num("threeStars.goalsAgainstAverage"),
+  savePctg: num("threeStars.savePctg"),
+});
+
+export const RawLandingSchema = z.object({
+  id: z.number(),
+  summary: minor(z.object({ threeStars: lenientArray(RawThreeStarSchema, "summary.threeStars") }), "summary"),
+});
+
 // ---------- Inferred types ----------
 
 export type Localized = z.output<typeof LocalizedSchema>;
@@ -302,3 +329,5 @@ export type RawStanding = z.output<typeof RawStandingSchema>;
 export type RawStandingsResponse = z.output<typeof RawStandingsResponseSchema>;
 export type RawLeader = z.output<typeof RawLeaderSchema>;
 export type RawLeadersResponse = z.output<typeof RawLeadersResponseSchema>;
+export type RawThreeStar = z.output<typeof RawThreeStarSchema>;
+export type RawLanding = z.output<typeof RawLandingSchema>;

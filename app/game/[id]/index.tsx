@@ -5,6 +5,7 @@ import { RevealButton } from "../../../src/ui/components/ShieldUi";
 import { CrashScreen, Empty, ErrorView, Loading, OfflineBanner, UpdatedAt } from "../../../src/ui/components/States";
 import { TeamLogo } from "../../../src/ui/components/TeamLogo";
 import { GoalSummary } from "../../../src/ui/components/GoalSummary";
+import { ThreeStars } from "../../../src/ui/components/ThreeStars";
 import { WhereToWatch } from "../../../src/ui/components/WhereToWatch";
 import { teamRecord, venueLabel } from "../../../src/ui/format";
 import { useSpoilers } from "../../../src/ui/spoiler-context";
@@ -39,10 +40,11 @@ export default function GameScreen() {
     );
   }
 
-  const { game, goals } = detail.data;
+  const { game, goals, threeStars } = detail.data;
   const live = game.status === "live";
   const venue = venueLabel(game.venue);
-  // While hidden: no score, shots, box score, and no records (the standings already count a finished game).
+  // While hidden: no score, shots, goals, three stars, box score, and no records (the standings already
+  // count a finished game).
   const hidden = spoilers.isHidden(game);
 
   const team = (s: GameSide) => {
@@ -116,6 +118,8 @@ export default function GameScreen() {
         )}
 
         <WhereToWatch game={game} />
+
+        {!hidden && threeStars && <ThreeStars stars={threeStars} />}
 
         {!hidden && goals && <GoalSummary goals={goals} />}
 

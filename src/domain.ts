@@ -114,11 +114,30 @@ export interface Goal {
   awayScore?: number;
 }
 
+/** A short stat shown with a star: "1" + "G", "29" + "saves", "24:10" + "TOI". */
+export interface StarStat {
+  value: string;
+  label: string;
+}
+
+/** One of the players the league named as a game's three stars. */
+export interface GameStar {
+  /** 1 is the first star. */
+  rank: number;
+  /** `teamId`, `position` and `headshotUrl` are filled in when the league sends them. */
+  player: Player;
+  sweaterNumber?: number;
+  /** The player's game in a few stats, in display order. Empty when none are known. */
+  stats: StarStat[];
+}
+
 export interface GameDetail {
   game: Game;
   boxscore: { home: StatTable[]; away: StatTable[] };
   /** In the order scored. Absent when the league has no goal list for this game (yet); empty when no goals. */
   goals?: Goal[];
+  /** First star first. Absent when the league has not named them (before and during the game) or they could not be loaded. */
+  threeStars?: GameStar[];
 }
 
 // ---------- Team page ----------

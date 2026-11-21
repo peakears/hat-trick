@@ -17,12 +17,12 @@ import type {
   TeamDetail,
 } from "../domain";
 import type { AdapterRegistry } from "../registry";
-import { FRESHNESS, gameFreshness, scoresFreshness, teamFreshness } from "./freshness";
+import { FRESHNESS, gameDetailFreshness, scoresFreshness, teamFreshness } from "./freshness";
 import type { KeyValueStore } from "./store";
 import type { DataMeta, Fetched, FetchOptions } from "./types";
 
 /** Bump when the shape of cached domain data changes, so old entries are ignored. */
-export const CACHE_VERSION = 6;
+export const CACHE_VERSION = 7;
 
 /** Storage keys are prefixed so the cache can share a store with app settings. */
 const PREFIX = "cache:";
@@ -105,7 +105,7 @@ export class SportsData {
         league,
         key: `${league}:game:${gameId}`,
         load: (o) => this.registry.get(league).getGameDetail(gameId, o),
-        freshFor: (detail, now) => gameFreshness(detail.game, now),
+        freshFor: (detail, now) => gameDetailFreshness(detail, now),
       },
       options,
     );

@@ -46,8 +46,8 @@ export default function SettingsScreen() {
 
       <Section title="Display">
         <ToggleRow
-          label="Show team logos"
-          detail="Off shows team abbreviations instead."
+          label="Show logos and photos"
+          detail="Team logos and player photos. Off shows abbreviations and initials instead."
           value={settings.showLogos}
           onChange={(showLogos) => update({ showLogos })}
         />
