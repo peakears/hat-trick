@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.5.0](https://github.com/peakears/hat-trick/compare/v1.4.0...v1.5.0) (2026-11-21)
+
+
+### Features
+
+* **app:** season stats and recent and upcoming games on the team page ([#71](https://github.com/peakears/hat-trick/issues/71)) ([1ee1e41](https://github.com/peakears/hat-trick/commit/1ee1e41bfe5b11d8ce9f52a77f50b7c6e095017b))
+* **app:** team page with record, rank and splits ([#70](https://github.com/peakears/hat-trick/issues/70)) ([b059ce6](https://github.com/peakears/hat-trick/commit/b059ce6315842b98d6b5c988da575edf7b358076))
+
 ## [1.4.0](https://github.com/peakears/hat-trick/compare/v1.3.0...v1.4.0) (2026-11-20)
 
 
