@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.6.0](https://github.com/peakears/hat-trick/compare/v1.5.0...v1.6.0) (2026-11-21)
+
+
+### Features
+
+* **app:** make the team page more compact ([#77](https://github.com/peakears/hat-trick/issues/77)) ([c219c02](https://github.com/peakears/hat-trick/commit/c219c02bdfe24ff23c43845827f8eec41ee04685))
+* **app:** show the three stars on finished game pages ([#75](https://github.com/peakears/hat-trick/issues/75)) ([855343d](https://github.com/peakears/hat-trick/commit/855343d2d38d9136c51aa0d20740cbb54cf92bb8))
+
+
+### Bug Fixes
+
+* **app:** accept only this repo's release links for updates ([#78](https://github.com/peakears/hat-trick/issues/78)) ([029f3c7](https://github.com/peakears/hat-trick/commit/029f3c723a10820e53ebfd412956fafeb54c1427))
+
 ## [1.5.0](https://github.com/peakears/hat-trick/compare/v1.4.0...v1.5.0) (2026-11-21)
 
 
