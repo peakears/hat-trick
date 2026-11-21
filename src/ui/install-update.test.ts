@@ -64,7 +64,11 @@ describe("installUpdate", () => {
   });
 
   it("refuses a release without an APK or with a link outside the repo, touching nothing", async () => {
-    for (const r of [release({ apkUrl: undefined }), release({ apkUrl: "https://evil.example/a.apk" })]) {
+    for (const r of [
+      release({ apkUrl: undefined }),
+      release({ apkUrl: "https://evil.example/a.apk" }),
+      release({ apkUrl: "https://github.com/peakears/hat-trick/../../evil/repo/releases/download/v1.5.0/a.apk" }),
+    ]) {
       const { p } = ports();
       const states = await run(r, p);
       expect(states).toEqual([{ kind: "failed", message: "This release has no APK to install." }]);
