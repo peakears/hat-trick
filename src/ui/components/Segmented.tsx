@@ -1,7 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useColors } from "../theme";
 
-/** A small two-or-three option switch, e.g. Skaters | Goalies. */
+/** A small switch of a few options, e.g. Skaters | Goalies. Labels shrink to fit on narrow screens. */
 export function Segmented<T extends string>({
   options,
   value,
@@ -24,7 +24,13 @@ export function Segmented<T extends string>({
             accessibilityRole="tab"
             accessibilityState={{ selected }}
           >
-            <Text style={{ color: selected ? colors.text : colors.muted, fontWeight: "600" }}>{o.label}</Text>
+            <Text
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              style={{ color: selected ? colors.text : colors.muted, fontWeight: "600" }}
+            >
+              {o.label}
+            </Text>
           </Pressable>
         );
       })}
@@ -34,5 +40,5 @@ export function Segmented<T extends string>({
 
 const styles = StyleSheet.create({
   container: { flexDirection: "row", borderRadius: 10, padding: 3, margin: 12 },
-  option: { flex: 1, alignItems: "center", paddingVertical: 7, borderRadius: 8 },
+  option: { flex: 1, alignItems: "center", paddingVertical: 7, paddingHorizontal: 4, borderRadius: 8 },
 });

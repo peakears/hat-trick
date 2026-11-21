@@ -247,6 +247,11 @@ export interface StandingRow {
   conferenceName?: string;
   /** Position in the whole league (the league's own tiebreakers), 1-based. */
   leagueRank?: number;
+  /**
+   * Position in the conference wild card race (the league's own tiebreakers), 1-based. Undefined for a team that
+   * holds one of its division's playoff spots, and for leagues without wild cards.
+   */
+  wildCardRank?: number;
 }
 
 export interface StandingsGroup {
@@ -257,6 +262,8 @@ export interface StandingsGroup {
 export interface Standings {
   league: LeagueId;
   groups: StandingsGroup[];
+  /** Wild card playoff spots per conference (2 in the NHL); undefined for leagues without wild cards. */
+  wildCardSpots?: number;
   updatedAt: string;
 }
 

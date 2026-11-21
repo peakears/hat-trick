@@ -39,6 +39,7 @@ import {
   SEASON_SKATER_COLUMNS,
   SKATER_COLUMNS,
   TEAM_GAMES_SHOWN,
+  WILD_CARD_SPOTS,
 } from "./constants";
 import type {
   RawBoxscore,
@@ -364,12 +365,17 @@ export function mapStandings(raw: RawStandingsResponse): Standings {
       divisionName: s.divisionName,
       conferenceName: s.conferenceName ? `${s.conferenceName} Conference` : undefined,
       leagueRank: s.leagueSequence,
+      // 0 means the team holds a division spot.
+      wildCardRank: s.wildcardSequence || undefined,
     });
   }
 
+  const rows = [...groups.values()].flatMap((g) => g.rows);
+  const hasWildCards = raw.wildCardIndicator !== false && rows.some((r) => r.wildCardRank !== undefined);
   return {
     league: LEAGUE,
     groups: [...groups.values()],
+    ...(hasWildCards ? { wildCardSpots: WILD_CARD_SPOTS } : {}),
     updatedAt: new Date().toISOString(),
   };
 }

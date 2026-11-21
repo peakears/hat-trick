@@ -83,38 +83,48 @@ export default function StandingsScreen() {
             </View>
           </View>
         )}
-        renderItem={({ item: { row: item, rank } }) => (
-          <Pressable
-            onPress={() => router.push({ pathname: "/team/[id]", params: { id: item.team.id } })}
-            accessibilityRole="button"
-            accessibilityLabel={`${item.team.name}, open team page`}
-            style={[
-              styles.row,
-              styles.teamRow,
-              {
-                backgroundColor: colors.card,
-                borderBottomColor: colors.border,
-                // A favourite team gets an accent bar on the left edge.
-                borderLeftColor: isFavorite(settings.favoriteTeams, item.team.id) ? colors.accent : "transparent",
-              },
-            ]}
-          >
-            <Text style={[styles.rank, tabular, { color: colors.muted }]}>{rank}</Text>
-            <TeamLogo team={item.team} size={24} />
-            {/* Two lines, so long names ("Golden Knights") wrap on narrow screens instead of being cut off. */}
-            <Text numberOfLines={2} style={[styles.team, { color: colors.text }]}>
-              {item.team.name}
-            </Text>
-            {columns.map((c) => (
-              <Text
-                key={c.label}
-                style={[styles.num, tabular, { width: c.width, color: colors.text }, c.label === "PTS" && styles.bold]}
-              >
-                {c.value(item) ?? "-"}
+        renderItem={({ item: { row: item, rank }, index, section }) => {
+          // Wild card view: a heavier line under the last team in a playoff spot.
+          const lastIn = section.playoffLine === index + 1 && index + 1 < section.data.length;
+          return (
+            <Pressable
+              onPress={() => router.push({ pathname: "/team/[id]", params: { id: item.team.id } })}
+              accessibilityRole="button"
+              accessibilityLabel={`${item.team.name}${lastIn ? ", last wild card spot" : ""}, open team page`}
+              style={[
+                styles.row,
+                styles.teamRow,
+                {
+                  backgroundColor: colors.card,
+                  borderBottomColor: lastIn ? colors.muted : colors.border,
+                  // A favourite team gets an accent bar on the left edge.
+                  borderLeftColor: isFavorite(settings.favoriteTeams, item.team.id) ? colors.accent : "transparent",
+                },
+                lastIn && styles.playoffLine,
+              ]}
+            >
+              <Text style={[styles.rank, tabular, { color: colors.muted }]}>{rank}</Text>
+              <TeamLogo team={item.team} size={24} />
+              {/* Two lines, so long names ("Golden Knights") wrap on narrow screens instead of being cut off. */}
+              <Text numberOfLines={2} style={[styles.team, { color: colors.text }]}>
+                {item.team.name}
               </Text>
-            ))}
-          </Pressable>
-        )}
+              {columns.map((c) => (
+                <Text
+                  key={c.label}
+                  style={[
+                    styles.num,
+                    tabular,
+                    { width: c.width, color: colors.text },
+                    c.label === "PTS" && styles.bold,
+                  ]}
+                >
+                  {c.value(item) ?? "-"}
+                </Text>
+              ))}
+            </Pressable>
+          );
+        }}
         ListFooterComponent={<UpdatedAt meta={standings.meta} />}
       />
     </View>
@@ -133,6 +143,7 @@ const styles = StyleSheet.create({
     borderBottomColor: "transparent",
   },
   teamRow: { borderLeftWidth: 3 },
+  playoffLine: { borderBottomWidth: 2 },
   headerRow: { paddingTop: 16 },
   conference: {
     paddingHorizontal: 12,

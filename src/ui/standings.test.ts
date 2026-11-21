@@ -57,6 +57,30 @@ describe("standingsSections", () => {
     expect(sections[1].data.at(-1)).toMatchObject({ rank: 16, row: { team: { id: "VAN" } } });
   });
 
+  it("wild card view: each division's top three, then the wild card race with the playoff line after two", () => {
+    const sections = standingsSections(nhl, "wildcard");
+    expect(sections.map((s) => [s.conference, s.title, s.data.length])).toEqual([
+      ["Eastern Conference", "Atlantic", 3],
+      [undefined, "Metropolitan", 3],
+      [undefined, "Wild card", 10],
+      ["Western Conference", "Central", 3],
+      [undefined, "Pacific", 3],
+      [undefined, "Wild card", 10],
+    ]);
+    expect(ids(sections[0].data)).toEqual(["TBL", "OTT", "MTL"]);
+    expect(ids(sections[1].data)).toEqual(["CAR", "NJD", "NYR"]);
+    // BOS and FLA are tied on 27 points with NYR above them: the order is the league's, not by points.
+    const east = sections[2];
+    expect(east.playoffLine).toBe(2);
+    expect(ids(east.data).slice(0, 3)).toEqual(["BOS", "FLA", "NYI"]);
+    expect(east.data.map((i) => i.rank)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+    expect(ids(sections[5].data).slice(0, 2)).toEqual(["DAL", "UTA"]);
+    expect(sections[5].data.at(-1)).toMatchObject({ rank: 10, row: { team: { id: "VAN" } } });
+    // Division sections carry no playoff line and every team appears once.
+    expect(sections.filter((s) => s.playoffLine !== undefined)).toHaveLength(2);
+    expect(new Set(sections.flatMap((s) => ids(s.data))).size).toBe(32);
+  });
+
   it("league view: every team, by league rank", () => {
     const [league] = standingsSections(nhl, "league");
     expect(league.data).toHaveLength(32);
@@ -81,9 +105,20 @@ describe("standingsSections", () => {
 
 describe("standings views", () => {
   it("offers Conference only for leagues with conferences", () => {
-    expect(availableStandingsViews(nhl)).toEqual(["division", "conference", "league"]);
+    expect(availableStandingsViews(nhl)).toEqual(["division", "conference", "wildcard", "league"]);
     expect(availableStandingsViews(plain)).toEqual(["division", "league"]);
     expect(availableStandingsViews(undefined)).toEqual(["division"]);
+  });
+
+  it("offers Wild card only when the league has wild cards", () => {
+    const noSpots: Standings = { ...nhl, wildCardSpots: undefined };
+    expect(availableStandingsViews(noSpots)).toEqual(["division", "conference", "league"]);
+    const noRanks: Standings = {
+      ...nhl,
+      groups: nhl.groups.map((g) => ({ ...g, rows: g.rows.map((r) => ({ ...r, wildCardRank: undefined })) })),
+    };
+    expect(availableStandingsViews(noRanks)).not.toContain("wildcard");
+    expect(effectiveStandingsView(noRanks, "wildcard")).toBe("division");
   });
 
   it("falls back to Division when the saved view is not available", () => {

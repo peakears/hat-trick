@@ -1,12 +1,13 @@
 // Pure helpers for the Standings tab (no React Native imports; tested in standings.test.ts).
 import type { StandingRow, Standings } from "../domain";
 
-export const STANDINGS_VIEWS = ["division", "conference", "league"] as const;
+export const STANDINGS_VIEWS = ["division", "conference", "wildcard", "league"] as const;
 export type StandingsView = (typeof STANDINGS_VIEWS)[number];
 
 export const STANDINGS_VIEW_LABELS: Record<StandingsView, string> = {
   division: "Division",
   conference: "Conference",
+  wildcard: "Wild card",
   league: "League",
 };
 
@@ -21,6 +22,8 @@ export interface StandingsSection {
   title: string;
   /** A conference heading drawn above this section: set on the first division of each conference. */
   conference?: string;
+  /** Wild card view: the playoff line is drawn below this many rows of the section. */
+  playoffLine?: number;
   data: StandingsItem[];
 }
 
@@ -41,11 +44,18 @@ export function leagueOrder(standings: Standings): StandingRow[] {
   return [...rows].sort((a, b) => (b.points ?? 0) - (a.points ?? 0));
 }
 
-/** The views worth offering: Conference only if the league has conferences, League only if there is more than one group. */
+/**
+ * The views worth offering: Conference only if the league has conferences, Wild card only if it also has wild cards,
+ * League only if there is more than one group.
+ */
 export function availableStandingsViews(standings: Standings | undefined): StandingsView[] {
   const rows = standings?.groups.flatMap((g) => g.rows) ?? [];
   const views: StandingsView[] = ["division"];
-  if (rows.some((r) => r.conferenceName)) views.push("conference");
+  const hasConferences = rows.some((r) => r.conferenceName);
+  if (hasConferences) views.push("conference");
+  if (hasConferences && standings?.wildCardSpots && rows.some((r) => r.wildCardRank !== undefined)) {
+    views.push("wildcard");
+  }
   if ((standings?.groups.length ?? 0) > 1) views.push("league");
   return views;
 }
@@ -60,6 +70,8 @@ export function effectiveStandingsView(standings: Standings | undefined, chosen:
  * - division: each division, grouped under its conference (conferences and their divisions in alphabetical order:
  *   Eastern then Western, Atlantic then Metropolitan). Leagues without conferences keep the adapter's group order.
  * - conference: one section per conference, ranked within it.
+ * - wildcard: per conference, each division's playoff spots (teams with no `wildCardRank`), then a "Wild card"
+ *   section of the rest in the league's wild card order, with the playoff line after `wildCardSpots` teams.
  * - league: one section with every team.
  */
 export function standingsSections(standings: Standings | undefined, view: StandingsView): StandingsSection[] {
@@ -85,6 +97,8 @@ export function standingsSections(standings: Standings | undefined, view: Standi
       }));
   }
 
+  if (view === "wildcard") return wildCardSections(standings);
+
   const divisions = standings.groups.map((g) => ({
     key: `division:${g.name}`,
     title: g.name,
@@ -100,4 +114,48 @@ export function standingsSections(standings: Standings | undefined, view: Standi
     ...d,
     ...(conferenceName && conferenceName !== divisions[i - 1]?.conferenceName ? { conference: conferenceName } : {}),
   }));
+}
+
+function wildCardSections(standings: Standings): StandingsSection[] {
+  const conferences = new Map<string | undefined, { divisions: Map<string, StandingRow[]>; race: StandingRow[] }>();
+  for (const group of standings.groups) {
+    for (const row of group.rows) {
+      let conference = conferences.get(row.conferenceName);
+      if (!conference) {
+        conference = { divisions: new Map(), race: [] };
+        conferences.set(row.conferenceName, conference);
+      }
+      if (row.wildCardRank !== undefined) {
+        conference.race.push(row);
+      } else {
+        const name = row.divisionName ?? group.name;
+        conference.divisions.set(name, [...(conference.divisions.get(name) ?? []), row]);
+      }
+    }
+  }
+
+  return [...conferences.entries()]
+    .sort(([a], [b]) => byName(a, b))
+    .flatMap(([name, { divisions, race }]) => {
+      const id = name ?? "other";
+      const sections: StandingsSection[] = [...divisions.entries()]
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([division, rows]) => ({
+          key: `wildcard:${id}:${division}`,
+          title: division,
+          data: [...rows].sort((a, b) => a.rank - b.rank).map((row) => ({ row, rank: row.rank })),
+        }));
+      if (race.length > 0) {
+        sections.push({
+          key: `wildcard:${id}`,
+          title: "Wild card",
+          playoffLine: standings.wildCardSpots,
+          data: [...race]
+            .sort((a, b) => a.wildCardRank! - b.wildCardRank!)
+            .map((row) => ({ row, rank: row.wildCardRank! })),
+        });
+      }
+      if (name && sections.length > 0) sections[0] = { ...sections[0], conference: name };
+      return sections;
+    });
 }

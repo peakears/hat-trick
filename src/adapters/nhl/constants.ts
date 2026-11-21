@@ -3,6 +3,8 @@ import type { StatColumn } from "../../domain";
 export const LEAGUE = "nhl" as const;
 export const DEFAULT_BASE_URL = "https://api-web.nhle.com/v1";
 export const DEFAULT_TIMEOUT_MS = 10_000;
+/** Playoff spots per conference after each division's top three. */
+export const WILD_CARD_SPOTS = 2;
 
 export const SKATER_COLUMNS: StatColumn[] = [
   { key: "goals", label: "G" },
