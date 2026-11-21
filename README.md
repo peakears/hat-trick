@@ -98,10 +98,10 @@ What each version added is on the [Releases page](https://github.com/peakears/ha
 
 Planned (each links to its issue):
 
-- [Player pages](https://github.com/peakears/hat-trick/issues/15): tap a player for bio (age, hometown, position, draft) and season/career stats, including goalie stats
 - [Play-by-play and penalty log](https://github.com/peakears/hat-trick/issues/28) on the game page
-- [Three stars](https://github.com/peakears/hat-trick/issues/39) for finished games and [more standings views](https://github.com/peakears/hat-trick/issues/38) (conference, wild card, league)
-- [Spoiler shield](https://github.com/peakears/hat-trick/issues/29) (hide scores until tapped) and [starting goalies](https://github.com/peakears/hat-trick/issues/30) on upcoming games
+- [More standings views](https://github.com/peakears/hat-trick/issues/38) (conference, wild card, league)
+- [Starting goalies](https://github.com/peakears/hat-trick/issues/30) on upcoming games
+- [French translation](https://github.com/peakears/hat-trick/issues/86), with French team, city and arena names from the NHL API
 - [Betting odds](https://github.com/peakears/hat-trick/issues/7), if a usable source exists (off by default)
 - [More customization](https://github.com/peakears/hat-trick/issues/53) in Settings (colours, what each game card shows)
 - [Alternate app icons](https://github.com/peakears/hat-trick/issues/9), picked in Settings
