@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.7.0](https://github.com/peakears/hat-trick/compare/v1.6.0...v1.7.0) (2026-11-21)
+
+
+### Features
+
+* **app:** add a Player spotlight button to Leaders ([#84](https://github.com/peakears/hat-trick/issues/84)) ([1bb70ca](https://github.com/peakears/hat-trick/commit/1bb70ca4e13efe2048f34516c275a358f1a9211c))
+* **app:** add player pages ([#82](https://github.com/peakears/hat-trick/issues/82)) ([6bf1ec5](https://github.com/peakears/hat-trick/commit/6bf1ec59074f72415ad445446654b303a8b1f04d)), closes [#15](https://github.com/peakears/hat-trick/issues/15)
+* **app:** add power-play goals, faceoff % and penalty minutes to Leaders ([#85](https://github.com/peakears/hat-trick/issues/85)) ([85dd64a](https://github.com/peakears/hat-trick/commit/85dd64a9e6b97023959aff68d513abdf905a33cd))
+* **app:** order leaders as points, goals, assists and show the top 5 with Show more ([#83](https://github.com/peakears/hat-trick/issues/83)) ([c2dd6f7](https://github.com/peakears/hat-trick/commit/c2dd6f77208000bca04a98fe4ea0e5a616ae659a))
+
 ## [1.6.0](https://github.com/peakears/hat-trick/compare/v1.5.0...v1.6.0) (2026-11-21)
 
 
