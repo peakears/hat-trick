@@ -17,3 +17,18 @@ export function visibleLeaders<T>(entries: readonly T[], expanded: boolean): { s
 export function leaderSectionKey(kind: string, category: string): string {
   return `${kind}:${category}`;
 }
+
+/** The line under a spotlight player's name: "EDM · #97 · C", leaving out whatever is unknown. */
+export function spotlightDetail(entry: {
+  team: { abbrev: string };
+  sweaterNumber?: number;
+  player: { position?: string };
+}): string {
+  return [
+    entry.team.abbrev,
+    entry.sweaterNumber !== undefined ? `#${entry.sweaterNumber}` : undefined,
+    entry.player.position,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+}

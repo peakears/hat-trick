@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { LEADERS_MAX, LEADERS_SHOWN, leaderSectionKey, visibleLeaders } from "./leaders";
+import { LEADERS_MAX, LEADERS_SHOWN, leaderSectionKey, spotlightDetail, visibleLeaders } from "./leaders";
 
 const list = (n: number) => Array.from({ length: n }, (_, i) => i + 1);
 
@@ -25,5 +25,14 @@ describe("visibleLeaders", () => {
 describe("leaderSectionKey", () => {
   it("keeps skater and goalie categories apart", () => {
     expect(leaderSectionKey("skaters", "points")).not.toBe(leaderSectionKey("goalies", "points"));
+  });
+});
+
+describe("spotlightDetail", () => {
+  it("shows the team, number and position, leaving out what is unknown", () => {
+    const team = { abbrev: "EDM" };
+    expect(spotlightDetail({ team, sweaterNumber: 97, player: { position: "C" } })).toBe("EDM · #97 · C");
+    expect(spotlightDetail({ team, sweaterNumber: 0, player: {} })).toBe("EDM · #0");
+    expect(spotlightDetail({ team, player: {} })).toBe("EDM");
   });
 });

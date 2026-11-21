@@ -7,6 +7,7 @@ import type {
   Goal,
   LeaderBoard,
   LeaderQuery,
+  SpotlightEntry,
   LeagueAdapter,
   PlayerDetail,
   RequestOptions,
@@ -21,6 +22,7 @@ import {
   mapGame,
   mapGoals,
   mapLeaders,
+  mapSpotlight,
   mapStandings,
   mapPlayerDetail,
   mapTeamSchedule,
@@ -34,6 +36,7 @@ import {
   RawLandingSchema,
   RawLeadersResponseSchema,
   RawPlayerLandingSchema,
+  RawSpotlightSchema,
   RawScoreResponseSchema,
   RawStandingsResponseSchema,
 } from "./raw-types";
@@ -89,6 +92,10 @@ export class NhlAdapter implements LeagueAdapter {
       options,
     );
     return mapLeaders(raw, categories);
+  }
+
+  async getSpotlight(options?: RequestOptions): Promise<SpotlightEntry[]> {
+    return mapSpotlight(await this.fetch("/player-spotlight", RawSpotlightSchema, options));
   }
 
   async getGameDetail(gameId: string, options?: RequestOptions): Promise<GameDetail> {

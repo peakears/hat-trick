@@ -271,6 +271,15 @@ export interface LeaderBoard {
   entries: LeaderEntry[];
 }
 
+// ---------- Player spotlight ----------
+
+/** One of the players the league is featuring right now. */
+export interface SpotlightEntry {
+  player: Player;
+  team: Team;
+  sweaterNumber?: number;
+}
+
 // ---------- Adapter contract ----------
 
 export interface LeaderQuery {
@@ -298,6 +307,9 @@ export interface LeagueAdapter {
   getStandings(options?: RequestOptions): Promise<Standings>;
 
   getLeaders(query?: LeaderQuery, options?: RequestOptions): Promise<LeaderBoard[]>;
+
+  /** The players the league is featuring, in its order. Empty when the league has no such list. */
+  getSpotlight(options?: RequestOptions): Promise<SpotlightEntry[]>;
 
   getGameDetail(gameId: string, options?: RequestOptions): Promise<GameDetail>;
 

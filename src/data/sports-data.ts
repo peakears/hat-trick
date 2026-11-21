@@ -16,6 +16,7 @@ import type {
   Standings,
   PlayerDetail,
   TeamDetail,
+  SpotlightEntry,
 } from "../domain";
 import type { AdapterRegistry } from "../registry";
 import { FRESHNESS, gameDetailFreshness, scoresFreshness, teamFreshness } from "./freshness";
@@ -95,6 +96,18 @@ export class SportsData {
         key: `${league}:leaders:${category}:${limit}`,
         load: (o) => this.registry.get(league).getLeaders(query, o),
         freshFor: () => FRESHNESS.leaders,
+      },
+      options,
+    );
+  }
+
+  getSpotlight(league: LeagueId, options?: FetchOptions): Promise<Fetched<SpotlightEntry[]>> {
+    return this.get(
+      {
+        league,
+        key: `${league}:spotlight`,
+        load: (o) => this.registry.get(league).getSpotlight(o),
+        freshFor: () => FRESHNESS.spotlight,
       },
       options,
     );

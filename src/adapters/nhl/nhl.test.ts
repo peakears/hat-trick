@@ -3,7 +3,8 @@ import { describe, expect, it } from "vitest";
 import { runLeagueAdapterContract } from "../../contract/league-adapter.contract";
 import { NhlAdapter, NhlApiError, NhlResponseError, type AdapterWarning } from ".";
 
-// Real responses recorded from api-web.nhle.com on 2026-11-17 (club stats, the Toronto schedule and the landing: 2026-11-20).
+// Real responses recorded from api-web.nhle.com on 2026-11-17 (club stats, the Toronto schedule and the landing: 2026-11-20;
+// the player spotlight: 2026-11-21).
 const FIXTURES: [RegExp, string][] = [
   [/\/score\/2026-11-17$/, "score-2026-11-17.json"], // final + live games
   [/\/score\/2026-11-18$/, "score-2026-11-18.json"], // scheduled games
@@ -15,6 +16,7 @@ const FIXTURES: [RegExp, string][] = [
   [/\/gamecenter\/2026020333\/landing$/, "landing-2026020333-final.json"], // recorded 2026-11-20
   [/\/player\/8474563\/landing$/, "player-8474563-landing.json"], // Drew Doughty (D), recorded 2026-11-20
   [/\/player\/8475311\/landing$/, "player-8475311-landing.json"], // Darcy Kuemper (G), recorded 2026-11-20
+  [/\/player-spotlight$/, "player-spotlight.json"], // recorded 2026-11-21
   [/\/club-stats\/TOR\/now$/, "club-stats-TOR-now.json"],
   [/\/club-schedule-season\/TOR\/now$/, "club-schedule-season-TOR-now.json"],
 ];
@@ -709,6 +711,67 @@ describe("NHL adapter", () => {
         }
       });
       expect((await adapter.getTeam("TOR")).stats).toEqual([]);
+    });
+  });
+
+  describe("player spotlight", () => {
+    it("lists the featured players in the league's order", async () => {
+      const entries = await fixtureAdapter().adapter.getSpotlight();
+      expect(entries).toHaveLength(10);
+      expect(entries.slice(0, 3).map((e) => e.player.name)).toEqual([
+        "Connor McDavid",
+        "Nikita Kucherov",
+        "Cutter Gauthier",
+      ]);
+      expect(entries[0]).toEqual({
+        player: {
+          id: "8478402",
+          league: "nhl",
+          name: "Connor McDavid",
+          teamId: "EDM",
+          position: "C",
+          headshotUrl: "https://assets.nhle.com/mugs/nhl/20262027/EDM/8478402.png",
+        },
+        team: {
+          id: "EDM",
+          league: "nhl",
+          name: "EDM",
+          abbrev: "EDM",
+          logoUrl: "https://assets.nhle.com/logos/nhl/svg/EDM_light.svg",
+        },
+        sweaterNumber: 97,
+      });
+      expect(entries.find((e) => e.player.position === "G")?.player.name).toBe("Linus Ullmark");
+    });
+
+    it("drops a broken entry and keeps the rest", async () => {
+      const { adapter, warnings } = fixtureAdapter((url, body) => {
+        if (url.endsWith("/player-spotlight")) delete body[0].playerId;
+      });
+      expect(await adapter.getSpotlight()).toHaveLength(9);
+      expect(warnings.some((w) => w.message.startsWith("spotlight[0] dropped"))).toBe(true);
+    });
+
+    it("keeps a player without a photo, number or order, placing them last", async () => {
+      const { adapter } = fixtureAdapter((url, body) => {
+        if (!url.endsWith("/player-spotlight")) return;
+        const mcdavid = body.find((p: any) => p.playerId === 8478402);
+        delete mcdavid.headshot;
+        delete mcdavid.sweaterNumber;
+        delete mcdavid.sortId;
+      });
+      const entries = await adapter.getSpotlight();
+      const last = entries[entries.length - 1];
+      expect(last.player.name).toBe("Connor McDavid");
+      expect(last.player.headshotUrl).toBeUndefined();
+      expect(last.sweaterNumber).toBeUndefined();
+    });
+
+    it("is empty when the league features nobody", async () => {
+      const { adapter } = fixtureAdapter((url, body) => {
+        if (url.endsWith("/player-spotlight")) body.length = 0;
+      });
+      expect(await adapter.getSpotlight()).toEqual([]);
     });
   });
 

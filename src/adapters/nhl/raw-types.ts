@@ -417,6 +417,23 @@ export const RawPlayerLandingSchema = z.object({
   seasonTotals: lenientArray(RawPlayerSeasonSchema, "seasonTotals"),
 });
 
+// ---------- Player spotlight (/player-spotlight) ----------
+// Verified on 2026-11-21: a bare array of the NHL's featured players (10 at the time). Only the id,
+// name and team are core; the rest is minor. `sortId` is the league's display order.
+
+export const RawSpotlightPlayerSchema = z.object({
+  playerId: z.number(),
+  name: LocalizedSchema,
+  teamTriCode: z.string(),
+  position: str("spotlight.position"),
+  sweaterNumber: num("spotlight.sweaterNumber"),
+  headshot: str("spotlight.headshot"),
+  teamLogo: str("spotlight.teamLogo"),
+  sortId: num("spotlight.sortId"),
+});
+
+export const RawSpotlightSchema = lenientArray(RawSpotlightPlayerSchema, "spotlight");
+
 // ---------- Inferred types ----------
 
 export type Localized = z.output<typeof LocalizedSchema>;
@@ -437,6 +454,7 @@ export type RawStanding = z.output<typeof RawStandingSchema>;
 export type RawStandingsResponse = z.output<typeof RawStandingsResponseSchema>;
 export type RawLeader = z.output<typeof RawLeaderSchema>;
 export type RawLeadersResponse = z.output<typeof RawLeadersResponseSchema>;
+export type RawSpotlight = z.output<typeof RawSpotlightSchema>;
 export type RawThreeStar = z.output<typeof RawThreeStarSchema>;
 export type RawLanding = z.output<typeof RawLandingSchema>;
 export type RawPlayerStats = z.output<typeof RawPlayerStatsSchema>;
