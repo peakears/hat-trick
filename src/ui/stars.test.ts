@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { GameStar } from "../domain";
-import { initials, starAccessibilityLabel, starPlayerLine, starStatLine, starTitle } from "./stars";
+import { initials, starAccessibilityLabel, starIconCount, starPlayerLine, starStatLine, starTitle } from "./stars";
 
 const kuemper: GameStar = {
   rank: 1,
@@ -15,6 +15,12 @@ const kuemper: GameStar = {
 describe("three stars text", () => {
   it("names the stars", () => {
     expect([1, 2, 3, 4].map(starTitle)).toEqual(["First star", "Second star", "Third star", "Star 4"]);
+  });
+
+  it("shows one, two or three star icons by rank", () => {
+    expect([1, 2, 3].map(starIconCount)).toEqual([1, 2, 3]);
+    expect(starIconCount(4)).toBe(3);
+    expect(starIconCount(0)).toBe(1);
   });
 
   it("describes the player and their game", () => {

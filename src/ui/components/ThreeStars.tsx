@@ -1,7 +1,7 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { StyleSheet, Text, View } from "react-native";
 import type { GameStar } from "../../domain";
-import { starAccessibilityLabel, starPlayerLine, starStatLine } from "../stars";
+import { starAccessibilityLabel, starIconCount, starPlayerLine, starStatLine } from "../stars";
 import { tabular, useColors } from "../theme";
 import { PlayerHeadshot } from "./PlayerHeadshot";
 
@@ -24,9 +24,11 @@ export function ThreeStars({ stars }: { stars: GameStar[] }) {
             accessible
             accessibilityLabel={starAccessibilityLabel(star)}
           >
+            {/* One icon for the first star, two for the second, three for the third. */}
             <View style={styles.rank}>
-              <Ionicons name="star" size={14} color={colors.accent} />
-              <Text style={[styles.rankNumber, tabular, { color: colors.text }]}>{star.rank}</Text>
+              {Array.from({ length: starIconCount(star.rank) }, (_, n) => (
+                <Ionicons key={n} name="star" size={12} color={colors.accent} />
+              ))}
             </View>
             <PlayerHeadshot player={star.player} />
             <View style={styles.main}>
@@ -62,8 +64,8 @@ const styles = StyleSheet.create({
   },
   title: { fontSize: 12, fontWeight: "600", textTransform: "uppercase", paddingVertical: 6 },
   row: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 8 },
-  rank: { width: 22, alignItems: "center" },
-  rankNumber: { fontSize: 12, fontWeight: "700", marginTop: 1 },
+  // Wide enough for three icons, so the photos line up whatever the rank.
+  rank: { width: 40, flexDirection: "row", justifyContent: "center", gap: 2 },
   main: { flex: 1 },
   name: { fontSize: 15, fontWeight: "600" },
   detail: { fontSize: 12, marginTop: 2 },

@@ -11,6 +11,11 @@ export function starTitle(rank: number): string {
   return TITLES[rank - 1] ?? `Star ${rank}`;
 }
 
+/** How many star icons a rank shows: one for the first star, two for the second, three for the third. */
+export function starIconCount(rank: number): number {
+  return Math.min(3, Math.max(1, Math.round(rank)));
+}
+
 /** "LAK · #35 · G", leaving out whatever is unknown. */
 export function starPlayerLine(star: GameStar): string {
   const { player, sweaterNumber } = star;
