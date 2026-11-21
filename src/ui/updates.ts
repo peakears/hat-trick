@@ -1,6 +1,5 @@
 import { z } from "zod";
 import type { KeyValueStore } from "../data";
-import { REPO_URL } from "./links";
 
 /**
  * Update checks for the sideloaded APK: ask GitHub for the latest release and compare it with the
@@ -55,8 +54,19 @@ const releaseSchema = z.object({
   assets: z.array(z.object({ name: z.string(), browser_download_url: z.string() })).catch([]),
 });
 
-// Only links into this project's own repo are ever opened, whatever the response says.
-const ownLink = (url: string) => url.startsWith(`${REPO_URL}/`);
+// Only this project's release pages and APKs are ever opened, whatever the response (or the stored
+// state) says. Each link must match its whole shape, not just start with the repo URL: a prefix check
+// accepts ".../hat-trick/../../other/repo/...", which the HTTP client resolves to another repo.
+// No part below can hold "/", "%" or "\", so a link can never leave the repo. The tag allows a
+// suffix like "-dev0". Kept in step with REPO_URL by a test.
+const RELEASE_PAGE = /^https:\/\/github\.com\/peakears\/hat-trick\/releases\/tag\/v\d+\.\d+\.\d+(?:-[0-9A-Za-z.]+)?$/;
+const RELEASE_APK =
+  /^https:\/\/github\.com\/peakears\/hat-trick\/releases\/download\/v\d+\.\d+\.\d+(?:-[0-9A-Za-z.]+)?\/[\w.-]+\.apk$/;
+
+/** True only for a release page of this repo: `.../releases/tag/v1.2.3`. */
+export const isReleasePageUrl = (url: string) => RELEASE_PAGE.test(url);
+/** True only for an APK attached to a release of this repo: `.../releases/download/v1.2.3/<name>.apk`. */
+export const isReleaseApkUrl = (url: string) => RELEASE_APK.test(url);
 
 /** The release described by a GitHub "latest release" response, or null if it is unusable. */
 export function parseRelease(json: unknown): Release | null {
@@ -64,8 +74,8 @@ export function parseRelease(json: unknown): Release | null {
   if (!parsed.success) return null;
   const { tag_name, html_url, draft, prerelease, assets } = parsed.data;
   const version = tag_name.replace(/^v/, "");
-  if (draft || prerelease || !parseVersion(version) || !ownLink(html_url)) return null;
-  const apk = assets.find((a) => a.name.endsWith(".apk") && ownLink(a.browser_download_url));
+  if (draft || prerelease || !parseVersion(version) || !isReleasePageUrl(html_url)) return null;
+  const apk = assets.find((a) => a.name.endsWith(".apk") && isReleaseApkUrl(a.browser_download_url));
   return { version, url: html_url, apkUrl: apk?.browser_download_url };
 }
 
@@ -81,7 +91,15 @@ interface StoredState {
 
 const storedSchema = z.object({
   checkedAt: z.number(),
-  latest: z.object({ version: z.string(), url: z.string(), apkUrl: z.string().optional() }).optional().catch(undefined),
+  // Links are checked again on read: state saved by an older version passed only a prefix check.
+  latest: z
+    .object({
+      version: z.string(),
+      url: z.string().refine(isReleasePageUrl),
+      apkUrl: z.string().refine(isReleaseApkUrl).optional().catch(undefined),
+    })
+    .optional()
+    .catch(undefined),
   dismissedVersion: z.string().optional().catch(undefined),
 });
 
