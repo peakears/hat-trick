@@ -52,10 +52,9 @@ export function weightLabel(bio: PlayerBio): string | undefined {
   return lb ?? kg;
 }
 
-/** "Shoots right" for skaters, "Catches left" for goalies. */
-export function handednessLabel(handedness: string | undefined, goalie: boolean): string | undefined {
-  const side = handedness === "L" ? "left" : handedness === "R" ? "right" : undefined;
-  return side && `${goalie ? "Catches" : "Shoots"} ${side}`;
+/** "Left" or "Right": the hand a skater shoots or a goalie catches with. */
+export function handednessLabel(handedness: string | undefined): string | undefined {
+  return handedness === "L" ? "Left" : handedness === "R" ? "Right" : undefined;
 }
 
 /** "2008, round 1, #2 overall by LAK", or "Undrafted" when the league has no draft record. */
@@ -79,7 +78,7 @@ export function bioRows(detail: PlayerDetail, today: string): { label: string; v
     { label: "Weight", value: weightLabel(bio) },
     {
       label: detail.goalie ? "Catches" : "Shoots",
-      value: handednessLabel(bio.handedness, detail.goalie)?.split(" ")[1],
+      value: handednessLabel(bio.handedness),
     },
     { label: "Draft", value: draftLabel(bio) },
   ];
