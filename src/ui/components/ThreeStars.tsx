@@ -5,7 +5,7 @@ import { starAccessibilityLabel, starIconCount, starPlayerLine, starStatLine } f
 import { tabular, useColors } from "../theme";
 import { PlayerHeadshot } from "./PlayerHeadshot";
 
-/** The game's three stars: photo, name, team and a short stat line for each, first star first. */
+/** The game's three stars: photo, name, team and a short stat line under it for each, first star first. */
 export function ThreeStars({ stars }: { stars: GameStar[] }) {
   const colors = useColors();
   if (stars.length === 0) return null;
@@ -40,12 +40,13 @@ export function ThreeStars({ stars }: { stars: GameStar[] }) {
                   {playerLine}
                 </Text>
               ) : null}
+              {/* On its own line, so the name has the full width and is never cut off for the stats. */}
+              {statLine ? (
+                <Text style={[styles.stats, tabular, { color: colors.text }]} numberOfLines={2}>
+                  {statLine}
+                </Text>
+              ) : null}
             </View>
-            {statLine ? (
-              <Text style={[styles.stats, tabular, { color: colors.text }]} numberOfLines={2}>
-                {statLine}
-              </Text>
-            ) : null}
           </View>
         );
       })}
@@ -69,5 +70,5 @@ const styles = StyleSheet.create({
   main: { flex: 1 },
   name: { fontSize: 15, fontWeight: "600" },
   detail: { fontSize: 12, marginTop: 2 },
-  stats: { fontSize: 13, fontWeight: "600", textAlign: "right", maxWidth: "45%" },
+  stats: { fontSize: 13, fontWeight: "600", marginTop: 3 },
 });
