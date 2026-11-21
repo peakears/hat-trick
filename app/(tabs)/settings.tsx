@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from "react";
 import { Linking, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
 import { TV_REGIONS, type TvRegionPreference } from "../../src/ui/broadcasts";
+import { ReleaseNotesModal } from "../../src/ui/components/ReleaseNotesModal";
 import { Segmented } from "../../src/ui/components/Segmented";
 import { timeLabel } from "../../src/ui/format";
 import { installStatusText, isBusy } from "../../src/ui/install-update";
@@ -28,6 +29,7 @@ export default function SettingsScreen() {
   const { settings, update } = useSettings();
   const { status, checking, checkNow, install, installNow, openInBrowser, canInstallInApp } = useUpdate();
   const [permissionDenied, setPermissionDenied] = useState(false);
+  const [notesOpen, setNotesOpen] = useState(false);
 
   // Turning reminders on asks for the notification permission first; it stays off if refused.
   const setReminders = async (enabled: boolean) => {
@@ -173,7 +175,20 @@ export default function SettingsScreen() {
           onChange={(checkForUpdates) => update({ checkForUpdates })}
         />
         <LinkRow label="GitHub repository" detail="peakears/hat-trick" url={REPO_URL} />
-        <LinkRow label="Release notes" url={RELEASES_URL} />
+        {status.kind === "available" ? (
+          <Pressable
+            onPress={() => setNotesOpen(true)}
+            accessibilityRole="button"
+            style={[styles.row, styles.divider, { borderBottomColor: colors.border }]}
+          >
+            <View style={styles.rowText}>
+              <Text style={[styles.label, { color: colors.text }]}>What's new in {status.release.version}</Text>
+            </View>
+          </Pressable>
+        ) : (
+          <LinkRow label="Release notes" url={RELEASES_URL} />
+        )}
+        <ReleaseNotesModal visible={notesOpen} onClose={() => setNotesOpen(false)} />
         <LinkRow
           label="Report a problem"
           detail="Opens a new issue with your app version filled in."

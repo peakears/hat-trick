@@ -66,6 +66,11 @@ describe("parseRelease", () => {
     });
   });
 
+  it("keeps the release notes", () => {
+    expect(parseRelease(releaseJson("1.2.0", { body: "### Features\n* x" }))?.notes).toBe("### Features\n* x");
+    expect(parseRelease(releaseJson("1.2.0", { body: null }))?.notes).toBeUndefined();
+  });
+
   it("works without an APK asset", () => {
     expect(parseRelease(releaseJson("1.2.0", { assets: [] }))?.apkUrl).toBeUndefined();
   });

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { KeyValueStore } from "../data";
+import { MAX_NOTES_LENGTH } from "./release-notes";
 
 /**
  * Update checks for the sideloaded APK: ask GitHub for the latest release and compare it with the
@@ -25,6 +26,8 @@ export interface Release {
   apkSize?: number;
   /** The APK's SHA-256 (lowercase hex) as GitHub lists it for the asset. Absent on older releases. */
   apkSha256?: string;
+  /** The release body (release-please's Markdown notes), shown in the "What's new" sheet. */
+  notes?: string;
 }
 
 export type UpdateStatus =
@@ -55,6 +58,7 @@ const releaseSchema = z.object({
   html_url: z.string(),
   draft: z.boolean().optional(),
   prerelease: z.boolean().optional(),
+  body: z.string().nullish().catch(undefined),
   assets: z
     .array(
       z.object({
@@ -85,12 +89,19 @@ export const isReleaseApkUrl = (url: string) => RELEASE_APK.test(url);
 export function parseRelease(json: unknown): Release | null {
   const parsed = releaseSchema.safeParse(json);
   if (!parsed.success) return null;
-  const { tag_name, html_url, draft, prerelease, assets } = parsed.data;
+  const { tag_name, html_url, draft, prerelease, body, assets } = parsed.data;
   const version = tag_name.replace(/^v/, "");
   if (draft || prerelease || !parseVersion(version) || !isReleasePageUrl(html_url)) return null;
   const apk = assets.find((a) => a.name.endsWith(".apk") && isReleaseApkUrl(a.browser_download_url));
   const sha256 = /^sha256:([0-9a-f]{64})$/i.exec(apk?.digest ?? "")?.[1]?.toLowerCase();
-  return { version, url: html_url, apkUrl: apk?.browser_download_url, apkSize: apk?.size, apkSha256: sha256 };
+  return {
+    version,
+    url: html_url,
+    apkUrl: apk?.browser_download_url,
+    apkSize: apk?.size,
+    apkSha256: sha256,
+    notes: body ? body.slice(0, MAX_NOTES_LENGTH) : undefined,
+  };
 }
 
 // ---------- Stored state ----------
@@ -113,6 +124,7 @@ const storedSchema = z.object({
       apkUrl: z.string().refine(isReleaseApkUrl).optional().catch(undefined),
       apkSize: z.number().optional().catch(undefined),
       apkSha256: z.string().optional().catch(undefined),
+      notes: z.string().optional().catch(undefined),
     })
     .optional()
     .catch(undefined),
