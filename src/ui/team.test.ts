@@ -1,6 +1,15 @@
 import { describe, expect, it } from "vitest";
-import type { StandingRow, Standings } from "../domain";
-import { findStandingRow, goalDifferentialLabel, ordinal, rankLine, splitLines } from "./team";
+import type { Game, GameStatus, StandingRow, Standings } from "../domain";
+import {
+  findStandingRow,
+  goalDifferentialLabel,
+  ordinal,
+  rankLine,
+  splitLines,
+  teamGameLine,
+  teamGameSpoken,
+  visibleGames,
+} from "./team";
 
 function row(id: string, extra: Partial<StandingRow> = {}): StandingRow {
   return {
@@ -80,5 +89,68 @@ describe("splitLines", () => {
       { label: "Last 10", record: "8-1-1", goals: "Scored 36 · Allowed 19" },
       { label: "Road", record: "10-0-1", goals: undefined },
     ]);
+  });
+});
+
+describe("compact team games", () => {
+  const team = (id: string, name: string) => ({ id, league: "nhl", name, abbrev: id });
+  function game(
+    status: GameStatus,
+    homeScore: number | null,
+    awayScore: number | null,
+    extra: Partial<Game> = {},
+  ): Game {
+    return {
+      id: "1",
+      league: "nhl",
+      startTime: "2026-11-20T00:00:00Z",
+      status,
+      home: { team: team("TOR", "Toronto Maple Leafs"), score: homeScore },
+      away: { team: team("LAK", "Los Angeles Kings"), score: awayScore },
+      ...extra,
+    };
+  }
+
+  it("shows three games, with the rest behind Show more", () => {
+    expect(visibleGames([1, 2, 3, 4, 5], false)).toEqual({ shown: [1, 2, 3], more: 2 });
+    expect(visibleGames([1, 2, 3, 4, 5], true)).toEqual({ shown: [1, 2, 3, 4, 5], more: 0 });
+    expect(visibleGames([1, 2], false)).toEqual({ shown: [1, 2], more: 0 });
+  });
+
+  it("tells a final from the team's side, team's goals first", () => {
+    const final = game("final", 3, 4, { endedIn: "overtime" });
+    const road = teamGameLine(final, "LAK", false);
+    expect(road).toMatchObject({
+      home: false,
+      opponent: { id: "TOR" },
+      result: { won: true, score: "4-3", endedIn: "OT" },
+    });
+    expect(teamGameSpoken(road)).toBe("at Toronto Maple Leafs, won 4-3 in overtime");
+    const home = teamGameLine(final, "TOR", false);
+    expect(home).toMatchObject({ home: true, opponent: { id: "LAK" }, result: { won: false, score: "3-4" } });
+    expect(teamGameSpoken(home)).toBe("vs Los Angeles Kings, lost 3-4 in overtime");
+    expect(teamGameLine(game("final", 2, 1), "TOR", false).result).toEqual({
+      won: true,
+      score: "2-1",
+      endedIn: undefined,
+    });
+  });
+
+  it("shows a live score, and nothing before puck drop", () => {
+    const live = teamGameLine(game("live", 1, 2), "TOR", false);
+    expect(live.liveScore).toBe("1-2");
+    expect(teamGameSpoken(live)).toBe("vs Los Angeles Kings, live, 1-2");
+    const scheduled = teamGameLine(game("scheduled", null, null), "TOR", false);
+    expect(scheduled.result).toBeUndefined();
+    expect(scheduled.liveScore).toBeUndefined();
+  });
+
+  it("gives nothing away while the spoiler shield hides the game", () => {
+    for (const status of ["final", "live"] as const) {
+      const line = teamGameLine(game(status, 3, 4, { endedIn: "shootout" }), "LAK", true);
+      expect(line.result).toBeUndefined();
+      expect(line.liveScore).toBeUndefined();
+      expect(teamGameSpoken(line)).toBe("at Toronto Maple Leafs");
+    }
   });
 });
