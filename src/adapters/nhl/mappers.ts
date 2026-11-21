@@ -10,6 +10,7 @@ import type {
   Goal,
   GoalStrength,
   LeaderBoard,
+  SpotlightEntry,
   Player,
   PlayerDetail,
   PlayerGameLine,
@@ -54,6 +55,7 @@ import type {
   RawPlayerLanding,
   RawPlayerSeason,
   RawPlayerStats,
+  RawSpotlight,
   RawSideStats,
   RawSkater,
   RawStandingsResponse,
@@ -671,4 +673,25 @@ export function mapPlayerDetail(raw: RawPlayerLanding): PlayerDetail {
     lastGames: { columns: gameColumns, games: (raw.last5Games ?? []).map((g) => playerGame(g, gameColumns)) },
     seasons: { columns: seasonColumns, rows: seasons },
   };
+}
+
+// ---------- Player spotlight ----------
+
+/** The featured players in the league's order (`sortId`); any without one go last, as sent. */
+export function mapSpotlight(raw: RawSpotlight): SpotlightEntry[] {
+  const list = (raw ?? []).map((p, i) => ({ p, i }));
+  list.sort((a, b) => (a.p.sortId ?? Infinity) - (b.p.sortId ?? Infinity) || a.i - b.i);
+  return list.map(({ p }) => ({
+    player: {
+      id: String(p.playerId),
+      league: LEAGUE,
+      name: p.name.default,
+      teamId: p.teamTriCode,
+      position: p.position,
+      headshotUrl: p.headshot,
+    },
+    // The response has the team's code and logo but not its name.
+    team: { id: p.teamTriCode, league: LEAGUE, name: p.teamTriCode, abbrev: p.teamTriCode, logoUrl: p.teamLogo },
+    sweaterNumber: p.sweaterNumber,
+  }));
 }

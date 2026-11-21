@@ -10,6 +10,7 @@ import type {
   RequestOptions,
   Standings,
   TeamDetail,
+  SpotlightEntry,
 } from "../domain";
 import { NhlAdapter } from "../adapters/nhl";
 import { AdapterRegistry } from "../registry";
@@ -64,6 +65,9 @@ class FakeAdapter implements LeagueAdapter {
     return this.run(() => ({ league: "test", groups: [], updatedAt: new Date(NOW).toISOString() }), options);
   }
   getLeaders(_query?: unknown, options?: RequestOptions): Promise<LeaderBoard[]> {
+    return this.run(() => [], options);
+  }
+  getSpotlight(options?: RequestOptions): Promise<SpotlightEntry[]> {
     return this.run(() => [], options);
   }
   getGameDetail(_id: string, options?: RequestOptions): Promise<GameDetail> {

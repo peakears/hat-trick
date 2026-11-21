@@ -36,6 +36,8 @@ export const FRESHNESS = {
   leaders: 30 * MINUTE,
   /** A player's page: season totals and recent games only change when one of their games ends. */
   player: 30 * MINUTE,
+  /** The league picks its featured players by hand, a few times a week at most. */
+  spotlight: 6 * HOUR,
 } as const;
 
 /** How long one game stays fresh. */

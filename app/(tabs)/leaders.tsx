@@ -1,6 +1,6 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { useState } from "react";
 import { useRouter } from "expo-router";
+import { useState } from "react";
 import { Pressable, RefreshControl, SectionList, StyleSheet, Text, View } from "react-native";
 import type { FetchOptions } from "../../src/data";
 import { Segmented } from "../../src/ui/components/Segmented";
@@ -53,6 +53,19 @@ export default function LeadersScreen() {
 
   return (
     <View style={styles.screen}>
+      <Pressable
+        onPress={() => router.push("/spotlight")}
+        style={({ pressed }) => [styles.spotlight, { backgroundColor: colors.card, opacity: pressed ? 0.6 : 1 }]}
+        accessibilityRole="button"
+        accessibilityLabel="Player spotlight: players the NHL is featuring right now"
+      >
+        <Ionicons name="star" size={18} color={colors.accent} />
+        <View style={styles.spotlightText}>
+          <Text style={[styles.spotlightTitle, { color: colors.text }]}>Player spotlight</Text>
+          <Text style={[styles.spotlightDetail, { color: colors.muted }]}>Players the NHL is featuring right now</Text>
+        </View>
+        <Ionicons name="chevron-forward" size={18} color={colors.muted} />
+      </Pressable>
       <Segmented
         options={[
           { value: "skaters", label: "Skaters" },
@@ -123,6 +136,20 @@ export default function LeadersScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
+  spotlight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginHorizontal: 12,
+    marginTop: 12,
+    marginBottom: 4,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  spotlightText: { flex: 1 },
+  spotlightTitle: { fontSize: 15, fontWeight: "600" },
+  spotlightDetail: { fontSize: 12, marginTop: 2 },
   header: { fontSize: 15, fontWeight: "700", paddingHorizontal: 12, paddingTop: 16, paddingBottom: 8 },
   row: {
     flexDirection: "row",

@@ -215,6 +215,20 @@ export function runLeagueAdapterContract(options: ContractOptions): void {
       );
     });
 
+    describe("getSpotlight", () => {
+      it("returns featured players, each once", async () => {
+        const entries = await makeAdapter().getSpotlight();
+        for (const e of entries) {
+          expectPlayer(e.player, league);
+          expectTeam(e.team, league);
+          expect(e.player.teamId ?? e.team.id).toBe(e.team.id);
+        }
+        const ids = entries.map((e) => e.player.id);
+        expect(new Set(ids).size, "no player twice").toBe(ids.length);
+        expectJsonSafe(entries);
+      });
+    });
+
     describe("getGameDetail", () => {
       it.each(inputs.gameIds)("returns a valid box score for %s", async (gameId) => {
         const detail = await makeAdapter().getGameDetail(gameId);
