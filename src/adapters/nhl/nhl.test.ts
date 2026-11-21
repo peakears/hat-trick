@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { runLeagueAdapterContract } from "../../contract/league-adapter.contract";
 import { NhlAdapter, NhlApiError, NhlResponseError, type AdapterWarning } from ".";
 
-// Real responses recorded from api-web.nhle.com on 2026-11-17.
+// Real responses recorded from api-web.nhle.com on 2026-11-17 (club stats and the Toronto schedule: 2026-11-20).
 const FIXTURES: [RegExp, string][] = [
   [/\/score\/2026-11-17$/, "score-2026-11-17.json"], // final + live games
   [/\/score\/2026-11-18$/, "score-2026-11-18.json"], // scheduled games
@@ -12,6 +12,8 @@ const FIXTURES: [RegExp, string][] = [
   [/\/goalie-stats-leaders\//, "goalie-leaders.json"],
   [/\/gamecenter\/2026020342\/boxscore$/, "boxscore-2026020342-live.json"],
   [/\/gamecenter\/2026020333\/boxscore$/, "boxscore-2026020333-final.json"],
+  [/\/club-stats\/TOR\/now$/, "club-stats-TOR-now.json"],
+  [/\/club-schedule-season\/TOR\/now$/, "club-schedule-season-TOR-now.json"],
 ];
 
 function loadFixture(file: string): any {
@@ -61,6 +63,7 @@ runLeagueAdapterContract({
     scoreDates: ["2026-11-17", "2026-11-18"],
     gameIds: ["2026020342", "2026020333"],
     leaderQueries: [{}, { category: "goals", limit: 3 }, { category: "savePctg" }, { category: "goalsAgainstAverage" }],
+    teamIds: ["TOR"],
   },
 });
 
@@ -76,6 +79,7 @@ describe("NHL adapter", () => {
     await adapter.getLeaders({ category: "wins" });
     await adapter.getGameDetail("2026020342");
     await adapter.getGameDetail("2026020333");
+    await adapter.getTeam("TOR");
     expect(warnings).toEqual([]);
   });
 
@@ -363,6 +367,126 @@ describe("NHL adapter", () => {
       const row = (await adapter.getStandings()).groups[0].rows[0];
       expect(row.last10).toBeUndefined();
       expect(row.home).toBeDefined();
+    });
+  });
+
+  describe("team page", () => {
+    it("fetches the club stats and the season schedule", async () => {
+      const { adapter, urls } = fixtureAdapter();
+      await adapter.getTeam("TOR");
+      expect(urls.sort()).toEqual([
+        "https://api-web.nhle.com/v1/club-schedule-season/TOR/now",
+        "https://api-web.nhle.com/v1/club-stats/TOR/now",
+      ]);
+    });
+
+    it("builds Forwards, Defense and Goalies tables, best first", async () => {
+      const { stats } = await fixtureAdapter().adapter.getTeam("TOR");
+      expect(stats.map((t) => t.title)).toEqual(["Forwards", "Defense", "Goalies"]);
+      const [forwards, defense, goalies] = stats;
+
+      const raw = loadFixture("club-stats-TOR-now.json");
+      expect(forwards.rows.length + defense.rows.length).toBe(raw.skaters.length);
+      expect(goalies.rows.length).toBe(raw.goalies.length);
+
+      expect(forwards.rows[0].player).toMatchObject({ id: "8479318", name: "Auston Matthews", position: "C" });
+      expect(forwards.rows[0].values).toMatchObject({
+        gamesPlayed: 24,
+        goals: 13,
+        assists: 19,
+        points: 32,
+        toi: "20:45",
+      });
+      expect(defense.rows[0].player.name).toBe("Darren Raddysh"); // most points among defensemen
+      expect(defense.rows.every((r) => r.player.position === "D")).toBe(true);
+      // Ranked by points, then goals.
+      const points = forwards.rows.map((r) => r.values.points as number);
+      expect(points).toEqual([...points].sort((a, b) => b - a));
+    });
+
+    it("ranks goalies by games started and keeps their rates", async () => {
+      const { stats } = await fixtureAdapter().adapter.getTeam("TOR");
+      const goalies = stats.find((t) => t.title === "Goalies")!;
+      expect(goalies.rows.map((r) => r.player.name)).toEqual(["Sergei Bobrovsky", "Anthony Stolarz"]);
+      expect(goalies.rows[0].values).toMatchObject({
+        gamesStarted: 14,
+        wins: 3,
+        overtimeLosses: 2,
+        goalsAgainstAverage: 3.649954,
+        savePercentage: 0.873762,
+      });
+    });
+
+    it("leaves a missing stat out instead of showing zero", async () => {
+      const { adapter } = fixtureAdapter((url, body) => {
+        if (/club-stats/.test(url)) delete body.goalies[1].savePercentage;
+      });
+      const goalies = (await adapter.getTeam("TOR")).stats.find((t) => t.title === "Goalies")!;
+      expect(goalies.rows[1].values).not.toHaveProperty("savePercentage");
+      expect(goalies.rows[1].values).toHaveProperty("wins");
+    });
+
+    it("drops one broken player row, not the whole table", async () => {
+      const { adapter, warnings } = fixtureAdapter((url, body) => {
+        if (/club-stats/.test(url)) body.skaters[0].playerId = "8475166";
+      });
+      const { stats } = await adapter.getTeam("TOR");
+      const raw = loadFixture("club-stats-TOR-now.json");
+      expect(stats[0].rows.length + stats[1].rows.length).toBe(raw.skaters.length - 1);
+      expect(warnings.map((w) => w.message).join()).toMatch(/skaters\[0\] dropped/);
+    });
+
+    it("has the last five games newest first and the next five soonest first, without preseason", async () => {
+      const { recent, upcoming } = await fixtureAdapter().adapter.getTeam("TOR");
+      expect(recent!.map((g) => g.id)).toEqual(["2026020347", "2026020338", "2026020314", "2026020300", "2026020286"]);
+      expect(recent![0]).toMatchObject({
+        status: "final",
+        away: { team: { id: "LAK" }, score: 4 },
+        home: { score: 3 },
+      });
+      expect(upcoming).toHaveLength(5);
+      expect(upcoming![0]).toMatchObject({ id: "2026020364", status: "scheduled", away: { team: { id: "CBJ" } } });
+      // Preseason ids look like 20260100xx.
+      expect([...recent!, ...upcoming!].some((g) => g.id.startsWith("2026010"))).toBe(false);
+    });
+
+    it("takes the arena from the venue most home games use", async () => {
+      expect((await fixtureAdapter().adapter.getTeam("TOR")).arena).toBe("Scotiabank Arena");
+    });
+
+    it("still returns the stats when the schedule cannot be loaded", async () => {
+      const adapter = new NhlAdapter({
+        fetch: async (input) => {
+          const url = String(input);
+          if (/club-schedule-season/.test(url)) throw new TypeError("Network request failed");
+          return jsonResponse(fixtureFor(url));
+        },
+      });
+      const detail = await adapter.getTeam("TOR");
+      expect(detail.stats.length).toBe(3);
+      expect(detail.recent).toBeUndefined();
+      expect(detail.upcoming).toBeUndefined();
+      expect(detail.arena).toBeUndefined();
+    });
+
+    it("fails when the club stats cannot be loaded", async () => {
+      const adapter = new NhlAdapter({
+        fetch: async (input) => {
+          const url = String(input);
+          return /club-stats/.test(url) ? jsonResponse({}, 500) : jsonResponse(fixtureFor(url));
+        },
+      });
+      await expect(adapter.getTeam("TOR")).rejects.toBeInstanceOf(NhlApiError);
+    });
+
+    it("has no stat tables before the season starts", async () => {
+      const { adapter } = fixtureAdapter((url, body) => {
+        if (/club-stats/.test(url)) {
+          body.skaters = [];
+          body.goalies = [];
+        }
+      });
+      expect((await adapter.getTeam("TOR")).stats).toEqual([]);
     });
   });
 

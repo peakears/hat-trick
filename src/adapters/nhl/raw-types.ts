@@ -161,6 +161,54 @@ export const RawBoxscoreSchema = RawGameSchema.extend({
   ),
 });
 
+// ---------- Team season stats (/club-stats/{team}/now) and schedule (/club-schedule-season/{team}/now) ----------
+
+export const RawClubSkaterSchema = z.object({
+  playerId: z.number(),
+  firstName: LocalizedSchema,
+  lastName: LocalizedSchema,
+  headshot: str("headshot"),
+  positionCode: str("positionCode"), // "C" | "L" | "R" | "D"
+  gamesPlayed: num("gamesPlayed"),
+  goals: num("goals"),
+  assists: num("assists"),
+  points: num("points"),
+  plusMinus: num("plusMinus"),
+  penaltyMinutes: num("penaltyMinutes"),
+  powerPlayGoals: num("powerPlayGoals"),
+  shots: num("shots"),
+  shootingPctg: num("shootingPctg"), // 0.117647
+  avgTimeOnIcePerGame: num("avgTimeOnIcePerGame"), // seconds, 1035.5714
+});
+
+export const RawClubGoalieSchema = z.object({
+  playerId: z.number(),
+  firstName: LocalizedSchema,
+  lastName: LocalizedSchema,
+  headshot: str("headshot"),
+  gamesPlayed: num("gamesPlayed"),
+  gamesStarted: num("gamesStarted"),
+  wins: num("wins"),
+  losses: num("losses"),
+  overtimeLosses: num("overtimeLosses"),
+  goalsAgainstAverage: num("goalsAgainstAverage"), // 3.649954
+  savePercentage: num("savePercentage"), // 0.873762
+  shotsAgainst: num("shotsAgainst"),
+  shutouts: num("shutouts"),
+});
+
+export const RawClubStatsSchema = z.object({
+  season: str("season"), // a string here ("20262027"), unlike the numeric season of the games
+  gameType: num("gameType"), // 2 regular season, 3 playoffs
+  skaters: lenientArray(RawClubSkaterSchema, "skaters"),
+  goalies: lenientArray(RawClubGoalieSchema, "goalies"),
+});
+
+// The whole season, preseason included. Games have the same shape as in /score (`RawGameSchema`).
+export const RawClubScheduleSchema = z.object({
+  games: lenientArray(RawGameSchema, "games"),
+});
+
 // ---------- Standings (/standings/now) ----------
 
 export const RawStandingSchema = z.object({
@@ -246,6 +294,10 @@ export type RawSkater = z.output<typeof RawSkaterSchema>;
 export type RawGoalie = z.output<typeof RawGoalieSchema>;
 export type RawSideStats = z.output<typeof RawSideStatsSchema>;
 export type RawBoxscore = z.output<typeof RawBoxscoreSchema>;
+export type RawClubSkater = z.output<typeof RawClubSkaterSchema>;
+export type RawClubGoalie = z.output<typeof RawClubGoalieSchema>;
+export type RawClubStats = z.output<typeof RawClubStatsSchema>;
+export type RawClubSchedule = z.output<typeof RawClubScheduleSchema>;
 export type RawStanding = z.output<typeof RawStandingSchema>;
 export type RawStandingsResponse = z.output<typeof RawStandingsResponseSchema>;
 export type RawLeader = z.output<typeof RawLeaderSchema>;

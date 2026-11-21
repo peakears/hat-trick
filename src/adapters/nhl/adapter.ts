@@ -9,12 +9,15 @@ import type {
   LeagueAdapter,
   RequestOptions,
   Standings,
+  TeamDetail,
 } from "../../domain";
 import { NhlClient, type NhlClientOptions } from "./client";
 import { GOALIE_LEADER_CATEGORIES, LEAGUE, SKATER_LEADER_CATEGORIES } from "./constants";
-import { mapBoxscoreSide, mapGame, mapGoals, mapLeaders, mapStandings } from "./mappers";
+import { mapBoxscoreSide, mapClubStats, mapGame, mapGoals, mapLeaders, mapStandings, mapTeamSchedule } from "./mappers";
 import {
   RawBoxscoreSchema,
+  RawClubScheduleSchema,
+  RawClubStatsSchema,
   RawLeadersResponseSchema,
   RawScoreResponseSchema,
   RawStandingsResponseSchema,
@@ -97,6 +100,31 @@ export class NhlAdapter implements LeagueAdapter {
       return mapGoals(raw.games?.find((g) => g.id === id)?.goals);
     } catch {
       return undefined;
+    }
+  }
+
+  async getTeam(teamId: string, options?: RequestOptions): Promise<TeamDetail> {
+    const team = encodeURIComponent(teamId);
+    const [stats, schedule] = await Promise.all([
+      this.fetch(`/club-stats/${team}/now`, RawClubStatsSchema, options),
+      this.getTeamSchedule(team, teamId, options),
+    ]);
+    return { teamId, stats: mapClubStats(stats), ...schedule };
+  }
+
+  /** Games are an extra on the team page: if this call fails the stats still show, without them. */
+  private async getTeamSchedule(
+    team: string,
+    teamId: string,
+    options?: RequestOptions,
+  ): Promise<Pick<TeamDetail, "recent" | "upcoming" | "arena">> {
+    try {
+      return mapTeamSchedule(
+        await this.fetch(`/club-schedule-season/${team}/now`, RawClubScheduleSchema, options),
+        teamId,
+      );
+    } catch {
+      return {};
     }
   }
 }

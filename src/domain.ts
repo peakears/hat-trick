@@ -121,6 +121,21 @@ export interface GameDetail {
   goals?: Goal[];
 }
 
+// ---------- Team page ----------
+
+/** A team's season stats and nearby games, for its team page. */
+export interface TeamDetail {
+  teamId: string;
+  /** Season stat tables in display order, best first ("Forwards", "Defense", "Goalies"). Empty before any games. */
+  stats: StatTable[];
+  /** Up to 5 games that have started or finished, newest first. Absent when the schedule could not be loaded. */
+  recent?: Game[];
+  /** Up to 5 games still to play, soonest first. Absent when the schedule could not be loaded. */
+  upcoming?: Game[];
+  /** The team's home arena: the venue most of its home games in the schedule use. Absent when unknown. */
+  arena?: string;
+}
+
 // ---------- Standings ----------
 
 /** A team's results over some stretch of the season: all of it, home games, road games, the last 10. */
@@ -206,4 +221,7 @@ export interface LeagueAdapter {
   getLeaders(query?: LeaderQuery, options?: RequestOptions): Promise<LeaderBoard[]>;
 
   getGameDetail(gameId: string, options?: RequestOptions): Promise<GameDetail>;
+
+  /** A team's season stats and its recent and upcoming games. `teamId` is a Team.id. */
+  getTeam(teamId: string, options?: RequestOptions): Promise<TeamDetail>;
 }

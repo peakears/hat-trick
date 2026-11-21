@@ -1,7 +1,9 @@
 import { Stack, useLocalSearchParams, type ErrorBoundaryProps } from "expo-router";
-import { RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
-import type { StandingRow } from "../../src/domain";
+import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
+import type { Game, StandingRow, TeamDetail } from "../../src/domain";
 import { FavoriteStar } from "../../src/ui/components/FavoriteStar";
+import { GameCard } from "../../src/ui/components/GameCard";
+import { StatTableView } from "../../src/ui/components/StatTableView";
 import { CrashScreen, Empty, ErrorView, Loading, OfflineBanner, UpdatedAt } from "../../src/ui/components/States";
 import { TeamLogo } from "../../src/ui/components/TeamLogo";
 import { recordLabel } from "../../src/ui/format";
@@ -38,12 +40,70 @@ function statTiles(row: StandingRow): { label: string; value: string }[] {
   return tiles.filter((t): t is { label: string; value: string } => t.value !== undefined);
 }
 
+/** Recent or upcoming games, each opening the game page. Nothing when there are none. */
+function GamesSection({ title, games }: { title: string; games?: Game[] }) {
+  const colors = useColors();
+  if (!games || games.length === 0) return null;
+  return (
+    <View>
+      <Text style={[styles.sectionTitle, { color: colors.muted }]}>{title}</Text>
+      {games.map((g) => (
+        <GameCard key={g.id} game={g} />
+      ))}
+    </View>
+  );
+}
+
+/**
+ * The parts that need their own request (games and player stats). They load after the header, so a
+ * slow or failed request never hides the standings numbers above.
+ */
+function TeamExtras({
+  data,
+  loading,
+  error,
+  onRetry,
+}: {
+  data?: TeamDetail;
+  loading: boolean;
+  error?: Error;
+  onRetry: () => void;
+}) {
+  const colors = useColors();
+  if (!data) {
+    if (loading) return <ActivityIndicator style={styles.loader} color={colors.accent} />;
+    return (
+      <View style={[styles.card, styles.errorCard, { backgroundColor: colors.card }]}>
+        <Text style={[styles.errorText, { color: colors.text }]}>Couldn't load games and player stats.</Text>
+        {error && <Text style={[styles.errorDetail, { color: colors.muted }]}>{error.message}</Text>}
+        <Pressable onPress={onRetry} accessibilityRole="button" hitSlop={8}>
+          <Text style={[styles.retry, { color: colors.accent }]}>Try again</Text>
+        </Pressable>
+      </View>
+    );
+  }
+  return (
+    <>
+      <GamesSection title="Recent games" games={data.recent} />
+      <GamesSection title="Upcoming games" games={data.upcoming} />
+      <Text style={[styles.sectionTitle, { color: colors.muted }]}>Season stats</Text>
+      {data.stats.length === 0 ? (
+        <Text style={[styles.none, { color: colors.muted }]}>No player stats yet this season.</Text>
+      ) : (
+        data.stats.map((table) => <StatTableView key={table.title} table={table} />)
+      )}
+    </>
+  );
+}
+
 export default function TeamScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const sports = useSportsData();
   const colors = useColors();
   // The standings (same cache entry as the Standings tab) hold everything shown here.
   const standings = usePolled("standings", (o) => sports.getStandings(LEAGUE, o));
+  // Season stats and games are a separate request, so the header above never waits for them.
+  const detail = usePolled(`team:${id}`, (o) => sports.getTeam(LEAGUE, id, o));
 
   if (standings.loading) return <Loading />;
   if (!standings.data) {
@@ -68,7 +128,14 @@ export default function TeamScreen() {
       <OfflineBanner meta={standings.meta} />
       <ScrollView
         refreshControl={
-          <RefreshControl refreshing={standings.refreshing} onRefresh={standings.refresh} colors={[colors.accent]} />
+          <RefreshControl
+            refreshing={standings.refreshing || detail.refreshing}
+            onRefresh={() => {
+              standings.refresh();
+              detail.refresh();
+            }}
+            colors={[colors.accent]}
+          />
         }
       >
         <View style={[styles.header, { backgroundColor: colors.card }]}>
@@ -78,6 +145,11 @@ export default function TeamScreen() {
               {team.name}
             </Text>
             <Text style={[styles.rankLine, { color: colors.muted }]}>{rankLine(row)}</Text>
+            {detail.data?.arena && (
+              <Text style={[styles.rankLine, { color: colors.muted }]} numberOfLines={1}>
+                {detail.data.arena}
+              </Text>
+            )}
           </View>
           <View style={styles.star}>
             <FavoriteStar team={team} size={26} />
@@ -123,6 +195,7 @@ export default function TeamScreen() {
             ))}
           </View>
         )}
+        <TeamExtras data={detail.data} loading={detail.loading} error={detail.error} onRetry={detail.refresh} />
         <UpdatedAt meta={standings.meta} />
       </ScrollView>
     </>
@@ -158,4 +231,11 @@ const styles = StyleSheet.create({
   splitLabel: { width: 64, fontSize: 13, fontWeight: "600" },
   splitRecord: { fontSize: 16, fontWeight: "700" },
   splitGoals: { flex: 1, textAlign: "right", fontSize: 12 },
+  sectionTitle: { fontSize: 12, fontWeight: "600", textTransform: "uppercase", marginHorizontal: 16, marginTop: 12 },
+  loader: { marginVertical: 24 },
+  errorCard: { padding: 14, gap: 6 },
+  errorText: { fontSize: 15, fontWeight: "600" },
+  errorDetail: { fontSize: 13 },
+  retry: { fontSize: 15, fontWeight: "700", marginTop: 4 },
+  none: { fontSize: 14, marginHorizontal: 16, marginVertical: 12 },
 });

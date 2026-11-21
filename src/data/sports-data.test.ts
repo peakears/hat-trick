@@ -1,9 +1,18 @@
 import { readFileSync } from "node:fs";
 import { beforeEach, describe, expect, it } from "vitest";
-import type { Game, GameDetail, GameStatus, LeaderBoard, LeagueAdapter, RequestOptions, Standings } from "../domain";
+import type {
+  Game,
+  GameDetail,
+  GameStatus,
+  LeaderBoard,
+  LeagueAdapter,
+  RequestOptions,
+  Standings,
+  TeamDetail,
+} from "../domain";
 import { NhlAdapter } from "../adapters/nhl";
 import { AdapterRegistry } from "../registry";
-import { FRESHNESS, MemoryStore, SportsData, gameFreshness, scoresFreshness } from ".";
+import { FRESHNESS, MemoryStore, SportsData, gameFreshness, scoresFreshness, teamFreshness } from ".";
 
 const NOW = Date.parse("2026-11-17T23:00:00Z");
 const MIN = 60_000;
@@ -51,6 +60,9 @@ class FakeAdapter implements LeagueAdapter {
   getGameDetail(_id: string, options?: RequestOptions): Promise<GameDetail> {
     return this.run(() => ({ game: this.games[0], boxscore: { home: [], away: [] } }), options);
   }
+  getTeam(teamId: string, options?: RequestOptions): Promise<TeamDetail> {
+    return this.run(() => ({ teamId, stats: [], recent: [], upcoming: [] }), options);
+  }
 }
 
 describe("freshness", () => {
@@ -71,6 +83,27 @@ describe("freshness", () => {
     const games = [game("final", "2026-11-17T19:00:00Z", "1"), game("live", "2026-11-17T22:00:00Z", "2")];
     expect(scoresFreshness(games, NOW)).toBe(FRESHNESS.live);
     expect(scoresFreshness([], NOW)).toBe(FRESHNESS.noGames);
+  });
+});
+
+describe("teamFreshness", () => {
+  const detail = (recent: Game[], upcoming: Game[]): TeamDetail => ({ teamId: "AAA", stats: [], recent, upcoming });
+
+  it("is short while the team is playing or about to", () => {
+    expect(teamFreshness(detail([game("live", "2026-11-17T22:00:00Z")], []), NOW)).toBe(FRESHNESS.teamLive);
+    expect(teamFreshness(detail([], [game("scheduled", "2026-11-17T23:10:00Z")]), NOW)).toBe(FRESHNESS.teamLive);
+    // Should have started an hour ago but the schedule still says scheduled: check again soon.
+    expect(teamFreshness(detail([], [game("scheduled", "2026-11-17T22:00:00Z")]), NOW)).toBe(FRESHNESS.teamLive);
+  });
+
+  it("is long otherwise", () => {
+    expect(teamFreshness(detail([game("final", "2026-11-17T19:00:00Z")], []), NOW)).toBe(FRESHNESS.team);
+    expect(teamFreshness(detail([], [game("scheduled", "2026-11-18T03:00:00Z")]), NOW)).toBe(FRESHNESS.team);
+    expect(teamFreshness({ teamId: "AAA", stats: [] }, NOW)).toBe(FRESHNESS.team); // schedule unavailable
+  });
+
+  it("does not poll forever for a game stuck as scheduled long after its start", () => {
+    expect(teamFreshness(detail([], [game("scheduled", "2026-11-17T10:00:00Z")]), NOW)).toBe(FRESHNESS.team);
   });
 });
 
@@ -101,6 +134,15 @@ describe("SportsData", () => {
       stale: false,
       warnings: [],
     });
+  });
+
+  it("caches each team under its own key", async () => {
+    await data.getTeam("test", "AAA");
+    const again = await data.getTeam("test", "AAA");
+    expect(adapter.calls).toBe(1);
+    expect(again.meta.source).toBe("cache");
+    await data.getTeam("test", "BBB");
+    expect(adapter.calls).toBe(2);
   });
 
   it("serves fresh data from the cache without a network call", async () => {
