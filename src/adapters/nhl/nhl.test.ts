@@ -4,7 +4,7 @@ import { runLeagueAdapterContract } from "../../contract/league-adapter.contract
 import { NhlAdapter, NhlApiError, NhlResponseError, type AdapterWarning } from ".";
 
 // Real responses recorded from api-web.nhle.com on 2026-11-17 (club stats, the Toronto schedule and the landing: 2026-11-20;
-// the player spotlight: 2026-11-21).
+// the player spotlight and skater leaders, 20 per category: 2026-11-21).
 const FIXTURES: [RegExp, string][] = [
   [/\/score\/2026-11-17$/, "score-2026-11-17.json"], // final + live games
   [/\/score\/2026-11-18$/, "score-2026-11-18.json"], // scheduled games
@@ -28,7 +28,13 @@ function loadFixture(file: string): any {
 function fixtureFor(url: string): any {
   const hit = FIXTURES.find(([pattern]) => pattern.test(url.split("?")[0]));
   if (!hit) throw new Error(`No fixture for ${url}`);
-  return loadFixture(hit[1]);
+  const body = loadFixture(hit[1]);
+  // Like the API, leader lists stop at the requested limit (the fixtures hold 20 per category).
+  const limit = Number(new URL(url).searchParams.get("limit"));
+  if (/-stats-leaders\//.test(url) && limit > 0) {
+    for (const key of Object.keys(body)) body[key] = body[key].slice(0, limit);
+  }
+  return body;
 }
 
 function jsonResponse(body: unknown, status = 200): Response {
@@ -98,7 +104,7 @@ describe("NHL adapter", () => {
     await adapter.getLeaders({ category: "savePctg", limit: 5 });
     expect(urls).toEqual([
       "https://api-web.nhle.com/v1/score/2026-11-17",
-      "https://api-web.nhle.com/v1/skater-stats-leaders/current?categories=points,goals,assists&limit=10",
+      "https://api-web.nhle.com/v1/skater-stats-leaders/current?categories=points,goals,assists,goalsPp,faceoffLeaders,penaltyMins&limit=10",
       "https://api-web.nhle.com/v1/goalie-stats-leaders/current?categories=savePctg&limit=5",
     ]);
   });
@@ -778,16 +784,32 @@ describe("NHL adapter", () => {
   describe("leaders", () => {
     it("lists skater categories as points, goals, assists", async () => {
       const boards = await fixtureAdapter().adapter.getLeaders();
-      expect(boards.map((b) => b.label)).toEqual(["Points", "Goals", "Assists"]);
+      expect(boards.map((b) => b.label)).toEqual([
+        "Points",
+        "Goals",
+        "Assists",
+        "Power-play goals",
+        "Faceoff %",
+        "Penalty minutes",
+      ]);
+    });
+
+    it("marks faceoff % as a percent board, read as a 0-1 fraction", async () => {
+      const boards = await fixtureAdapter().adapter.getLeaders({ limit: 20 });
+      const faceoffs = boards.find((b) => b.category === "faceoffLeaders")!;
+      expect(faceoffs.format).toBe("percent");
+      expect(faceoffs.entries[0]).toMatchObject({ rank: 1, value: 0.640167, player: { name: "Arttu Hyry" } });
+      expect(faceoffs.entries).toHaveLength(20);
+      expect(boards.filter((b) => b.format).map((b) => b.category)).toEqual(["faceoffLeaders"]);
     });
 
     it("gives tied values the same rank", async () => {
       const boards = await fixtureAdapter().adapter.getLeaders();
-      const assists = boards.find((b) => b.category === "assists")!;
-      expect(assists.entries.map((e) => [e.rank, e.value])).toEqual([
-        [1, 42],
-        [2, 25],
-        [2, 25],
+      const goals = boards.find((b) => b.category === "goals")!;
+      expect(goals.entries.slice(0, 3).map((e) => [e.rank, e.value, e.player.name])).toEqual([
+        [1, 21, "Leon Draisaitl"],
+        [1, 21, "Cutter Gauthier"],
+        [3, 18, "Kirill Kaprizov"],
       ]);
     });
   });

@@ -29,6 +29,7 @@ import type {
 import {
   GOALIE_COLUMNS,
   LEADER_LABELS,
+  PERCENT_LEADER_CATEGORIES,
   LEAGUE,
   PLAYER_GAME_GOALIE_COLUMNS,
   PLAYER_GAME_SKATER_COLUMNS,
@@ -388,6 +389,7 @@ export function mapLeaders(raw: RawLeadersResponse, categories: string[]): Leade
     return {
       category: key,
       label: LEADER_LABELS[key] ?? key,
+      ...(PERCENT_LEADER_CATEGORIES.includes(key) ? { format: "percent" as const } : {}),
       entries: list.map((l, i) => ({
         rank: ranks[i],
         player: {
