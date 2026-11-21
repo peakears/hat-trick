@@ -8,6 +8,8 @@ import {
   checkForUpdate,
   dismissUpdate,
   isNewerVersion,
+  isReleaseApkUrl,
+  isReleasePageUrl,
   parseRelease,
   parseVersion,
   storedUpdateStatus,
@@ -82,6 +84,66 @@ describe("parseRelease", () => {
       assets: [{ name: "x.apk", browser_download_url: "https://evil.example/x.apk" }],
     });
     expect(parseRelease(json)?.apkUrl).toBeUndefined();
+  });
+
+  it("ignores links that start with the repo URL but climb out of it", () => {
+    const json = releaseJson("1.2.0", {
+      assets: [{ name: "x.apk", browser_download_url: `${REPO_URL}/../../evil/repo/releases/download/v1.2.0/x.apk` }],
+    });
+    expect(parseRelease(json)?.apkUrl).toBeUndefined();
+    expect(
+      parseRelease(releaseJson("1.2.0", { html_url: `${REPO_URL}/../../evil/repo/releases/tag/v1.2.0` })),
+    ).toBeNull();
+  });
+});
+
+describe("isReleasePageUrl / isReleaseApkUrl", () => {
+  it("accepts this repo's release pages and APKs, with or without a tag suffix", () => {
+    expect(isReleasePageUrl(releaseUrl("1.5.0"))).toBe(true);
+    expect(isReleasePageUrl(releaseUrl("1.6.0-dev0"))).toBe(true);
+    expect(isReleaseApkUrl(apkUrl("1.5.0"))).toBe(true);
+    expect(isReleaseApkUrl(`${REPO_URL}/releases/download/v1.6.0-dev0/hat-trick-v1.6.0-dev0.apk`)).toBe(true);
+  });
+
+  it("rejects links that only start with the repo URL", () => {
+    const escapes = [
+      // The HTTP client resolves these to github.com/evil/repo.
+      `${REPO_URL}/../../evil/repo/releases/download/v9.0.0/x.apk`,
+      `${REPO_URL}/releases/download/v9.0.0/../../../../evil/repo/releases/download/v9.0.0/x.apk`,
+      `${REPO_URL}/releases/download/v9.0.0/%2e%2e/x.apk`,
+      `${REPO_URL}/releases/download/v9.0.0/..\\x.apk`,
+      `${REPO_URL}/releases/download/v9.0.0/x.apk?redirect=https://evil.example`,
+      `${REPO_URL}-evil/releases/download/v9.0.0/x.apk`,
+      `${REPO_URL}/issues/1/x.apk`,
+      `http://github.com/peakears/hat-trick/releases/download/v9.0.0/x.apk`,
+      `https://github.com.evil.example/peakears/hat-trick/releases/download/v9.0.0/x.apk`,
+      `${REPO_URL}/releases/download/v9.0.0/x.zip`,
+    ];
+    for (const url of escapes) expect(isReleaseApkUrl(url), url).toBe(false);
+    expect(isReleasePageUrl(`${REPO_URL}/../../evil/repo/releases/tag/v9.0.0`)).toBe(false);
+    expect(isReleasePageUrl(`${REPO_URL}/releases/tag/v9.0.0/../../../../../evil/repo`)).toBe(false);
+    expect(isReleasePageUrl(apkUrl("1.5.0"))).toBe(false);
+  });
+
+  it("matches the repo in links.ts", () => {
+    expect(REPO_URL).toBe("https://github.com/peakears/hat-trick");
+  });
+});
+
+describe("storedUpdateStatus", () => {
+  it("drops stored links that fail the release link check", async () => {
+    const store = new MemoryStore();
+    const stored = (latest: Record<string, unknown>) =>
+      store.set(UPDATE_STATE_KEY, JSON.stringify({ checkedAt: NOW, latest }));
+    const escape = `${REPO_URL}/../../evil/repo/releases/download/v1.2.0/x.apk`;
+
+    await stored({ version: "1.2.0", url: releaseUrl("1.2.0"), apkUrl: escape });
+    const status = await storedUpdateStatus(store, "1.1.0");
+    expect(status).toMatchObject({ kind: "available", release: { url: releaseUrl("1.2.0") } });
+    expect(status.kind === "available" && status.release.apkUrl).toBeUndefined();
+
+    await stored({ version: "1.2.0", url: `${REPO_URL}/../../evil/repo/releases/tag/v1.2.0` });
+    expect(await storedUpdateStatus(store, "1.1.0")).toMatchObject({ kind: "up-to-date" });
   });
 });
 
