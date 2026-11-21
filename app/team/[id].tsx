@@ -1,16 +1,27 @@
-import { Stack, useLocalSearchParams, type ErrorBoundaryProps } from "expo-router";
+import Ionicons from "@expo/vector-icons/Ionicons";
+import { Stack, useLocalSearchParams, useRouter, type ErrorBoundaryProps } from "expo-router";
+import { useState } from "react";
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import type { Game, StandingRow, TeamDetail } from "../../src/domain";
 import { FavoriteStar } from "../../src/ui/components/FavoriteStar";
-import { GameCard } from "../../src/ui/components/GameCard";
 import { StatTableView } from "../../src/ui/components/StatTableView";
 import { CrashScreen, Empty, ErrorView, Loading, OfflineBanner, UpdatedAt } from "../../src/ui/components/States";
 import { TeamLogo } from "../../src/ui/components/TeamLogo";
-import { recordLabel } from "../../src/ui/format";
+import { dateLabel, localDate, recordLabel } from "../../src/ui/format";
+import { useSpoilers } from "../../src/ui/spoiler-context";
 import { LEAGUE, useSportsData } from "../../src/ui/sports-data-context";
-import { findStandingRow, goalDifferentialLabel, rankLine, splitLines } from "../../src/ui/team";
+import {
+  findStandingRow,
+  goalDifferentialLabel,
+  rankLine,
+  splitLines,
+  teamGameLine,
+  teamGameSpoken,
+  visibleGames,
+} from "../../src/ui/team";
 import { tabular, useColors } from "../../src/ui/theme";
 import { usePolled } from "../../src/ui/use-polled";
+import { useScoresToday } from "../../src/ui/use-today";
 
 /** A team page that fails to render keeps the header, so Back still returns to where you came from. */
 export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
@@ -40,16 +51,89 @@ function statTiles(row: StandingRow): { label: string; value: string }[] {
   return tiles.filter((t): t is { label: string; value: string } => t.value !== undefined);
 }
 
-/** Recent or upcoming games, each opening the game page. Nothing when there are none. */
-function GamesSection({ title, games }: { title: string; games?: Game[] }) {
+/** One game as a single line from this team's side: date, opponent, and the result, live score or start time. */
+function CompactGame({ game, teamId, today }: { game: Game; teamId: string; today: string }) {
   const colors = useColors();
+  const router = useRouter();
+  const spoilers = useSpoilers();
+  const line = teamGameLine(game, teamId, spoilers.isHidden(game));
+  const date = dateLabel(localDate(new Date(game.startTime)), today);
+  const live = game.status === "live";
+
+  let outcome;
+  if (line.result) {
+    const { won, score, endedIn } = line.result;
+    outcome = (
+      <Text style={[styles.gameOutcome, tabular, { color: won ? colors.text : colors.muted }]}>
+        <Text style={styles.bold}>{won ? "W" : "L"}</Text> {score}
+        {endedIn ? ` ${endedIn}` : ""}
+      </Text>
+    );
+  } else {
+    // Start time, live clock, "Final" while shielded, or "Postponed".
+    const status = spoilers.statusLabel(game);
+    outcome = (
+      <Text style={[styles.gameOutcome, tabular, { color: live ? colors.live : colors.muted }]}>
+        {line.liveScore ? `${line.liveScore} · ${status}` : status}
+      </Text>
+    );
+  }
+
+  return (
+    <Pressable
+      onPress={() => router.push({ pathname: "/game/[id]", params: { id: game.id } })}
+      style={({ pressed }) => [styles.gameRow, { opacity: pressed ? 0.6 : 1 }]}
+      accessibilityRole="button"
+      accessibilityLabel={`${date}, ${teamGameSpoken(line)}${line.result || line.liveScore ? "" : `, ${spoilers.statusLabel(game)}`}. Open game`}
+    >
+      <Text style={[styles.gameDate, { color: colors.muted }]} numberOfLines={1}>
+        {date}
+      </Text>
+      <Text style={[styles.gameWhere, { color: colors.muted }]}>{line.home ? "vs" : "@"}</Text>
+      <TeamLogo team={line.opponent} size={22} />
+      <Text style={[styles.gameOpponent, { color: colors.text }]} numberOfLines={1}>
+        {line.opponent.name}
+      </Text>
+      {outcome}
+    </Pressable>
+  );
+}
+
+/** Recent or upcoming games in one compact card: three at first, the rest behind "Show more". Nothing when there are none. */
+function GamesSection({ title, games, teamId }: { title: string; games?: Game[]; teamId: string }) {
+  const colors = useColors();
+  const today = useScoresToday();
+  const [expanded, setExpanded] = useState(false);
   if (!games || games.length === 0) return null;
+  const { shown, more } = visibleGames(games, expanded);
+  const canToggle = expanded || more > 0;
   return (
     <View>
       <Text style={[styles.sectionTitle, { color: colors.muted }]}>{title}</Text>
-      {games.map((g) => (
-        <GameCard key={g.id} game={g} />
-      ))}
+      <View style={[styles.gamesCard, { backgroundColor: colors.card }]}>
+        {shown.map((g, i) => (
+          <View key={g.id} style={i > 0 && { borderTopColor: colors.border, borderTopWidth: StyleSheet.hairlineWidth }}>
+            <CompactGame game={g} teamId={teamId} today={today} />
+          </View>
+        ))}
+        {canToggle && (
+          <Pressable
+            onPress={() => setExpanded(!expanded)}
+            hitSlop={8}
+            style={[styles.toggle, { borderTopColor: colors.border }]}
+            accessibilityRole="button"
+            accessibilityState={{ expanded }}
+            accessibilityLabel={
+              expanded ? `Show fewer ${title.toLowerCase()}` : `Show ${more} more ${title.toLowerCase()}`
+            }
+          >
+            <Text style={[styles.toggleText, { color: colors.accent }]}>
+              {expanded ? "Show fewer" : `Show ${more} more`}
+            </Text>
+            <Ionicons name={expanded ? "chevron-up" : "chevron-down"} size={14} color={colors.accent} />
+          </Pressable>
+        )}
+      </View>
     </View>
   );
 }
@@ -59,11 +143,13 @@ function GamesSection({ title, games }: { title: string; games?: Game[] }) {
  * slow or failed request never hides the standings numbers above.
  */
 function TeamExtras({
+  teamId,
   data,
   loading,
   error,
   onRetry,
 }: {
+  teamId: string;
   data?: TeamDetail;
   loading: boolean;
   error?: Error;
@@ -84,8 +170,8 @@ function TeamExtras({
   }
   return (
     <>
-      <GamesSection title="Recent games" games={data.recent} />
-      <GamesSection title="Upcoming games" games={data.upcoming} />
+      <GamesSection title="Recent games" games={data.recent} teamId={teamId} />
+      <GamesSection title="Upcoming games" games={data.upcoming} teamId={teamId} />
       <Text style={[styles.sectionTitle, { color: colors.muted }]}>Season stats</Text>
       {data.stats.length === 0 ? (
         <Text style={[styles.none, { color: colors.muted }]}>No player stats yet this season.</Text>
@@ -139,7 +225,7 @@ export default function TeamScreen() {
         }
       >
         <View style={[styles.header, { backgroundColor: colors.card }]}>
-          <TeamLogo team={team} size={72} />
+          <TeamLogo team={team} size={96} />
           <View style={styles.headerText}>
             <Text style={[styles.name, { color: colors.text }]} numberOfLines={2}>
               {team.name}
@@ -195,7 +281,13 @@ export default function TeamScreen() {
             ))}
           </View>
         )}
-        <TeamExtras data={detail.data} loading={detail.loading} error={detail.error} onRetry={detail.refresh} />
+        <TeamExtras
+          teamId={team.id}
+          data={detail.data}
+          loading={detail.loading}
+          error={detail.error}
+          onRetry={detail.refresh}
+        />
         <UpdatedAt meta={standings.meta} />
       </ScrollView>
     </>
@@ -231,7 +323,31 @@ const styles = StyleSheet.create({
   splitLabel: { width: 64, fontSize: 13, fontWeight: "600" },
   splitRecord: { fontSize: 16, fontWeight: "700" },
   splitGoals: { flex: 1, textAlign: "right", fontSize: 12 },
-  sectionTitle: { fontSize: 12, fontWeight: "600", textTransform: "uppercase", marginHorizontal: 16, marginTop: 12 },
+  // The same gap above and below every section title, whatever card follows it.
+  sectionTitle: {
+    fontSize: 12,
+    fontWeight: "600",
+    textTransform: "uppercase",
+    marginHorizontal: 16,
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  gamesCard: { marginHorizontal: 12, borderRadius: 12, paddingHorizontal: 12 },
+  gameRow: { flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 10 },
+  gameDate: { width: 86, fontSize: 13 },
+  gameWhere: { width: 20, fontSize: 13, textAlign: "center" },
+  gameOpponent: { flex: 1, fontSize: 14, fontWeight: "600" },
+  gameOutcome: { fontSize: 14, textAlign: "right" },
+  bold: { fontWeight: "800" },
+  toggle: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 4,
+    paddingVertical: 8,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  toggleText: { fontSize: 13, fontWeight: "600" },
   loader: { marginVertical: 24 },
   errorCard: { padding: 14, gap: 6 },
   errorText: { fontSize: 15, fontWeight: "600" },
