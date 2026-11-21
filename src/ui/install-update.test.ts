@@ -1,5 +1,6 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  DOWNLOAD_STALL_MS,
   checksumMatches,
   downloadProgress,
   installStatusText,
@@ -46,17 +47,32 @@ function ports(over: Partial<InstallPorts> = {}) {
   return { p, calls };
 }
 
-async function run(r: Release, p: InstallPorts) {
+async function run(r: Release, p: InstallPorts, options?: Parameters<typeof installUpdate>[3]) {
   const states: InstallState[] = [];
-  await installUpdate(r, p, (s) => states.push(s));
+  await installUpdate(r, p, (s) => states.push(s), options);
   return states;
 }
+
+/** A download that never finishes on its own; it rejects when its signal aborts, like the real one. */
+const hangingDownload = (onStart?: (onProgress: (w: number, t: number) => void) => void) =>
+  vi.fn(
+    (_url: string, _name: string, onProgress: (w: number, t: number) => void, signal: AbortSignal) =>
+      new Promise<void>((_, reject) => {
+        onStart?.(onProgress);
+        signal.addEventListener("abort", () => reject(new Error("AbortError")));
+      }),
+  );
 
 describe("installUpdate", () => {
   it("downloads, checks, opens the installer, then cleans up", async () => {
     const { p, calls } = ports();
     const states = await run(release(), p);
-    expect(p.download).toHaveBeenCalledWith(release().apkUrl, "hat-trick-1.5.0.apk", expect.any(Function));
+    expect(p.download).toHaveBeenCalledWith(
+      release().apkUrl,
+      "hat-trick-1.5.0.apk",
+      expect.any(Function),
+      expect.any(AbortSignal),
+    );
     expect(p.openInstaller).toHaveBeenCalledWith("content://x/hat-trick-1.5.0.apk");
     expect(states.map((s) => s.kind)).toEqual(["downloading", "downloading", "downloading", "installing", "idle"]);
     expect(states[1]).toEqual({ kind: "downloading", progress: 0.5 });
@@ -128,6 +144,81 @@ describe("installUpdate", () => {
     const { p } = ports({ fileSize: vi.fn(async () => Promise.reject("not an Error")) });
     const states = await run(release(), p);
     expect(states.at(-1)).toEqual({ kind: "failed", message: "Couldn't install the update. Something went wrong." });
+  });
+});
+
+describe("installUpdate: stalls and cancelling", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("gives up on a download that sends nothing for the stall time, and cleans up", async () => {
+    vi.useFakeTimers();
+    const { p } = ports({ download: hangingDownload() });
+    const done = run(release(), p);
+    await vi.advanceTimersByTimeAsync(DOWNLOAD_STALL_MS);
+    const states = await done;
+    expect(states.at(-1)).toEqual({
+      kind: "failed",
+      message: "Couldn't install the update. The download stopped. Check your connection and try again.",
+    });
+    expect((p.download as ReturnType<typeof vi.fn>).mock.calls[0][3].aborted).toBe(true);
+    expect(p.remove).toHaveBeenCalledWith("hat-trick-1.5.0.apk");
+    expect(p.openInstaller).not.toHaveBeenCalled();
+  });
+
+  it("gives up even if the download ignores its signal", async () => {
+    vi.useFakeTimers();
+    const { p } = ports({ download: vi.fn(() => new Promise<void>(() => {})) });
+    const done = run(release(), p);
+    await vi.advanceTimersByTimeAsync(DOWNLOAD_STALL_MS);
+    expect((await done).at(-1)).toMatchObject({ kind: "failed" });
+  });
+
+  it("keeps waiting while progress arrives", async () => {
+    vi.useFakeTimers();
+    let progress: (w: number, t: number) => void = () => {};
+    const { p } = ports({ download: hangingDownload((onProgress) => (progress = onProgress)) });
+    const states: InstallState[] = [];
+    const done = installUpdate(release(), p, (s) => states.push(s));
+    for (let i = 1; i <= 4; i++) {
+      await vi.advanceTimersByTimeAsync(DOWNLOAD_STALL_MS - 1000);
+      progress(i * 100, 1000);
+    }
+    expect(states.at(-1)).toEqual({ kind: "downloading", progress: 0.4 });
+    await vi.advanceTimersByTimeAsync(DOWNLOAD_STALL_MS);
+    await done;
+    expect(states.at(-1)).toMatchObject({ kind: "failed" });
+  });
+
+  it("goes back to idle and deletes the file when the user cancels", async () => {
+    const controller = new AbortController();
+    const { p } = ports({ download: hangingDownload(() => queueMicrotask(() => controller.abort())) });
+    const states = await run(release(), p, { signal: controller.signal });
+    expect(states.at(-1)).toEqual({ kind: "idle" });
+    expect(p.remove).toHaveBeenCalledWith("hat-trick-1.5.0.apk");
+    expect(p.openInstaller).not.toHaveBeenCalled();
+  });
+
+  it("does nothing past the start when cancelled before it begins", async () => {
+    const controller = new AbortController();
+    controller.abort();
+    const { p } = ports({ download: hangingDownload() });
+    const states = await run(release(), p, { signal: controller.signal });
+    expect(states.at(-1)).toEqual({ kind: "idle" });
+    expect(p.openInstaller).not.toHaveBeenCalled();
+  });
+
+  it("ignores a progress event that arrives after the download finished", async () => {
+    let late: (w: number, t: number) => void = () => {};
+    const { p } = ports({
+      download: vi.fn(async (_url, _name, onProgress) => {
+        late = onProgress;
+      }),
+      openInstaller: vi.fn(async () => late(10, 1000)),
+    });
+    const states = await run(release(), p);
+    expect(states.map((s) => s.kind)).toEqual(["downloading", "installing", "idle"]);
   });
 });
 

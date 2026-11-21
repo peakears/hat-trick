@@ -8,11 +8,12 @@ import { ReleaseNotesModal } from "./ReleaseNotesModal";
 
 /**
  * A slim banner on Scores when a newer release exists. Tapping it opens "What's new", which has the
- * Update button; after a failed install it opens the download in the browser instead. The X closes it.
+ * Update button; after a failed install it opens the download in the browser instead. The X closes it,
+ * and while downloading a Cancel link stops the download.
  */
 export function UpdateBanner() {
   const colors = useColors();
-  const { status, dismiss, install, openInBrowser } = useUpdate();
+  const { status, dismiss, install, openInBrowser, cancelInstall } = useUpdate();
   const [notesOpen, setNotesOpen] = useState(false);
   if (status.kind !== "available" || status.dismissed) return null;
   const { release } = status;
@@ -46,10 +47,26 @@ export function UpdateBanner() {
           </Text>
         )}
       </Pressable>
-      {!busy && (
-        <Pressable onPress={dismiss} hitSlop={10} accessibilityRole="button" accessibilityLabel="Dismiss update notice">
-          <Ionicons name="close" size={20} color={colors.bannerText} />
+      {install.kind === "downloading" ? (
+        <Pressable
+          onPress={cancelInstall}
+          hitSlop={10}
+          accessibilityRole="button"
+          accessibilityLabel="Cancel the download"
+        >
+          <Text style={[styles.text, styles.link, { color: colors.bannerText }]}>Cancel</Text>
         </Pressable>
+      ) : (
+        !busy && (
+          <Pressable
+            onPress={dismiss}
+            hitSlop={10}
+            accessibilityRole="button"
+            accessibilityLabel="Dismiss update notice"
+          >
+            <Ionicons name="close" size={20} color={colors.bannerText} />
+          </Pressable>
+        )
       )}
       <ReleaseNotesModal visible={notesOpen} onClose={() => setNotesOpen(false)} />
     </View>

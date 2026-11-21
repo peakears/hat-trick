@@ -27,7 +27,8 @@ const LEAD_OPTIONS = REMINDER_LEADS.map((n) => ({ value: String(n), label: `${n}
 export default function SettingsScreen() {
   const colors = useColors();
   const { settings, update } = useSettings();
-  const { status, checking, checkNow, install, installNow, openInBrowser, canInstallInApp } = useUpdate();
+  const { status, checking, checkNow, install, installNow, cancelInstall, openInBrowser, canInstallInApp } =
+    useUpdate();
   const [permissionDenied, setPermissionDenied] = useState(false);
   const [notesOpen, setNotesOpen] = useState(false);
 
@@ -148,7 +149,16 @@ export default function SettingsScreen() {
               {installStatusText(install) ?? updateDetail(status, checking)}
             </Text>
           </View>
-          {status.kind === "available" ? (
+          {status.kind === "available" && install.kind === "downloading" ? (
+            <Pressable
+              onPress={cancelInstall}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel="Cancel the download"
+            >
+              <Text style={[styles.label, styles.linkText, { color: colors.accent }]}>Cancel</Text>
+            </Pressable>
+          ) : status.kind === "available" ? (
             <Pressable
               onPress={install.kind === "failed" ? openInBrowser : installNow}
               disabled={isBusy(install)}

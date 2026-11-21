@@ -16,8 +16,16 @@ export type InstallState =
   | { kind: "failed"; message: string };
 
 export interface InstallPorts {
-  /** Saves the APK under `fileName` in the cache folder and reports progress as bytes. */
-  download(url: string, fileName: string, onProgress: (written: number, total: number) => void): Promise<void>;
+  /**
+   * Saves the APK under `fileName` in the cache folder and reports progress as bytes. Stops (and
+   * rejects) when `signal` aborts.
+   */
+  download(
+    url: string,
+    fileName: string,
+    onProgress: (written: number, total: number) => void,
+    signal: AbortSignal,
+  ): Promise<void>;
   /** Size in bytes of the saved file. */
   fileSize(fileName: string): Promise<number>;
   /** SHA-256 of the saved file, lowercase hex. */
@@ -31,6 +39,16 @@ export interface InstallPorts {
 }
 
 export const APK_MIME_TYPE = "application/vnd.android.package-archive";
+
+/** A download that sends nothing for this long is given up, so a dead connection cannot keep the update busy. */
+export const DOWNLOAD_STALL_MS = 30_000;
+
+export interface InstallOptions {
+  /** Aborting it cancels the download (the user tapped Cancel). The flow then ends in "idle". */
+  signal?: AbortSignal;
+  /** Overrides `DOWNLOAD_STALL_MS` (tests). */
+  stallMs?: number;
+}
 
 export function updateFileName(version: string): string {
   return `hat-trick-${version}.apk`;
@@ -75,12 +93,14 @@ export function isBusy(state: InstallState): boolean {
 
 /**
  * Runs the whole update. Reports each step through `onState` and ends in "idle" (the user came back from
- * the installer) or "failed". Never throws, and always deletes the file unless the installer took over.
+ * the installer, or cancelled the download) or "failed" (including a download that stalled for
+ * `DOWNLOAD_STALL_MS`). Never throws, and always deletes the file unless the installer took over.
  */
 export async function installUpdate(
   release: Release,
   ports: InstallPorts,
   onState: (state: InstallState) => void,
+  options: InstallOptions = {},
 ): Promise<void> {
   const url = release.apkUrl;
   if (!url || !isReleaseApkUrl(url)) {
@@ -88,11 +108,48 @@ export async function installUpdate(
     return;
   }
   const fileName = updateFileName(release.version);
+  const stallMs = options.stallMs ?? DOWNLOAD_STALL_MS;
+
+  // One controller stops the download, whether the user cancelled or it stalled. `aborted` rejects
+  // as soon as that happens, so the flow moves on even if the download itself never settles.
+  const controller = new AbortController();
+  let stalled = false;
+  const aborted = new Promise<never>((_, reject) => {
+    controller.signal.addEventListener("abort", () => reject(new Error("aborted")));
+  });
+  aborted.catch(() => {});
+  const cancel = () => controller.abort();
+  if (options.signal?.aborted) cancel();
+  options.signal?.addEventListener("abort", cancel);
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  let downloading = true;
+  const watch = () => {
+    clearTimeout(timer);
+    if (!downloading) return;
+    timer = setTimeout(() => {
+      stalled = true;
+      controller.abort();
+    }, stallMs);
+  };
+
   try {
     onState({ kind: "downloading" });
-    await ports.download(url, fileName, (written, total) =>
-      onState({ kind: "downloading", progress: downloadProgress(written, total) }),
-    );
+    watch();
+    await Promise.race([
+      ports.download(
+        url,
+        fileName,
+        (written, total) => {
+          if (!downloading) return; // A late progress event must not undo "installing".
+          watch();
+          onState({ kind: "downloading", progress: downloadProgress(written, total) });
+        },
+        controller.signal,
+      ),
+      aborted,
+    ]);
+    downloading = false;
+    clearTimeout(timer);
     if (!sizeMatches(await ports.fileSize(fileName), release.apkSize)) {
       throw new Error("The download was incomplete.");
     }
@@ -105,8 +162,20 @@ export async function installUpdate(
     await ports.remove(fileName);
     onState({ kind: "idle" });
   } catch (error) {
+    downloading = false;
+    clearTimeout(timer);
     await ports.remove(fileName);
-    const detail = error instanceof Error && error.message ? error.message : "Something went wrong.";
+    if (controller.signal.aborted && !stalled) {
+      onState({ kind: "idle" });
+      return;
+    }
+    const detail = stalled
+      ? "The download stopped. Check your connection and try again."
+      : error instanceof Error && error.message
+        ? error.message
+        : "Something went wrong.";
     onState({ kind: "failed", message: `Couldn't install the update. ${detail}` });
+  } finally {
+    options.signal?.removeEventListener("abort", cancel);
   }
 }

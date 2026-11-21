@@ -24,6 +24,8 @@ interface UpdateContextValue {
   install: InstallState;
   /** Downloads the update into the app's cache and opens the installer (or the browser where that is not possible). */
   installNow: () => void;
+  /** Stops a download under way; the update goes back to "idle" and the file is deleted. */
+  cancelInstall: () => void;
   /** Opens the release's download in the browser: the fallback when installing in the app fails. */
   openInBrowser: () => void;
   /** False where the app cannot install an APK itself (iOS), so the button says "Download". */
@@ -40,6 +42,7 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
   const [foregrounded, setForegrounded] = useState(0);
   const [install, setInstallState] = useState<InstallState>({ kind: "idle" });
   const installRef = useRef(install);
+  const cancelRef = useRef<AbortController | null>(null);
   const setInstall = useCallback((state: InstallState) => {
     installRef.current = state;
     setInstallState(state);
@@ -96,8 +99,18 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
       openInBrowser();
       return;
     }
-    installUpdate(status.release, nativeInstallPorts, setInstall).catch(() => {});
+    const controller = new AbortController();
+    cancelRef.current = controller;
+    installUpdate(status.release, nativeInstallPorts, setInstall, { signal: controller.signal })
+      .catch(() => {})
+      .finally(() => {
+        if (cancelRef.current === controller) cancelRef.current = null;
+      });
   }, [status, openInBrowser, setInstall]);
+
+  const cancelInstall = useCallback(() => {
+    cancelRef.current?.abort();
+  }, []);
 
   const checkNow = useCallback(() => {
     run(true).catch(() => {});
@@ -111,10 +124,11 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
       dismiss,
       install,
       installNow,
+      cancelInstall,
       openInBrowser,
       canInstallInApp: CAN_INSTALL_IN_APP,
     }),
-    [status, checking, checkNow, dismiss, install, installNow, openInBrowser],
+    [status, checking, checkNow, dismiss, install, installNow, cancelInstall, openInBrowser],
   );
   return <UpdateContext.Provider value={value}>{children}</UpdateContext.Provider>;
 }

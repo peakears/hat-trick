@@ -19,14 +19,21 @@ const updatesDir = () => new Directory(Paths.cache, "updates");
 const apkFile = (fileName: string) => new File(updatesDir(), fileName);
 
 export const nativeInstallPorts: InstallPorts = {
-  async download(url, fileName, onProgress) {
+  async download(url, fileName, onProgress, signal) {
     updatesDir().create({ idempotent: true, intermediates: true });
     // A leftover file of the same name (an earlier try) would make the download fail.
     await nativeInstallPorts.remove(fileName);
     const task = File.createDownloadTask(url, apkFile(fileName), {
       onProgress: ({ bytesWritten, totalBytes }) => onProgress(bytesWritten, totalBytes),
     });
-    await task.downloadAsync();
+    const cancel = () => task.cancel();
+    signal.addEventListener("abort", cancel);
+    try {
+      if (signal.aborted) throw new Error("Cancelled.");
+      await task.downloadAsync();
+    } finally {
+      signal.removeEventListener("abort", cancel);
+    }
   },
 
   async fileSize(fileName) {

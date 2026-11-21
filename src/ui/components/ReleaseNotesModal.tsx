@@ -15,12 +15,13 @@ import { isReleasePageUrl } from "../updates";
  */
 export function ReleaseNotesModal({ visible, onClose }: { visible: boolean; onClose: () => void }) {
   const colors = useColors();
-  const { status, install, installNow, openInBrowser, canInstallInApp } = useUpdate();
+  const { status, install, installNow, cancelInstall, openInBrowser, canInstallInApp } = useUpdate();
   const release = status.kind === "available" ? status.release : undefined;
   const sections = useMemo(() => parseReleaseNotes(release?.notes), [release?.notes]);
   if (!release) return null;
 
   const busy = isBusy(install);
+  const downloading = install.kind === "downloading";
   const failed = install.kind === "failed";
   const statusText = installStatusText(install);
   const notesUrl = isReleasePageUrl(release.url) ? release.url : RELEASES_URL;
@@ -60,16 +61,27 @@ export function ReleaseNotesModal({ visible, onClose }: { visible: boolean; onCl
 
         <View style={[styles.footer, { borderTopColor: colors.border }]}>
           {statusText ? <Text style={[styles.status, { color: colors.muted }]}>{statusText}</Text> : null}
-          <Pressable
-            onPress={failed ? openInBrowser : installNow}
-            disabled={busy}
-            accessibilityRole="button"
-            style={[styles.button, { backgroundColor: busy ? colors.border : colors.accent }]}
-          >
-            <Text style={styles.buttonText}>
-              {failed ? "Open in browser" : canInstallInApp ? `Update to ${release.version}` : "Download"}
-            </Text>
-          </Pressable>
+          {downloading ? (
+            <Pressable
+              onPress={cancelInstall}
+              accessibilityRole="button"
+              accessibilityLabel="Cancel the download"
+              style={[styles.button, styles.cancel, { borderColor: colors.border }]}
+            >
+              <Text style={[styles.buttonText, { color: colors.text }]}>Cancel</Text>
+            </Pressable>
+          ) : (
+            <Pressable
+              onPress={failed ? openInBrowser : installNow}
+              disabled={busy}
+              accessibilityRole="button"
+              style={[styles.button, { backgroundColor: busy ? colors.border : colors.accent }]}
+            >
+              <Text style={styles.buttonText}>
+                {failed ? "Open in browser" : canInstallInApp ? `Update to ${release.version}` : "Download"}
+              </Text>
+            </Pressable>
+          )}
         </View>
       </View>
     </Modal>
@@ -97,5 +109,6 @@ const styles = StyleSheet.create({
   footer: { padding: 16, gap: 8, borderTopWidth: StyleSheet.hairlineWidth },
   status: { fontSize: 13, textAlign: "center" },
   button: { borderRadius: 10, paddingVertical: 12, alignItems: "center" },
+  cancel: { borderWidth: StyleSheet.hairlineWidth },
   buttonText: { color: "#ffffff", fontSize: 16, fontWeight: "700" },
 });
