@@ -71,7 +71,7 @@ const releaseSchema = z.object({
     .catch([]),
 });
 
-// Only this project's release pages and APKs are ever opened, whatever the response (or the stored
+// Only this project's release pages and APKs are ever opened or downloaded, whatever the response (or the stored
 // state) says. Each link must match its whole shape, not just start with the repo URL: a prefix check
 // accepts ".../hat-trick/../../other/repo/...", which the HTTP client resolves to another repo.
 // No part below can hold "/", "%" or "\", so a link can never leave the repo. The tag allows a
