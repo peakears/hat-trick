@@ -1,7 +1,7 @@
 // How long each kind of data stays fresh, based on game status.
 // League-agnostic: it only reads domain types.
 
-import type { Game, TeamDetail } from "../domain";
+import type { Game, GameDetail, TeamDetail } from "../domain";
 
 const SECOND = 1000;
 const MINUTE = 60 * SECOND;
@@ -20,6 +20,10 @@ export const FRESHNESS = {
   scheduledFar: 1 * HOUR,
   /** Finished within the last day: stat corrections still happen. */
   recentFinal: 1 * HOUR,
+  /** Just finished but the three stars are not named yet: they usually follow within minutes. */
+  awaitingStars: 2 * MINUTE,
+  /** How long after the start time a finished game still waits for its stars. */
+  awaitingStarsWindow: 6 * HOUR,
   /** Finished more than a day ago. */
   oldFinal: 7 * DAY,
   /** No games on the date: the schedule could still be published. */
@@ -50,6 +54,14 @@ export function gameFreshness(game: Game, now: number): number {
     case "postponed":
       return FRESHNESS.recentFinal;
   }
+}
+
+/** A game page: as fresh as its game, but re-checked soon after the final until the three stars arrive. */
+export function gameDetailFreshness(detail: GameDetail, now: number): number {
+  const { game } = detail;
+  const waiting =
+    game.status === "final" && !detail.threeStars && now - Date.parse(game.startTime) < FRESHNESS.awaitingStarsWindow;
+  return waiting ? Math.min(FRESHNESS.awaitingStars, gameFreshness(game, now)) : gameFreshness(game, now);
 }
 
 /** A day of scores is as fresh as its most urgent game. */

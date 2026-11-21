@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { runLeagueAdapterContract } from "../../contract/league-adapter.contract";
 import { NhlAdapter, NhlApiError, NhlResponseError, type AdapterWarning } from ".";
 
-// Real responses recorded from api-web.nhle.com on 2026-11-17 (club stats and the Toronto schedule: 2026-11-20).
+// Real responses recorded from api-web.nhle.com on 2026-11-17 (club stats, the Toronto schedule and the landing: 2026-11-20).
 const FIXTURES: [RegExp, string][] = [
   [/\/score\/2026-11-17$/, "score-2026-11-17.json"], // final + live games
   [/\/score\/2026-11-18$/, "score-2026-11-18.json"], // scheduled games
@@ -12,6 +12,7 @@ const FIXTURES: [RegExp, string][] = [
   [/\/goalie-stats-leaders\//, "goalie-leaders.json"],
   [/\/gamecenter\/2026020342\/boxscore$/, "boxscore-2026020342-live.json"],
   [/\/gamecenter\/2026020333\/boxscore$/, "boxscore-2026020333-final.json"],
+  [/\/gamecenter\/2026020333\/landing$/, "landing-2026020333-final.json"], // recorded 2026-11-20
   [/\/club-stats\/TOR\/now$/, "club-stats-TOR-now.json"],
   [/\/club-schedule-season\/TOR\/now$/, "club-schedule-season-TOR-now.json"],
 ];
@@ -280,6 +281,7 @@ describe("NHL adapter", () => {
       expect(urls).toEqual([
         "https://api-web.nhle.com/v1/gamecenter/2026020333/boxscore",
         "https://api-web.nhle.com/v1/score/2026-11-17",
+        "https://api-web.nhle.com/v1/gamecenter/2026020333/landing",
       ]);
     });
 
@@ -315,6 +317,101 @@ describe("NHL adapter", () => {
         if (body.games) delete body.games.find((g: any) => g.id === 2026020333).goals[0].assists;
       });
       expect((await adapter.getGameDetail("2026020333")).goals![0].assists).toEqual([]);
+    });
+  });
+
+  describe("three stars", () => {
+    it("lists a final game's three stars with stats from the landing and box score", async () => {
+      const { threeStars } = await fixtureAdapter().adapter.getGameDetail("2026020333");
+      expect(threeStars).toEqual([
+        {
+          rank: 1,
+          player: {
+            id: "8475311",
+            league: "nhl",
+            name: "D. Kuemper",
+            teamId: "LAK",
+            position: "G",
+            headshotUrl: "https://assets.nhle.com/mugs/nhl/20262027/LAK/8475311.png",
+          },
+          sweaterNumber: 35,
+          stats: [
+            { value: "29", label: "saves" },
+            { value: "1.000", label: "SV%" },
+          ],
+        },
+        expect.objectContaining({ rank: 2, player: expect.objectContaining({ name: "D. Doughty", position: "D" }) }),
+        expect.objectContaining({ rank: 3, player: expect.objectContaining({ name: "M. DiPietro", teamId: "BOS" }) }),
+      ]);
+      expect(threeStars![1].stats.map((s) => s.label)).toEqual(["G", "A", "TOI"]);
+      expect(threeStars![1].stats.slice(0, 2).map((s) => s.value)).toEqual(["0", "0"]);
+      expect(threeStars![2].stats).toEqual([
+        { value: "19", label: "saves" },
+        { value: ".905", label: "SV%" },
+      ]);
+    });
+
+    it("sorts by star, whatever order the API sends", async () => {
+      const { adapter } = fixtureAdapter((url, body) => {
+        if (url.endsWith("/landing")) body.summary.threeStars.reverse();
+      });
+      expect((await adapter.getGameDetail("2026020333")).threeStars!.map((s) => s.rank)).toEqual([1, 2, 3]);
+    });
+
+    it("is absent until the stars are named", async () => {
+      for (const edit of [
+        (body: any) => delete body.summary,
+        (body: any) => (body.summary.threeStars = []),
+        (body: any) => delete body.summary.threeStars,
+      ]) {
+        const { adapter } = fixtureAdapter((url, body) => url.endsWith("/landing") && edit(body));
+        expect((await adapter.getGameDetail("2026020333")).threeStars).toBeUndefined();
+      }
+    });
+
+    it("is not requested for live or scheduled games", async () => {
+      const { adapter, urls } = fixtureAdapter();
+      const detail = await adapter.getGameDetail("2026020342");
+      expect(detail.threeStars).toBeUndefined();
+      expect(urls.some((u) => u.endsWith("/landing"))).toBe(false);
+    });
+
+    it("still returns the game when the landing call fails", async () => {
+      const adapter = new NhlAdapter({
+        fetch: async (input) => {
+          const url = String(input);
+          if (url.endsWith("/landing")) return jsonResponse({ error: "nope" }, 500);
+          return jsonResponse(fixtureFor(url));
+        },
+      });
+      const detail = await adapter.getGameDetail("2026020333");
+      expect(detail.goals).toHaveLength(3);
+      expect(detail.threeStars).toBeUndefined();
+    });
+
+    it("drops one broken star and keeps the others", async () => {
+      const { adapter, warnings } = fixtureAdapter((url, body) => {
+        if (url.endsWith("/landing")) delete body.summary.threeStars[1].playerId;
+      });
+      expect((await adapter.getGameDetail("2026020333")).threeStars!.map((s) => s.rank)).toEqual([1, 3]);
+      expect(warnings.some((w) => w.message.includes("summary.threeStars[1] dropped"))).toBe(true);
+    });
+
+    it("keeps a star without a headshot or stats", async () => {
+      const { adapter } = fixtureAdapter((url, body) => {
+        if (url.endsWith("/landing")) {
+          const star = body.summary.threeStars[0];
+          delete star.headshot;
+          delete star.savePctg;
+          delete star.position;
+        }
+        // And no box score row to match.
+        if (url.endsWith("/boxscore")) body.playerByGameStats.awayTeam.goalies = [];
+      });
+      const first = (await adapter.getGameDetail("2026020333")).threeStars![0];
+      expect(first.player.headshotUrl).toBeUndefined();
+      expect(first.player.name).toBe("D. Kuemper");
+      expect(first.stats).toEqual([]);
     });
   });
 

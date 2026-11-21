@@ -12,11 +12,11 @@ Everything runs on your device: the app talks to public sports APIs directly, wi
 - **Favourite teams:** star a team on its team page. Their games show first on Scores with the team name in the accent colour, and Standings marks them.
 - **Puck drop reminders** (optional): a notification 10 to 60 minutes before your favourite teams' games, even with the app closed.
 - **TV channels:** each game shows where to watch it, for your country (Canada or US, from your phone's region, or set it in Settings). National channels are bold, and the Scores list shows the first three for games that have not finished. The game page has the full list ("Aired on" once the game is over). Games with no listing for your country show nothing.
-- **Spoiler shield** (optional, off by default): hides scores, goals and box scores until you tap Show, for watching games on delay. Reveal one game or all games. Standings and leaders are not hidden. Nothing is saved, so every app launch starts hidden.
-- **Game page:** score, each team's season record and shots on goal, where it is played (arena and city), a goal-by-goal summary (scorer, assists, power-play and empty-net tags, running score), and a Box score page with player stats for both teams.
+- **Spoiler shield** (optional, off by default): hides scores, goals, three stars and box scores until you tap Show, for watching games on delay. Reveal one game or all games. Standings and leaders are not hidden. Nothing is saved, so every app launch starts hidden.
+- **Game page:** score, each team's season record and shots on goal, where it is played (arena and city), the three stars once a game is over (with player photos, and saves or goals, assists and ice time), a goal-by-goal summary (scorer, assists, power-play and empty-net tags, running score), and a Box score page with player stats for both teams.
 - **Standings** by division. Tap a team (here or on a game page) for its team page: record, points, streak, goal difference, last 10, home and road records, its division rank, its home arena, its recent and upcoming games (three of each, one compact line per game, with up to five behind "Show more"; each opens the game), and season stats for every skater and goalie.
 - **Stat leaders** for skaters and goalies.
-- **Settings:** light, dark or system theme, team logos on or off (off shows team abbreviations), TV channel country, spoiler shield, favourite teams, reminders and update checks.
+- **Settings:** light, dark or system theme, team logos and player photos on or off (off shows abbreviations and initials), TV channel country, spoiler shield, favourite teams, reminders and update checks.
 - **Update notice:** a banner when a newer release is available, checked at most once a day (switchable). The app never downloads or installs anything by itself. **Settings > About** shows the version, release notes and a "Report a problem" link that opens a GitHub issue with your app version filled in.
 - **Works offline** with the last data it fetched. Live games refresh about every 20 seconds while the app is open.
 - No account, no ads, no tracking: the app talks only to the NHL's public API and, for the update notice, GitHub.
@@ -87,7 +87,7 @@ Adding a league means writing a new adapter that implements `LeagueAdapter` and 
 ### Tech stack
 
 - **App:** [Expo](https://expo.dev/) and React Native, written in TypeScript, with [Expo Router](https://docs.expo.dev/router/introduction/) for screens.
-- **Data:** [zod](https://zod.dev/) validates the responses of the unofficial NHL API, AsyncStorage holds the on-device cache and settings, and expo-image draws team logos.
+- **Data:** [zod](https://zod.dev/) validates the responses of the unofficial NHL API, AsyncStorage holds the on-device cache and settings, and expo-image draws team logos and player photos.
 - **Tests and tooling:** [vitest](https://vitest.dev/) (tests run on recorded API responses, never the live API), Prettier, and commitlint with husky for Conventional Commits.
 - **Releases:** GitHub Actions builds the APKs, and release-please keeps the release PR and changelog.
 
@@ -146,7 +146,7 @@ Never commit the keystore (`*.keystore` is in `.gitignore`). Releases are create
 
 ## Disclaimer
 
-This project is not affiliated with, endorsed by, or connected to the National Hockey League or any team. NHL and team names and logos are trademarks of their respective owners. The app uses an unofficial public API (`api-web.nhle.com`) that may change or stop working without notice. The repository contains no league logos or other trademarked assets; logo images are loaded from the API at runtime.
+This project is not affiliated with, endorsed by, or connected to the National Hockey League or any team. NHL and team names and logos are trademarks of their respective owners, and player photos belong to the NHL. The app uses an unofficial public API (`api-web.nhle.com`) that may change or stop working without notice. The repository contains no league logos, player photos or other trademarked assets; these images are loaded from the API at runtime.
 
 This is a free, non-commercial project for personal use.
 

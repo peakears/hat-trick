@@ -7,7 +7,7 @@ import { useColors } from "../theme";
 /**
  * A team logo loaded from the league API at runtime (never bundled: see the README disclaimer).
  * expo-image is used because NHL logos are SVGs, which React Native's Image cannot draw.
- * Falls back to the abbreviation when there is no URL or the "Show team logos" setting is off.
+ * Falls back to the abbreviation when there is no URL or the "Show logos and photos" setting is off.
  */
 export function TeamLogo({ team, size = 32 }: { team: Team; size?: number }) {
   const colors = useColors();

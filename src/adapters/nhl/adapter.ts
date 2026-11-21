@@ -3,6 +3,7 @@ import type {
   AdapterWarning,
   Game,
   GameDetail,
+  GameStar,
   Goal,
   LeaderBoard,
   LeaderQuery,
@@ -13,11 +14,22 @@ import type {
 } from "../../domain";
 import { NhlClient, type NhlClientOptions } from "./client";
 import { GOALIE_LEADER_CATEGORIES, LEAGUE, SKATER_LEADER_CATEGORIES } from "./constants";
-import { mapBoxscoreSide, mapClubStats, mapGame, mapGoals, mapLeaders, mapStandings, mapTeamSchedule } from "./mappers";
 import {
+  mapBoxscoreSide,
+  mapClubStats,
+  mapGame,
+  mapGoals,
+  mapLeaders,
+  mapStandings,
+  mapTeamSchedule,
+  mapThreeStars,
+} from "./mappers";
+import {
+  type RawBoxscore,
   RawBoxscoreSchema,
   RawClubScheduleSchema,
   RawClubStatsSchema,
+  RawLandingSchema,
   RawLeadersResponseSchema,
   RawScoreResponseSchema,
   RawStandingsResponseSchema,
@@ -79,9 +91,14 @@ export class NhlAdapter implements LeagueAdapter {
   async getGameDetail(gameId: string, options?: RequestOptions): Promise<GameDetail> {
     const raw = await this.fetch(`/gamecenter/${gameId}/boxscore`, RawBoxscoreSchema, options);
     const game = mapGame(raw);
+    const [goals, threeStars] = await Promise.all([
+      game.status === "scheduled" ? undefined : this.getGoals(raw.id, raw.gameDate, options),
+      game.status === "final" ? this.getThreeStars(raw, options) : undefined,
+    ]);
     return {
       game,
-      goals: game.status === "scheduled" ? undefined : await this.getGoals(raw.id, raw.gameDate, options),
+      goals,
+      threeStars,
       boxscore: {
         home: mapBoxscoreSide(raw.playerByGameStats?.homeTeam),
         away: mapBoxscoreSide(raw.playerByGameStats?.awayTeam),
@@ -98,6 +115,19 @@ export class NhlAdapter implements LeagueAdapter {
     try {
       const raw = await this.fetch(`/score/${date}`, RawScoreResponseSchema, options);
       return mapGoals(raw.games?.find((g) => g.id === id)?.goals);
+    } catch {
+      return undefined;
+    }
+  }
+
+  /**
+   * The three stars are only in the game's landing response, and only after the game. Like the goals,
+   * they are an extra: if this call fails the game page shows without them.
+   */
+  private async getThreeStars(boxscore: RawBoxscore, options?: RequestOptions): Promise<GameStar[] | undefined> {
+    try {
+      const raw = await this.fetch(`/gamecenter/${boxscore.id}/landing`, RawLandingSchema, options);
+      return mapThreeStars(raw, boxscore);
     } catch {
       return undefined;
     }

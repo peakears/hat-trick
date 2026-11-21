@@ -5,6 +5,7 @@ import type {
   GameClock,
   GameEnding,
   GameSide,
+  GameStar,
   GameStatus,
   Goal,
   GoalStrength,
@@ -15,6 +16,7 @@ import type {
   StatTable,
   Standings,
   StandingsGroup,
+  StarStat,
   Team,
   TeamDetail,
   Venue,
@@ -29,6 +31,7 @@ import {
   TEAM_GAMES_SHOWN,
 } from "./constants";
 import type {
+  RawBoxscore,
   RawBroadcast,
   RawClubGoalie,
   RawClubSchedule,
@@ -37,11 +40,13 @@ import type {
   RawGame,
   RawGoal,
   RawGoalie,
+  RawLanding,
   RawLeadersResponse,
   RawSideStats,
   RawSkater,
   RawStandingsResponse,
   RawTeam,
+  RawThreeStar,
 } from "./raw-types";
 
 // Team ids are the three-letter abbreviation everywhere, because the
@@ -234,6 +239,62 @@ export function mapBoxscoreSide(stats?: RawSideStats): StatTable[] {
     statTable("Defense", SKATER_COLUMNS, stats?.defense),
     statTable("Goalies", GOALIE_COLUMNS, stats?.goalies),
   ];
+}
+
+// ---------- Three stars ----------
+
+/** ".905", or "1.000" for a perfect game (hockey writes save percentage without the leading zero). */
+export function savePctLabel(value: number): string {
+  return value >= 1 ? "1.000" : value.toFixed(3).replace(/^0/, "");
+}
+
+function starStats(star: RawThreeStar, skater?: RawSkater, goalie?: RawGoalie): StarStat[] {
+  const stats: StarStat[] = [];
+  const add = (value: string | number | undefined, label: string) => {
+    if (value !== undefined) stats.push({ value: String(value), label });
+  };
+  if (star.position === "G" || goalie) {
+    // The landing only has GAA and SV%; the box score adds the saves.
+    add(goalie?.saves, goalie?.saves === 1 ? "save" : "saves");
+    const pct = star.savePctg ?? goalie?.savePctg;
+    add(pct === undefined ? undefined : savePctLabel(pct), "SV%");
+  } else {
+    add(star.goals ?? skater?.goals, "G");
+    add(star.assists ?? skater?.assists, "A");
+    add(skater?.toi, "TOI");
+  }
+  return stats;
+}
+
+/**
+ * The three stars from the landing response, first star first, with saves and ice time from the
+ * box score (matched by player id). Undefined until the league names them.
+ */
+export function mapThreeStars(landing: RawLanding, boxscore?: RawBoxscore): GameStar[] | undefined {
+  const stars = landing.summary?.threeStars;
+  if (!stars || stars.length === 0) return undefined;
+  const sides = [boxscore?.playerByGameStats?.homeTeam, boxscore?.playerByGameStats?.awayTeam];
+  const skaters = sides.flatMap((s) => [...(s?.forwards ?? []), ...(s?.defense ?? [])]);
+  const goalies = sides.flatMap((s) => s?.goalies ?? []);
+  return [...stars]
+    .sort((a, b) => a.star - b.star)
+    .map((star) => ({
+      rank: star.star,
+      player: {
+        id: String(star.playerId),
+        league: LEAGUE,
+        name: star.name.default,
+        teamId: star.teamAbbrev,
+        position: star.position,
+        headshotUrl: star.headshot,
+      },
+      sweaterNumber: star.sweaterNo,
+      stats: starStats(
+        star,
+        skaters.find((p) => p.playerId === star.playerId),
+        goalies.find((p) => p.playerId === star.playerId),
+      ),
+    }));
 }
 
 type RawStanding = NonNullable<RawStandingsResponse["standings"]>[number];

@@ -12,7 +12,15 @@ import type {
 } from "../domain";
 import { NhlAdapter } from "../adapters/nhl";
 import { AdapterRegistry } from "../registry";
-import { FRESHNESS, MemoryStore, SportsData, gameFreshness, scoresFreshness, teamFreshness } from ".";
+import {
+  FRESHNESS,
+  MemoryStore,
+  SportsData,
+  gameDetailFreshness,
+  gameFreshness,
+  scoresFreshness,
+  teamFreshness,
+} from ".";
 
 const NOW = Date.parse("2026-11-17T23:00:00Z");
 const MIN = 60_000;
@@ -83,6 +91,30 @@ describe("freshness", () => {
     const games = [game("final", "2026-11-17T19:00:00Z", "1"), game("live", "2026-11-17T22:00:00Z", "2")];
     expect(scoresFreshness(games, NOW)).toBe(FRESHNESS.live);
     expect(scoresFreshness([], NOW)).toBe(FRESHNESS.noGames);
+  });
+});
+
+describe("gameDetailFreshness", () => {
+  const detail = (g: Game, withStars: boolean): GameDetail => ({
+    game: g,
+    boxscore: { home: [], away: [] },
+    threeStars: withStars ? [{ rank: 1, player: { id: "1", league: "test", name: "A" }, stats: [] }] : undefined,
+  });
+
+  it("re-checks a just-finished game soon until its three stars arrive", () => {
+    const final = game("final", "2026-11-17T19:30:00Z"); // started 3.5 hours ago
+    expect(gameDetailFreshness(detail(final, false), NOW)).toBe(FRESHNESS.awaitingStars);
+    expect(gameDetailFreshness(detail(final, true), NOW)).toBe(FRESHNESS.recentFinal);
+  });
+
+  it("stops waiting for stars a few hours after the game", () => {
+    const final = game("final", "2026-11-17T12:00:00Z"); // started 11 hours ago
+    expect(gameDetailFreshness(detail(final, false), NOW)).toBe(FRESHNESS.recentFinal);
+  });
+
+  it("follows the game for anything but a final", () => {
+    const live = game("live", "2026-11-17T22:00:00Z");
+    expect(gameDetailFreshness(detail(live, false), NOW)).toBe(FRESHNESS.live);
   });
 });
 
