@@ -6,6 +6,7 @@ import { SpecialEventTag } from "../../../src/ui/components/SpecialEventTag";
 import { CrashScreen, Empty, ErrorView, Loading, OfflineBanner, UpdatedAt } from "../../../src/ui/components/States";
 import { TeamLogo } from "../../../src/ui/components/TeamLogo";
 import { GoalSummary } from "../../../src/ui/components/GoalSummary";
+import { PenaltySummary } from "../../../src/ui/components/PenaltySummary";
 import { ThreeStars } from "../../../src/ui/components/ThreeStars";
 import { WhereToWatch } from "../../../src/ui/components/WhereToWatch";
 import { localDate, teamRecord, venueLabel } from "../../../src/ui/format";
@@ -42,10 +43,10 @@ export default function GameScreen() {
     );
   }
 
-  const { game, goals, threeStars } = detail.data;
+  const { game, goals, threeStars, penalties } = detail.data;
   const live = game.status === "live";
   const venue = venueLabel(game.venue);
-  // While hidden: no score, shots, goals, three stars, box score, and no records (the standings already
+  // While hidden: no score, shots, goals, three stars, penalties, box score, and no records (the standings already
   // count a finished game).
   const hidden = spoilers.isHidden(game);
 
@@ -126,6 +127,10 @@ export default function GameScreen() {
         {!hidden && threeStars && <ThreeStars stars={threeStars} />}
 
         {!hidden && goals && <GoalSummary goals={goals} />}
+
+        {!hidden && penalties && (
+          <PenaltySummary penalties={penalties} goals={goals} teamIds={[game.away.team.id, game.home.team.id]} />
+        )}
 
         {game.status === "scheduled" ? (
           <Empty message="Box score starts at puck drop." />

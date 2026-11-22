@@ -138,6 +138,28 @@ export interface GameStar {
   stats: StarStat[];
 }
 
+/** How a penalty is served. "other" covers kinds the league sends that the app does not name. */
+export type PenaltyKind =
+  "minor" | "doubleMinor" | "major" | "misconduct" | "gameMisconduct" | "match" | "penaltyShot" | "other";
+
+export interface Penalty {
+  /** Team that took the penalty. */
+  teamId: string;
+  period: number;
+  periodLabel: string; // "1st", "OT" - adapter formats it, as for goals
+  time: string; // elapsed in the period, "18:31"
+  /** Abbreviated name, "M. Geekie". Absent for a team (bench) penalty. */
+  player?: string;
+  sweaterNumber?: number;
+  /** The infraction, "Roughing", "Delay of game (puck over glass)". */
+  infraction: string;
+  kind: PenaltyKind;
+  /** Penalty minutes; 0 for a penalty shot. */
+  minutes: number;
+  /** Abbreviated name of the player who drew it, when known. */
+  drawnBy?: string;
+}
+
 export interface GameDetail {
   game: Game;
   boxscore: { home: StatTable[]; away: StatTable[] };
@@ -145,6 +167,8 @@ export interface GameDetail {
   goals?: Goal[];
   /** First star first. Absent when the league has not named them (before and during the game) or they could not be loaded. */
   threeStars?: GameStar[];
+  /** In the order taken. Absent when the league has no penalty list for this game (yet); empty when there were none. */
+  penalties?: Penalty[];
 }
 
 // ---------- Team page ----------

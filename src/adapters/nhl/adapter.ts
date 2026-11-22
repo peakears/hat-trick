@@ -4,6 +4,7 @@ import type {
   Game,
   GameDetail,
   GameStar,
+  Penalty,
   Goal,
   LeaderBoard,
   LeaderQuery,
@@ -29,6 +30,7 @@ import {
   mapStandings,
   mapPlayerDetail,
   mapTeamSchedule,
+  mapPenalties,
   mapThreeStars,
 } from "./mappers";
 import {
@@ -118,6 +120,7 @@ export class NhlAdapter implements LeagueAdapter {
       game: { ...game, specialEvent: game.specialEvent ?? landing?.specialEvent },
       goals,
       threeStars: landing?.threeStars,
+      penalties: landing?.penalties,
       boxscore: {
         home: mapBoxscoreSide(raw.playerByGameStats?.homeTeam),
         away: mapBoxscoreSide(raw.playerByGameStats?.awayTeam),
@@ -140,16 +143,20 @@ export class NhlAdapter implements LeagueAdapter {
   }
 
   /**
-   * The three stars are only in the game's landing response, and only after the game; it also names a special event.
-   * Like the goals, they are an extra: if this call fails the game page shows without them.
+   * The three stars and the penalties are only in the game's landing response (read after the game); it also names a
+   * special event. Like the goals, they are an extra: if this call fails the game page shows without them.
    */
   private async getLanding(
     boxscore: RawBoxscore,
     options?: RequestOptions,
-  ): Promise<{ threeStars?: GameStar[]; specialEvent?: string } | undefined> {
+  ): Promise<{ threeStars?: GameStar[]; penalties?: Penalty[]; specialEvent?: string } | undefined> {
     try {
       const raw = await this.fetch(`/gamecenter/${boxscore.id}/landing`, RawLandingSchema, options);
-      return { threeStars: mapThreeStars(raw, boxscore), specialEvent: landingSpecialEvent(raw) };
+      return {
+        threeStars: mapThreeStars(raw, boxscore),
+        penalties: mapPenalties(raw.summary?.penalties),
+        specialEvent: landingSpecialEvent(raw),
+      };
     } catch {
       return undefined;
     }
