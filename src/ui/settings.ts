@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { KeyValueStore } from "../data";
 import { TV_REGIONS, type TvRegionPreference } from "./broadcasts";
+import { ACCENTS, type AccentId } from "./palette";
 import { STANDINGS_VIEWS, type StandingsView } from "./standings";
 
 /**
@@ -17,6 +18,10 @@ export type ReminderLead = (typeof REMINDER_LEADS)[number];
 
 export interface Settings {
   theme: ThemePreference;
+  /** Use a black background (OLED) whenever the app is dark, by the phone's setting or by `theme`. */
+  pureBlack: boolean;
+  /** The colour of links, buttons and highlights. */
+  accent: AccentId;
   showLogos: boolean;
   /** Does nothing until betting info (issue #7) lands. */
   showBetting: boolean;
@@ -37,6 +42,8 @@ export interface Settings {
 
 export const DEFAULT_SETTINGS: Settings = {
   theme: "system",
+  pureBlack: false,
+  accent: "blue",
   showLogos: true,
   showBetting: false,
   favoriteTeams: [],
@@ -54,6 +61,8 @@ export const SETTINGS_KEY = "settings:v1";
 // (e.g. a setting added in a later version) never resets the others.
 const schema = z.object({
   theme: z.enum(THEMES).catch(DEFAULT_SETTINGS.theme),
+  pureBlack: z.boolean().catch(DEFAULT_SETTINGS.pureBlack),
+  accent: z.enum(ACCENTS).catch(DEFAULT_SETTINGS.accent),
   showLogos: z.boolean().catch(DEFAULT_SETTINGS.showLogos),
   showBetting: z.boolean().catch(DEFAULT_SETTINGS.showBetting),
   // Duplicates are dropped, so a hand-edited or doubled-up list stays a set.

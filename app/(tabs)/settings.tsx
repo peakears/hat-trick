@@ -1,3 +1,4 @@
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { useState, type ReactNode } from "react";
 import { Linking, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
 import { TV_REGIONS, type TvRegionPreference } from "../../src/ui/broadcasts";
@@ -5,12 +6,13 @@ import { ReleaseNotesModal } from "../../src/ui/components/ReleaseNotesModal";
 import { Segmented } from "../../src/ui/components/Segmented";
 import { timeLabel } from "../../src/ui/format";
 import { installStatusText, isBusy } from "../../src/ui/install-update";
+import { ACCENTS, ACCENT_LABELS, accentSwatch, type AccentId } from "../../src/ui/palette";
 import { RELEASES_URL, REPO_URL, reportProblemUrl } from "../../src/ui/links";
 import { requestReminderPermission } from "../../src/ui/reminders-native";
 import { REMINDER_LEADS, type ReminderLead, type ThemePreference } from "../../src/ui/settings";
 import { useSettings } from "../../src/ui/settings-context";
 import type { UpdateStatus } from "../../src/ui/updates";
-import { useColors } from "../../src/ui/theme";
+import { useColors, useScheme } from "../../src/ui/theme";
 import { APP_VERSION, useUpdate } from "../../src/ui/update-context";
 
 const THEME_OPTIONS: { value: ThemePreference; label: string }[] = [
@@ -45,7 +47,16 @@ export default function SettingsScreen() {
   return (
     <ScrollView style={{ backgroundColor: colors.background }} contentContainerStyle={styles.content}>
       <Section title="Theme">
-        <Segmented options={THEME_OPTIONS} value={settings.theme} onChange={(theme) => update({ theme })} />
+        <View style={[styles.divider, { borderBottomColor: colors.border }]}>
+          <Segmented options={THEME_OPTIONS} value={settings.theme} onChange={(theme) => update({ theme })} />
+        </View>
+        <ToggleRow
+          label="Pure black (OLED)"
+          detail="A black background whenever the app is dark. Saves battery on OLED screens."
+          value={settings.pureBlack}
+          onChange={(pureBlack) => update({ pureBlack })}
+        />
+        <AccentPicker value={settings.accent} onChange={(accent) => update({ accent })} />
       </Section>
 
       <Section title="Display">
@@ -264,6 +275,40 @@ function LinkRow({
   );
 }
 
+/** Round swatches for the accent colour, in the shades the current theme uses. */
+function AccentPicker({ value, onChange }: { value: AccentId; onChange: (accent: AccentId) => void }) {
+  const colors = useColors();
+  const scheme = useScheme();
+  return (
+    <View style={styles.row}>
+      <View style={styles.rowText}>
+        <Text style={[styles.label, { color: colors.text }]}>Accent colour</Text>
+        <Text style={[styles.detail, { color: colors.muted }]}>Links, buttons and highlights.</Text>
+        <View style={styles.swatches} accessibilityRole="radiogroup" accessibilityLabel="Accent colour">
+          {ACCENTS.map((accent) => {
+            const selected = accent === value;
+            return (
+              <Pressable
+                key={accent}
+                onPress={() => onChange(accent)}
+                hitSlop={4}
+                accessibilityRole="radio"
+                accessibilityState={{ checked: selected }}
+                accessibilityLabel={ACCENT_LABELS[accent]}
+                style={[styles.swatchRing, { borderColor: selected ? colors.text : "transparent" }]}
+              >
+                <View style={[styles.swatch, { backgroundColor: accentSwatch(accent, scheme) }]}>
+                  {selected && <Ionicons name="checkmark" size={18} color={colors.onAccent} />}
+                </View>
+              </Pressable>
+            );
+          })}
+        </View>
+      </View>
+    </View>
+  );
+}
+
 function ToggleRow({
   label,
   detail,
@@ -303,5 +348,8 @@ const styles = StyleSheet.create({
   leadPicker: { flex: 1 },
   divider: { borderBottomWidth: StyleSheet.hairlineWidth },
   linkText: { fontWeight: "600" },
+  swatches: { flexDirection: "row", flexWrap: "wrap", gap: 10, marginTop: 10 },
+  swatchRing: { borderRadius: 999, borderWidth: 2, padding: 2 },
+  swatch: { width: 32, height: 32, borderRadius: 999, alignItems: "center", justifyContent: "center" },
   footer: { textAlign: "center", fontSize: 12, lineHeight: 18 },
 });

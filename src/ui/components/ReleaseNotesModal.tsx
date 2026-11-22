@@ -77,7 +77,7 @@ export function ReleaseNotesModal({ visible, onClose }: { visible: boolean; onCl
               accessibilityRole="button"
               style={[styles.button, { backgroundColor: busy ? colors.border : colors.accent }]}
             >
-              <Text style={styles.buttonText}>
+              <Text style={[styles.buttonText, { color: busy ? colors.muted : colors.onAccent }]}>
                 {failed ? "Open in browser" : canInstallInApp ? `Update to ${release.version}` : "Download"}
               </Text>
             </Pressable>
@@ -110,5 +110,5 @@ const styles = StyleSheet.create({
   status: { fontSize: 13, textAlign: "center" },
   button: { borderRadius: 10, paddingVertical: 12, alignItems: "center" },
   cancel: { borderWidth: StyleSheet.hairlineWidth },
-  buttonText: { color: "#ffffff", fontSize: 16, fontWeight: "700" },
+  buttonText: { fontSize: 16, fontWeight: "700" },
 });

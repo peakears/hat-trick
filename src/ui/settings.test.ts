@@ -19,6 +19,8 @@ describe("parseSettings", () => {
   it("has betting off, logos on, no favourite teams, reminders off, update checks on and TV region auto by default", () => {
     expect(DEFAULT_SETTINGS).toEqual({
       theme: "system",
+      pureBlack: false,
+      accent: "blue",
       showLogos: true,
       showBetting: false,
       favoriteTeams: [],
@@ -41,6 +43,8 @@ describe("parseSettings", () => {
   it("keeps valid fields and defaults only the bad or missing ones", () => {
     expect(parseSettings(JSON.stringify({ theme: "dark", showLogos: "no" }))).toEqual({
       theme: "dark",
+      pureBlack: false,
+      accent: "blue",
       showLogos: true,
       showBetting: false,
       favoriteTeams: [],
@@ -53,6 +57,8 @@ describe("parseSettings", () => {
     });
     expect(parseSettings(JSON.stringify({ theme: "purple", showBetting: true }))).toEqual({
       theme: "system",
+      pureBlack: false,
+      accent: "blue",
       showLogos: true,
       showBetting: true,
       favoriteTeams: [],
@@ -62,6 +68,17 @@ describe("parseSettings", () => {
       tvRegion: "auto",
       spoilerShield: false,
       standingsView: "division",
+    });
+  });
+
+  it("keeps pure black and the accent, and defaults unknown values", () => {
+    expect(parseSettings(JSON.stringify({ pureBlack: true, accent: "teal" }))).toMatchObject({
+      pureBlack: true,
+      accent: "teal",
+    });
+    expect(parseSettings(JSON.stringify({ pureBlack: "yes", accent: "chartreuse" }))).toMatchObject({
+      pureBlack: false,
+      accent: "blue",
     });
   });
 
@@ -109,6 +126,8 @@ describe("loadSettings / saveSettings", () => {
     const store = new MemoryStore();
     const settings: Settings = {
       theme: "light",
+      pureBlack: true,
+      accent: "purple",
       showLogos: false,
       showBetting: true,
       favoriteTeams: ["TOR"],
