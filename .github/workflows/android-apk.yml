@@ -3,6 +3,7 @@ name: Android APK
 # Builds a release APK and keeps it as a workflow artifact. Called by:
 #   - release-please.yml: signed with the release key, then attached to the GitHub Release
 #   - ci.yml, on pull requests: signed with a debug key, for testing a branch
+#   - test-apk.yml, run by hand for any branch: signed with a debug key, like the PR builds
 #
 # The release key lives in four repository secrets (see "Release signing" in the README):
 #   ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD

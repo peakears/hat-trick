@@ -1,0 +1,19 @@
+name: Test APK (manual)
+
+# Builds a test APK for any branch, on demand: Actions > "Test APK (manual)" > Run workflow, then pick the
+# branch. It never runs by itself and is not a check on pull requests. The APK is under the run's Artifacts.
+# Signed with the generated debug key like PR test builds, never the release key: no secrets are passed, so
+# running it on any branch cannot reach them. Android will not install it over a release build: uninstall first.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  apk:
+    name: Test APK
+    uses: ./.github/workflows/android-apk.yml
+    with:
+      # Branch names can hold "/", which artifact names cannot; the run number is unique.
+      apk-name: hat-trick-test-${{ github.run_number }}.apk
