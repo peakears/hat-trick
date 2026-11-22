@@ -69,6 +69,19 @@ jobs:
       - name: Generate the Android project
         run: npx expo prebuild --platform android --no-install
 
+      # Prebuild's default (2 GiB heap, 512 MiB metaspace) runs out of metaspace on the release build.
+      # The runner has 16 GB, so give Gradle more.
+      - name: Raise Gradle's memory limits
+        working-directory: android
+        run: |
+          jvmargs='org.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=1g -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8'
+          if grep -q '^org.gradle.jvmargs=' gradle.properties; then
+            sed -i "s|^org.gradle.jvmargs=.*|$jvmargs|" gradle.properties
+          else
+            echo "$jvmargs" >> gradle.properties
+          fi
+          grep '^org.gradle.jvmargs=' gradle.properties
+
       # After prebuild: the basic cache's key is a hash of the Gradle files, which only exist now.
       - uses: gradle/actions/setup-gradle@v6
         with:
