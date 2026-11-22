@@ -10,7 +10,7 @@ import { tabular, useColors } from "../theme";
 import { useTvRegion } from "../use-tv-region";
 import { ChannelLine } from "./ChannelLine";
 import { RevealButton } from "./ShieldUi";
-import { SpecialEventTag } from "./SpecialEventTag";
+import { SpecialEventTag, useShownSpecialEvent } from "./SpecialEventTag";
 import { TeamLogo } from "./TeamLogo";
 
 /** One game in the scores list: away team on top, home below, status on the right. */
@@ -20,6 +20,7 @@ export function GameCard({ game }: { game: Game }) {
   const { settings } = useSettings();
   const spoilers = useSpoilers();
   const hidden = spoilers.isHidden(game);
+  const specialEvent = useShownSpecialEvent(game.specialEvent);
   const statusLabel = spoilers.statusLabel(game);
   // A hidden game must not give the winner away through bold or dimmed names either.
   const won = hidden ? undefined : winner(game);
@@ -75,7 +76,7 @@ export function GameCard({ game }: { game: Game }) {
         { backgroundColor: colors.card, borderColor: colors.cardBorder, opacity: pressed ? 0.7 : 1 },
       ]}
       accessibilityRole="button"
-      accessibilityLabel={`${game.specialEvent ? `${game.specialEvent}. ` : ""}${game.away.team.name} at ${game.home.team.name}, ${statusLabel}${hidden ? ". Score hidden" : ""}${favoriteNote}${channels.length > 0 ? `. On TV: ${channelsLabel(channels)}` : ""}`}
+      accessibilityLabel={`${specialEvent ? `${specialEvent}. ` : ""}${game.away.team.name} at ${game.home.team.name}, ${statusLabel}${hidden ? ". Score hidden" : ""}${favoriteNote}${channels.length > 0 ? `. On TV: ${channelsLabel(channels)}` : ""}`}
     >
       <View style={styles.main}>
         <View style={styles.teams}>

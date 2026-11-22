@@ -18,3 +18,14 @@ export function withSpecialEvents(games: Game[], events: SpecialEvents | undefin
   if (!events || Object.keys(events).length === 0) return games;
   return games.map((g) => (g.specialEvent || !events[g.id] ? g : { ...g, specialEvent: events[g.id] }));
 }
+
+/** True for the Original 6 Series (any spelling: "Original 6", "Original Six"). */
+export function isOriginalSix(name: string): boolean {
+  return /\boriginal\s*(6|six)\b/i.test(name);
+}
+
+/** The special event name to show, or undefined when the user turned that event's tag off in Settings. */
+export function shownSpecialEvent(name: string | undefined, showOriginalSix: boolean): string | undefined {
+  if (!name) return undefined;
+  return !showOriginalSix && isOriginalSix(name) ? undefined : name;
+}

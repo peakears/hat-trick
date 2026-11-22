@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Game } from "../domain";
-import { eventWeekStart, withSpecialEvents } from "./special-events";
+import { eventWeekStart, isOriginalSix, shownSpecialEvent, withSpecialEvents } from "./special-events";
 
 describe("eventWeekStart", () => {
   it("is the Monday of the date's week", () => {
@@ -41,5 +41,20 @@ describe("withSpecialEvents", () => {
     const games = [game("1")];
     expect(withSpecialEvents(games, undefined)).toBe(games);
     expect(withSpecialEvents(games, {})).toBe(games);
+  });
+});
+
+describe("shownSpecialEvent", () => {
+  it("recognises the Original 6 Series however it is spelled", () => {
+    expect(isOriginalSix("Original 6 Series")).toBe(true);
+    expect(isOriginalSix("Original Six")).toBe(true);
+    expect(isOriginalSix("Winter Classic")).toBe(false);
+  });
+
+  it("hides only the Original 6 tag when it is turned off", () => {
+    expect(shownSpecialEvent("Original 6 Series", true)).toBe("Original 6 Series");
+    expect(shownSpecialEvent("Original 6 Series", false)).toBeUndefined();
+    expect(shownSpecialEvent("Winter Classic", false)).toBe("Winter Classic");
+    expect(shownSpecialEvent(undefined, true)).toBeUndefined();
   });
 });

@@ -56,6 +56,12 @@ export default function SettingsScreen() {
           onChange={(showLogos) => update({ showLogos })}
         />
         <ToggleRow
+          label="Show Original 6 tags"
+          detail="The Original 6 Series tag on games between the six oldest teams. Other special games stay tagged."
+          value={settings.showOriginalSixTags}
+          onChange={(showOriginalSixTags) => update({ showOriginalSixTags })}
+        />
+        <ToggleRow
           label="Show betting info"
           detail="Odds and lines, when available. Coming in a later version."
           value={settings.showBetting}

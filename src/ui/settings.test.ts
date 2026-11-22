@@ -27,6 +27,7 @@ describe("parseSettings", () => {
       checkForUpdates: true,
       tvRegion: "auto",
       spoilerShield: false,
+      showOriginalSixTags: true,
       standingsView: "division",
     });
   });
@@ -49,6 +50,7 @@ describe("parseSettings", () => {
       checkForUpdates: true,
       tvRegion: "auto",
       spoilerShield: false,
+      showOriginalSixTags: true,
       standingsView: "division",
     });
     expect(parseSettings(JSON.stringify({ theme: "purple", showBetting: true }))).toEqual({
@@ -61,6 +63,7 @@ describe("parseSettings", () => {
       checkForUpdates: true,
       tvRegion: "auto",
       spoilerShield: false,
+      showOriginalSixTags: true,
       standingsView: "division",
     });
   });
@@ -94,6 +97,12 @@ describe("parseSettings", () => {
     expect(parseSettings(JSON.stringify({ spoilerShield: "yes" })).spoilerShield).toBe(false);
   });
 
+  it("shows Original 6 tags by default and keeps a stored value", () => {
+    expect(DEFAULT_SETTINGS.showOriginalSixTags).toBe(true);
+    expect(parseSettings(JSON.stringify({ showOriginalSixTags: false })).showOriginalSixTags).toBe(false);
+    expect(parseSettings(JSON.stringify({ showOriginalSixTags: "no" })).showOriginalSixTags).toBe(true);
+  });
+
   it("defaults the standings view to Division and keeps a stored one", () => {
     expect(parseSettings(JSON.stringify({ standingsView: "league" })).standingsView).toBe("league");
     expect(parseSettings(JSON.stringify({ standingsView: "wild" })).standingsView).toBe("division");
@@ -117,6 +126,7 @@ describe("loadSettings / saveSettings", () => {
       checkForUpdates: false,
       tvRegion: "CA",
       spoilerShield: true,
+      showOriginalSixTags: false,
       standingsView: "conference",
     };
     await saveSettings(store, settings);

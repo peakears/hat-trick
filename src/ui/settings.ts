@@ -31,6 +31,8 @@ export interface Settings {
   tvRegion: TvRegionPreference;
   /** Hide scores and box scores until the user taps to show them (for watching games on delay). */
   spoilerShield: boolean;
+  /** Show the "Original 6 Series" tag on games (it marks many games a season, so some find it noisy). */
+  showOriginalSixTags: boolean;
   /** How the Standings tab groups teams; the last view picked. */
   standingsView: StandingsView;
 }
@@ -45,6 +47,7 @@ export const DEFAULT_SETTINGS: Settings = {
   checkForUpdates: true,
   tvRegion: "auto",
   spoilerShield: false,
+  showOriginalSixTags: true,
   standingsView: "division",
 };
 
@@ -66,6 +69,7 @@ const schema = z.object({
   checkForUpdates: z.boolean().catch(DEFAULT_SETTINGS.checkForUpdates),
   tvRegion: z.enum(TV_REGIONS).catch(DEFAULT_SETTINGS.tvRegion),
   spoilerShield: z.boolean().catch(DEFAULT_SETTINGS.spoilerShield),
+  showOriginalSixTags: z.boolean().catch(DEFAULT_SETTINGS.showOriginalSixTags),
   standingsView: z.enum(STANDINGS_VIEWS).catch(DEFAULT_SETTINGS.standingsView),
 });
 

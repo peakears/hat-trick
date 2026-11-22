@@ -6,7 +6,7 @@ import type { Game, StandingRow, TeamDetail } from "../../src/domain";
 import { FavoriteStar } from "../../src/ui/components/FavoriteStar";
 import { StatTableView } from "../../src/ui/components/StatTableView";
 import { CrashScreen, Empty, ErrorView, Loading, OfflineBanner, UpdatedAt } from "../../src/ui/components/States";
-import { SpecialEventTag } from "../../src/ui/components/SpecialEventTag";
+import { SpecialEventTag, useShownSpecialEvent } from "../../src/ui/components/SpecialEventTag";
 import { TeamLogo } from "../../src/ui/components/TeamLogo";
 import { dateLabel, localDate, recordLabel } from "../../src/ui/format";
 import { useSpoilers } from "../../src/ui/spoiler-context";
@@ -57,6 +57,7 @@ function CompactGame({ game, teamId, today }: { game: Game; teamId: string; toda
   const colors = useColors();
   const router = useRouter();
   const spoilers = useSpoilers();
+  const specialEvent = useShownSpecialEvent(game.specialEvent);
   const line = teamGameLine(game, teamId, spoilers.isHidden(game));
   const date = dateLabel(localDate(new Date(game.startTime)), today);
   const live = game.status === "live";
@@ -85,7 +86,7 @@ function CompactGame({ game, teamId, today }: { game: Game; teamId: string; toda
       onPress={() => router.push({ pathname: "/game/[id]", params: { id: game.id } })}
       style={({ pressed }) => [styles.gameRow, { opacity: pressed ? 0.6 : 1 }]}
       accessibilityRole="button"
-      accessibilityLabel={`${date}, ${teamGameSpoken(line)}${game.specialEvent ? `, ${game.specialEvent}` : ""}${line.result || line.liveScore ? "" : `, ${spoilers.statusLabel(game)}`}. Open game`}
+      accessibilityLabel={`${date}, ${teamGameSpoken(line)}${specialEvent ? `, ${specialEvent}` : ""}${line.result || line.liveScore ? "" : `, ${spoilers.statusLabel(game)}`}. Open game`}
     >
       <Text style={[styles.gameDate, { color: colors.muted }]} numberOfLines={1}>
         {date}
