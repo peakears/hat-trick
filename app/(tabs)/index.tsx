@@ -3,7 +3,8 @@ import { useMemo, useState } from "react";
 import { Pressable, RefreshControl, SectionList, StyleSheet, Text, View } from "react-native";
 import { DatePickerButton } from "../../src/ui/components/DatePickerButton";
 import { GameCard } from "../../src/ui/components/GameCard";
-import { Empty, ErrorView, Loading, OfflineBanner, UpdatedAt } from "../../src/ui/components/States";
+import { Empty, ErrorView, OfflineBanner, UpdatedAt } from "../../src/ui/components/States";
+import { ScoresSkeleton } from "../../src/ui/components/Skeleton";
 import { ShieldBanner } from "../../src/ui/components/ShieldBanner";
 import { UpdateBanner } from "../../src/ui/components/UpdateBanner";
 import { addDays, dateLabel, groupGamesForScores } from "../../src/ui/format";
@@ -70,7 +71,7 @@ export default function ScoresScreen() {
       <OfflineBanner meta={scores.meta} />
 
       {scores.loading || switching ? (
-        <Loading />
+        <ScoresSkeleton />
       ) : !scores.data && scores.error ? (
         <ErrorView title="Couldn't load scores" error={scores.error} onRetry={scores.refresh} />
       ) : (

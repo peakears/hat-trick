@@ -1,12 +1,13 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Stack, useLocalSearchParams, useRouter, type ErrorBoundaryProps } from "expo-router";
 import { useState } from "react";
-import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import type { Game, StandingRow, TeamDetail } from "../../src/domain";
 import { FavoriteStar } from "../../src/ui/components/FavoriteStar";
 import { NextGameCard } from "../../src/ui/components/NextGameCard";
 import { StatTableView } from "../../src/ui/components/StatTableView";
-import { CrashScreen, Empty, ErrorView, Loading, OfflineBanner, UpdatedAt } from "../../src/ui/components/States";
+import { CrashScreen, Empty, ErrorView, OfflineBanner, UpdatedAt } from "../../src/ui/components/States";
+import { ListSkeleton, PageSkeleton } from "../../src/ui/components/Skeleton";
 import { SpecialEventTag } from "../../src/ui/components/SpecialEventTag";
 import { TeamLogo } from "../../src/ui/components/TeamLogo";
 import { dateLabel, localDate, recordLabel } from "../../src/ui/format";
@@ -167,7 +168,7 @@ function TeamExtras({
 }) {
   const colors = useColors();
   if (!data) {
-    if (loading) return <ActivityIndicator style={styles.loader} color={colors.accent} />;
+    if (loading) return <ListSkeleton rows={3} />;
     return (
       <View style={[styles.card, styles.errorCard, { backgroundColor: colors.card }]}>
         <Text style={[styles.errorText, { color: colors.text }]}>Couldn't load games and player stats.</Text>
@@ -201,7 +202,7 @@ export default function TeamScreen() {
   // Season stats and games are a separate request, so the header above never waits for them.
   const detail = usePolled(`team:${id}`, (o) => sports.getTeam(LEAGUE, id, o));
 
-  if (standings.loading) return <Loading />;
+  if (standings.loading) return <PageSkeleton avatar={96} />;
   if (!standings.data) {
     return (
       <ErrorView
@@ -365,7 +366,6 @@ const styles = StyleSheet.create({
     borderTopWidth: StyleSheet.hairlineWidth,
   },
   toggleText: { fontSize: 13, fontWeight: "600" },
-  loader: { marginVertical: 24 },
   errorCard: { padding: 14, gap: 6 },
   errorText: { fontSize: 15, fontWeight: "600" },
   errorDetail: { fontSize: 13 },

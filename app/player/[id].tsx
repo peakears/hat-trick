@@ -5,7 +5,8 @@ import type { StatItem } from "../../src/domain";
 import { PlayerHeadshot } from "../../src/ui/components/PlayerHeadshot";
 import { Segmented } from "../../src/ui/components/Segmented";
 import { StatGrid } from "../../src/ui/components/StatGrid";
-import { CrashScreen, ErrorView, Loading, OfflineBanner, UpdatedAt } from "../../src/ui/components/States";
+import { CrashScreen, ErrorView, OfflineBanner, UpdatedAt } from "../../src/ui/components/States";
+import { PageSkeleton } from "../../src/ui/components/Skeleton";
 import { TeamLogo } from "../../src/ui/components/TeamLogo";
 import { localDate } from "../../src/ui/format";
 import {
@@ -59,7 +60,7 @@ export default function PlayerScreen() {
   const [playoffs, setPlayoffs] = useState(false);
   const [allLeagues, setAllLeagues] = useState(false);
 
-  if (detail.loading) return <Loading />;
+  if (detail.loading) return <PageSkeleton avatar={88} cards={3} />;
   if (!detail.data) {
     return (
       <ErrorView

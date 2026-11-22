@@ -3,7 +3,8 @@ import { useState } from "react";
 import { RefreshControl, ScrollView, StyleSheet, View } from "react-native";
 import { RevealButton } from "../../../src/ui/components/ShieldUi";
 import { Segmented } from "../../../src/ui/components/Segmented";
-import { CrashScreen, Empty, ErrorView, Loading, OfflineBanner, UpdatedAt } from "../../../src/ui/components/States";
+import { CrashScreen, Empty, ErrorView, OfflineBanner, UpdatedAt } from "../../../src/ui/components/States";
+import { ListSkeleton } from "../../../src/ui/components/Skeleton";
 import { StatTableView } from "../../../src/ui/components/StatTableView";
 import { useSpoilers } from "../../../src/ui/spoiler-context";
 import { LEAGUE, useSportsData } from "../../../src/ui/sports-data-context";
@@ -24,7 +25,7 @@ export default function BoxScoreScreen() {
   const [side, setSide] = useState<"away" | "home">("away");
   const detail = usePolled(`game:${id}`, (o) => sports.getGameDetail(LEAGUE, id, o));
 
-  if (detail.loading) return <Loading />;
+  if (detail.loading) return <ListSkeleton />;
   if (!detail.data) {
     return (
       <ErrorView
