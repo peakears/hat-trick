@@ -131,6 +131,27 @@ export function ListSkeleton({ rows = 8 }: { rows?: number }) {
   );
 }
 
+/** Division headings over a grid of team logos: the team picker in first-run setup. */
+export function TeamGridSkeleton({ groups = 2 }: { groups?: number }) {
+  return (
+    <SkeletonRoot>
+      {Array.from({ length: groups }, (_, g) => (
+        <View key={g}>
+          <Bone width={100} height={12} style={styles.sectionLabel} />
+          <View style={styles.grid}>
+            {Array.from({ length: 8 }, (_, i) => (
+              <View key={i} style={styles.gridTile}>
+                <Bone width={44} height={44} radius={22} />
+                <Bone width={32} height={10} />
+              </View>
+            ))}
+          </View>
+        </View>
+      ))}
+    </SkeletonRoot>
+  );
+}
+
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   scores: { paddingTop: 4 },
@@ -154,5 +175,7 @@ const styles = StyleSheet.create({
   header: { flexDirection: "row", alignItems: "center", gap: 16, marginTop: 12 },
   headerText: { flex: 1, gap: 10 },
   lines: { gap: 14 },
+  grid: { flexDirection: "row", flexWrap: "wrap", marginHorizontal: 8 },
+  gridTile: { width: "25%", alignItems: "center", gap: 8, paddingVertical: 10 },
   listRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 10 },
 });
