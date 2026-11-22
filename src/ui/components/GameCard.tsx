@@ -9,6 +9,7 @@ import { useSpoilers } from "../spoiler-context";
 import { tabular, useColors } from "../theme";
 import { useTvRegion } from "../use-tv-region";
 import { ChannelLine } from "./ChannelLine";
+import { FlashScore } from "./FlashScore";
 import { RevealButton } from "./ShieldUi";
 import { SpecialEventTag } from "./SpecialEventTag";
 import { TeamLogo } from "./TeamLogo";
@@ -57,9 +58,14 @@ export function GameCard({ game }: { game: Game }) {
           </Text>
         )}
         {showScores && (
-          <Text style={[styles.score, tabular, { color: dim || hidden ? colors.muted : colors.text }]}>
+          <FlashScore
+            value={side.score}
+            live={live && !hidden}
+            containerStyle={styles.scoreBox}
+            style={[styles.score, tabular, { color: dim || hidden ? colors.muted : colors.text }]}
+          >
             {hidden ? "•" : (side.score ?? "-")}
-          </Text>
+          </FlashScore>
         )}
       </View>
     );
@@ -110,7 +116,9 @@ const styles = StyleSheet.create({
   teamName: { flex: 1, fontSize: 16 },
   bold: { fontWeight: "700" },
   record: { fontSize: 13, fontWeight: "600", marginRight: 12 },
-  score: { fontSize: 20, fontWeight: "700", minWidth: 28, textAlign: "right", marginRight: 12 },
+  // Room for two digits keeps the scores lined up; the number sits at the right and the flash glow hugs it.
+  scoreBox: { marginRight: 12, minWidth: 28, alignItems: "flex-end" },
+  score: { fontSize: 20, fontWeight: "700", textAlign: "right" },
   status: {
     width: 96,
     alignItems: "center",

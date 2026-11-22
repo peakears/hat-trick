@@ -8,7 +8,7 @@ Everything runs on your device: the app talks to public sports APIs directly, wi
 
 ## Features
 
-- **Scores** for any date, with live game clocks. Games are grouped under Live, Upcoming and Final headers. Upcoming games show each team's season record. Swipe left or right, or use the arrows, to step a day, or tap the calendar to jump to any date; tap the date to return to today. Pull down to refresh; a pull within 30 seconds of the last update is ignored, to save requests.
+- **Scores** for any date, with live game clocks. When a team scores in a live game, its score pops and glows for a moment (on Scores, the game page and the team page's next game card; just a glow with Android's "Remove animations" on). Games are grouped under Live, Upcoming and Final headers. Upcoming games show each team's season record. Swipe left or right, or use the arrows, to step a day, or tap the calendar to jump to any date; tap the date to return to today. Pull down to refresh; a pull within 30 seconds of the last update is ignored, to save requests.
 - **Favourite teams:** star a team on its team page. Their games show first on Scores with the team name in the accent colour, and Standings marks them.
 - **Puck drop reminders** (optional): a notification 10 to 60 minutes before your favourite teams' games, even with the app closed.
 - **Special games:** a small tag names games the league marks as special, such as the Winter Classic, the Stadium Series or the Original 6 Series, on Scores, the game page and team pages.
