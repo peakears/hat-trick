@@ -15,6 +15,7 @@ import type {
 } from "../domain";
 import { NhlAdapter } from "../adapters/nhl";
 import { AdapterRegistry } from "../registry";
+import { DiagnosticsLog } from "./diagnostics";
 import {
   FRESHNESS,
   MemoryStore,
@@ -376,5 +377,68 @@ describe("SportsData with the NHL adapter", () => {
     expect(first.meta.warnings).toEqual(['savePctg: unexpected value ".905" (string), ignored']);
     expect(second.meta.source).toBe("cache");
     expect(Date.parse(second.meta.staleAt) - now).toBe(FRESHNESS.oldFinal);
+  });
+});
+
+describe("SportsData diagnostics log", () => {
+  let now: number;
+  let adapter: FakeAdapter;
+  let store: MemoryStore;
+  let log: DiagnosticsLog;
+  let data: SportsData;
+
+  beforeEach(() => {
+    now = NOW;
+    adapter = new FakeAdapter();
+    store = new MemoryStore();
+    log = new DiagnosticsLog(store, () => now);
+    const registry = new AdapterRegistry();
+    registry.register(adapter);
+    data = new SportsData({ registry, store, now: () => now, log });
+  });
+
+  it("records each adapter warning with its request and URL", async () => {
+    adapter.warnings = ["savePctg: unexpected value"];
+    await data.getScores("test", "2026-11-17");
+    expect(await log.list()).toEqual([
+      expect.objectContaining({
+        kind: "warning",
+        league: "test",
+        key: "test:scores:2026-11-17",
+        url: "fake://",
+        message: "savePctg: unexpected value",
+        count: 1,
+      }),
+    ]);
+  });
+
+  it("does not record a warning again for a read served from the cache", async () => {
+    adapter.warnings = ["savePctg: unexpected value"];
+    await data.getScores("test", "2026-11-17");
+    await data.getScores("test", "2026-11-17");
+    expect((await log.list())[0].count).toBe(1);
+  });
+
+  it("records a failed request, with or without data to fall back on", async () => {
+    adapter.fail = new TypeError("Network request failed");
+    await expect(data.getStandings("test")).rejects.toThrow();
+    adapter.fail = null;
+    await data.getScores("test", "2026-11-17");
+    now += 60_000;
+    adapter.fail = new TypeError("Network request failed");
+    const fallback = await data.getScores("test", "2026-11-17");
+    expect(fallback.meta.error).toBeDefined();
+    const entries = await log.list();
+    expect(entries.map((e) => [e.kind, e.key, e.message])).toEqual([
+      ["error", "test:scores:2026-11-17", "TypeError: Network request failed"],
+      ["error", "test:standings", "TypeError: Network request failed"],
+    ]);
+  });
+
+  it("still loads data when the log cannot be written", async () => {
+    log.record = () => Promise.reject(new Error("full"));
+    adapter.warnings = ["something"];
+    const result = await data.getScores("test", "2026-11-17");
+    expect(result.data).toHaveLength(1);
   });
 });

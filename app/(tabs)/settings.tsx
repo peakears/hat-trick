@@ -1,4 +1,5 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
+import { useRouter } from "expo-router";
 import { useState, type ReactNode } from "react";
 import { Linking, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
 import { TV_REGIONS, type TvRegionPreference } from "../../src/ui/broadcasts";
@@ -28,6 +29,7 @@ const LEAD_OPTIONS = REMINDER_LEADS.map((n) => ({ value: String(n), label: `${n}
 
 export default function SettingsScreen() {
   const colors = useColors();
+  const router = useRouter();
   const { settings, update } = useSettings();
   const { status, checking, checkNow, install, installNow, cancelInstall, openInBrowser, canInstallInApp } =
     useUpdate();
@@ -210,9 +212,21 @@ export default function SettingsScreen() {
           <LinkRow label="Release notes" url={RELEASES_URL} />
         )}
         <ReleaseNotesModal visible={notesOpen} onClose={() => setNotesOpen(false)} />
+        <Pressable
+          onPress={() => router.push("/diagnostics")}
+          accessibilityRole="button"
+          style={[styles.row, styles.divider, { borderBottomColor: colors.border }]}
+        >
+          <View style={styles.rowText}>
+            <Text style={[styles.label, { color: colors.text }]}>Diagnostics</Text>
+            <Text style={[styles.detail, { color: colors.muted }]}>
+              Problems the app had loading data. Stays on your phone unless you share it.
+            </Text>
+          </View>
+        </Pressable>
         <LinkRow
           label="Report a problem"
-          detail="Opens a new issue with your app version filled in."
+          detail="Opens a new issue with your app version filled in. To include the diagnostics log, report from Diagnostics."
           url={reportProblemUrl({ version: APP_VERSION, platform: Platform.OS, osVersion: Platform.Version })}
           last
         />
