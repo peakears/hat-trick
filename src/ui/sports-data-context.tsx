@@ -10,7 +10,13 @@ export const LEAGUE: LeagueId = "nhl";
 
 function createSportsData(): SportsData {
   const registry = new AdapterRegistry();
-  registry.register(new NhlAdapter());
+  // TEST ONLY (branch test/slow-loading, never merge): wait 3 s before every NHL request so the loading
+  // placeholders stay on screen. Only the app's adapter waits; the tests build their own.
+  const slowFetch: typeof fetch = async (input, init) => {
+    await new Promise((resolve) => setTimeout(resolve, 3000));
+    return fetch(input, init);
+  };
+  registry.register(new NhlAdapter({ fetch: slowFetch }));
   return new SportsData({ registry, store: new AsyncStorageStore() });
 }
 
