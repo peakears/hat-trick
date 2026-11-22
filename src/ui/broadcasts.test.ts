@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 import type { Broadcast, Game } from "../domain";
-import { channelsFor, channelsLabel, resolveRegion, showsChannelsOnCard, summarizeChannels } from "./broadcasts";
+import {
+  channelsFor,
+  channelsLabel,
+  resolveRegion,
+  showsChannelsOnCard,
+  summarizeChannels,
+  watchHeading,
+} from "./broadcasts";
 
 const team = (abbrev: string) => ({ id: abbrev, league: "nhl", name: abbrev, abbrev });
 
@@ -99,5 +106,13 @@ describe("channelsLabel", () => {
         { network: "SCRIPPS", market: "home", teamAbbrev: "FLA" },
       ]),
     ).toBe("SN, SCRIPPS (FLA)");
+  });
+});
+
+describe("watchHeading", () => {
+  it("says where a finished game aired, and where to watch any other", () => {
+    expect(watchHeading("final")).toBe("Aired on");
+    expect(watchHeading("scheduled")).toBe("Where to watch");
+    expect(watchHeading("live")).toBe("Where to watch");
   });
 });
