@@ -66,10 +66,10 @@ describe("standingsSections", () => {
     expect(sections.map((s) => [s.conference, s.title, s.data.length])).toEqual([
       ["Eastern Conference", "Atlantic", 3],
       [undefined, "Metropolitan", 3],
-      [undefined, "Wild card", 10],
+      [undefined, "Wild Card", 10],
       ["Western Conference", "Central", 3],
       [undefined, "Pacific", 3],
-      [undefined, "Wild card", 10],
+      [undefined, "Wild Card", 10],
     ]);
     expect(ids(sections[0].data)).toEqual(["TBL", "OTT", "MTL"]);
     expect(ids(sections[1].data)).toEqual(["CAR", "NJD", "NYR"]);

@@ -7,7 +7,7 @@ export type StandingsView = (typeof STANDINGS_VIEWS)[number];
 export const STANDINGS_VIEW_LABELS: Record<StandingsView, string> = {
   division: "Division",
   conference: "Conference",
-  wildcard: "Wild card",
+  wildcard: "Wild Card",
   league: "League",
 };
 
@@ -163,7 +163,7 @@ function wildCardSections(standings: Standings): StandingsSection[] {
       if (race.length > 0) {
         sections.push({
           key: `wildcard:${id}`,
-          title: "Wild card",
+          title: "Wild Card",
           playoffLine: standings.wildCardSpots,
           data: [...race]
             .sort((a, b) => a.wildCardRank! - b.wildCardRank!)
