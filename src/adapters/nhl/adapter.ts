@@ -137,7 +137,8 @@ export class NhlAdapter implements LeagueAdapter {
     try {
       const raw = await this.fetch(`/score/${date}`, RawScoreResponseSchema, options);
       return mapGoals(raw.games?.find((g) => g.id === id)?.goals);
-    } catch {
+    } catch (err) {
+      this.extraFailed(`/score/${date}`, "goals", err, options);
       return undefined;
     }
   }
@@ -157,7 +158,8 @@ export class NhlAdapter implements LeagueAdapter {
         penalties: mapPenalties(raw.summary?.penalties),
         specialEvent: landingSpecialEvent(raw),
       };
-    } catch {
+    } catch (err) {
+      this.extraFailed(`/gamecenter/${boxscore.id}/landing`, "three stars, penalties and special event", err, options);
       return undefined;
     }
   }
@@ -187,8 +189,16 @@ export class NhlAdapter implements LeagueAdapter {
         await this.fetch(`/club-schedule-season/${team}/now`, RawClubScheduleSchema, options),
         teamId,
       );
-    } catch {
+    } catch (err) {
+      this.extraFailed(`/club-schedule-season/${team}/now`, "team games", err, options);
       return {};
     }
+  }
+
+  /** A best-effort extra failed: the screen shows without it, and the failure is passed on as a warning. */
+  private extraFailed(path: string, what: string, err: unknown, options?: RequestOptions): void {
+    const onWarning = options?.onWarning ?? this.onWarning;
+    const reason = err instanceof Error ? err.message : String(err);
+    onWarning({ url: `${this.client.baseUrl}${path}`, message: `${what} left out: ${reason}` });
   }
 }

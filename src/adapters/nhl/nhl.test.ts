@@ -307,17 +307,22 @@ describe("NHL adapter", () => {
       expect(goals).toBeDefined();
     });
 
-    it("still returns the game when the scores call fails", async () => {
+    it("still returns the game when the scores call fails, and warns that the goals are left out", async () => {
+      const warnings: AdapterWarning[] = [];
       const adapter = new NhlAdapter({
         fetch: async (input) => {
           const url = String(input);
           if (url.includes("/score/")) throw new TypeError("Network request failed");
           return jsonResponse(fixtureFor(url));
         },
+        onWarning: (w) => warnings.push(w),
       });
       const detail = await adapter.getGameDetail("2026020333");
       expect(detail.game.id).toBe("2026020333");
       expect(detail.goals).toBeUndefined();
+      expect(warnings).toHaveLength(1);
+      expect(warnings[0].url).toMatch(/\/score\/\d{4}-\d{2}-\d{2}$/);
+      expect(warnings[0].message).toMatch(/^goals left out: .*Network request failed/);
     });
 
     it("carries the scorer's season goals", async () => {
@@ -467,6 +472,22 @@ describe("NHL adapter", () => {
       const detail = await adapter.getGameDetail("2026020333");
       expect(detail.goals).toHaveLength(3);
       expect(detail.threeStars).toBeUndefined();
+    });
+
+    it("passes a per-request warning handler the failed landing", async () => {
+      const seen: AdapterWarning[] = [];
+      const adapter = new NhlAdapter({
+        fetch: async (input) => {
+          const url = String(input);
+          if (url.endsWith("/landing")) return jsonResponse({ error: "nope" }, 500);
+          return jsonResponse(fixtureFor(url));
+        },
+      });
+      await adapter.getGameDetail("2026020333", { onWarning: (w) => seen.push(w) });
+      expect(seen.map((w) => w.message)).toEqual([
+        expect.stringMatching(/^three stars, penalties and special event left out/),
+      ]);
+      expect(seen[0].url).toBe("https://api-web.nhle.com/v1/gamecenter/2026020333/landing");
     });
 
     it("drops one broken star and keeps the others", async () => {
@@ -845,19 +866,22 @@ describe("NHL adapter", () => {
       expect((await fixtureAdapter().adapter.getTeam("TOR")).arena).toBe("Scotiabank Arena");
     });
 
-    it("still returns the stats when the schedule cannot be loaded", async () => {
+    it("still returns the stats when the schedule cannot be loaded, and warns that the games are left out", async () => {
+      const warnings: AdapterWarning[] = [];
       const adapter = new NhlAdapter({
         fetch: async (input) => {
           const url = String(input);
           if (/club-schedule-season/.test(url)) throw new TypeError("Network request failed");
           return jsonResponse(fixtureFor(url));
         },
+        onWarning: (w) => warnings.push(w),
       });
       const detail = await adapter.getTeam("TOR");
       expect(detail.stats.length).toBe(3);
       expect(detail.recent).toBeUndefined();
       expect(detail.upcoming).toBeUndefined();
       expect(detail.arena).toBeUndefined();
+      expect(warnings.map((w) => w.message)).toEqual([expect.stringMatching(/^team games left out: /)]);
     });
 
     it("fails when the club stats cannot be loaded", async () => {
@@ -979,8 +1003,8 @@ describe("NHL adapter", () => {
 
   describe("API drift", () => {
     it("drops a minor field with the wrong type and warns", async () => {
-      const { adapter, warnings } = fixtureAdapter((_url, body) => {
-        body.playerByGameStats.homeTeam.goalies[1].savePctg = ".905";
+      const { adapter, warnings } = fixtureAdapter((url, body) => {
+        if (url.endsWith("/boxscore")) body.playerByGameStats.homeTeam.goalies[1].savePctg = ".905";
       });
       const detail = await adapter.getGameDetail("2026020333");
       const goalies = detail.boxscore.home.find((t) => t.title === "Goalies")!;
@@ -1000,8 +1024,8 @@ describe("NHL adapter", () => {
     });
 
     it("drops a broken box score row and keeps the rest", async () => {
-      const { adapter, warnings } = fixtureAdapter((_url, body) => {
-        delete body.playerByGameStats.homeTeam.forwards[0].playerId;
+      const { adapter, warnings } = fixtureAdapter((url, body) => {
+        if (url.endsWith("/boxscore")) delete body.playerByGameStats.homeTeam.forwards[0].playerId;
       });
       const detail = await adapter.getGameDetail("2026020333");
       expect(detail.boxscore.home[0].rows).toHaveLength(11);

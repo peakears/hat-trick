@@ -21,6 +21,7 @@ import type {
 } from "../domain";
 import type { AdapterRegistry } from "../registry";
 import { FRESHNESS, gameDetailFreshness, scoresFreshness, teamFreshness } from "./freshness";
+import type { DiagnosticsLog, NewLogEntry } from "./diagnostics";
 import type { KeyValueStore } from "./store";
 import type { DataMeta, Fetched, FetchOptions } from "./types";
 
@@ -43,6 +44,8 @@ export interface SportsDataOptions {
   store: KeyValueStore;
   /** Injectable clock for tests. */
   now?: () => number;
+  /** Receives every adapter warning and failed request (Settings › Diagnostics). */
+  log?: DiagnosticsLog;
 }
 
 interface Resource<T> {
@@ -56,12 +59,14 @@ export class SportsData {
   private readonly registry: AdapterRegistry;
   private readonly store: KeyValueStore;
   private readonly now: () => number;
+  private readonly log?: DiagnosticsLog;
   private readonly inFlight = new Map<string, Promise<Fetched<unknown>>>();
 
   constructor(options: SportsDataOptions) {
     this.registry = options.registry;
     this.store = options.store;
     this.now = options.now ?? Date.now;
+    this.log = options.log;
   }
 
   getScores(league: LeagueId, date: string, options?: FetchOptions): Promise<Fetched<Game[]>> {
@@ -203,10 +208,17 @@ export class SportsData {
 
   private async refresh<T>(resource: Resource<T>, cached: CacheEntry<T> | null): Promise<Fetched<T>> {
     const warnings: string[] = [];
+    const { league, key } = resource;
     let data: T;
     try {
-      data = await resource.load({ onWarning: (w) => warnings.push(w.message) });
+      data = await resource.load({
+        onWarning: (w) => {
+          warnings.push(w.message);
+          this.record({ kind: "warning", league, key, url: w.url, message: w.message });
+        },
+      });
     } catch (err) {
+      this.record({ kind: "error", league, key, url: (err as { url?: string }).url, message: errorText(err) });
       if (!cached) throw err;
       // Offline or API down: show the last known data, flagged as stale.
       return {
@@ -229,6 +241,11 @@ export class SportsData {
       // Storage full or unavailable: still return the fresh data.
     }
     return { data, meta: this.meta(resource, entry, "network") };
+  }
+
+  /** Logs a problem without waiting for the write, so loading data is never slowed or broken by the log. */
+  private record(entry: NewLogEntry): void {
+    this.log?.record(entry).catch(() => {});
   }
 
   private async read<T>(key: string): Promise<CacheEntry<T> | null> {
@@ -254,4 +271,10 @@ export class SportsData {
       warnings: entry.warnings,
     };
   }
+}
+
+/** "NhlApiError: HTTP 503", or the message of a thrown non-Error. */
+function errorText(err: unknown): string {
+  if (err instanceof Error) return err.name && err.name !== "Error" ? `${err.name}: ${err.message}` : err.message;
+  return String(err);
 }
