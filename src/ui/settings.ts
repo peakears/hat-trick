@@ -38,6 +38,8 @@ export interface Settings {
   spoilerShield: boolean;
   /** How the Standings tab groups teams; the last view picked. */
   standingsView: StandingsView;
+  /** The first-run setup was finished or skipped, so it is not shown again. */
+  onboardingComplete: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -53,6 +55,7 @@ export const DEFAULT_SETTINGS: Settings = {
   tvRegion: "auto",
   spoilerShield: false,
   standingsView: "division",
+  onboardingComplete: false,
 };
 
 export const SETTINGS_KEY = "settings:v1";
@@ -76,7 +79,13 @@ const schema = z.object({
   tvRegion: z.enum(TV_REGIONS).catch(DEFAULT_SETTINGS.tvRegion),
   spoilerShield: z.boolean().catch(DEFAULT_SETTINGS.spoilerShield),
   standingsView: z.enum(STANDINGS_VIEWS).catch(DEFAULT_SETTINGS.standingsView),
+  // Stored settings without this field were saved by a version before first-run setup existed: that user has
+  // used the app, so they skip it. Only a fresh install (nothing stored) starts with it false.
+  onboardingComplete: z.boolean().catch(true),
 });
+
+/** Defaults for someone who has used the app before but whose stored settings are unreadable. */
+const RETURNING_DEFAULTS: Settings = { ...DEFAULT_SETTINGS, onboardingComplete: true };
 
 export function parseSettings(raw: string | null): Settings {
   if (raw == null) return { ...DEFAULT_SETTINGS };
@@ -84,17 +93,26 @@ export function parseSettings(raw: string | null): Settings {
   try {
     json = JSON.parse(raw);
   } catch {
-    return { ...DEFAULT_SETTINGS };
+    return { ...RETURNING_DEFAULTS };
   }
-  if (typeof json !== "object" || json === null || Array.isArray(json)) return { ...DEFAULT_SETTINGS };
+  if (typeof json !== "object" || json === null || Array.isArray(json)) return { ...RETURNING_DEFAULTS };
   return schema.parse(json);
 }
 
+/**
+ * Settings are only written when one changes, so someone who updated from a version without first-run setup and
+ * never changed a setting has none stored. Anything else on the device (cached data, the update check, the
+ * diagnostics log) shows the app has been used, so setup is skipped for them too.
+ */
 export async function loadSettings(store: KeyValueStore): Promise<Settings> {
   try {
-    return parseSettings(await store.get(SETTINGS_KEY));
+    const raw = await store.get(SETTINGS_KEY);
+    const settings = parseSettings(raw);
+    if (raw == null && (await store.keys()).length > 0) settings.onboardingComplete = true;
+    return settings;
   } catch {
-    return { ...DEFAULT_SETTINGS };
+    // Storage could not be read: do not put a returning user through setup again.
+    return { ...RETURNING_DEFAULTS };
   }
 }
 

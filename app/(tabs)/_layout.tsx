@@ -1,7 +1,10 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
+import { Redirect } from "expo-router";
 import { Tabs } from "expo-router/js-tabs";
 import type { ComponentProps } from "react";
 import type { ColorValue } from "react-native";
+import { shouldShowOnboarding } from "../../src/ui/onboarding";
+import { useSettings } from "../../src/ui/settings-context";
 
 type IconName = ComponentProps<typeof Ionicons>["name"];
 
@@ -13,6 +16,11 @@ const icon =
   );
 
 export default function TabsLayout() {
+  const { settings, loaded } = useSettings();
+  // The splash screen stays up until settings are read, so render nothing until then: no tab mounts (or fetches)
+  // before we know whether this is a fresh install. A fresh install goes to first-run setup instead.
+  if (!loaded) return null;
+  if (shouldShowOnboarding(loaded, settings.onboardingComplete)) return <Redirect href="/welcome" />;
   return (
     <Tabs>
       <Tabs.Screen name="index" options={{ title: "Scores", tabBarIcon: icon("calendar-outline") }} />

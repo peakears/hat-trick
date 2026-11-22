@@ -1,29 +1,24 @@
-import Ionicons from "@expo/vector-icons/Ionicons";
 import { useRouter } from "expo-router";
-import { useState, type ReactNode } from "react";
-import { Linking, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
-import { TV_REGIONS, type TvRegionPreference } from "../../src/ui/broadcasts";
+import { useState } from "react";
+import { Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { ReleaseNotesModal } from "../../src/ui/components/ReleaseNotesModal";
 import { Segmented } from "../../src/ui/components/Segmented";
+import {
+  AccentPicker,
+  Section,
+  THEME_OPTIONS,
+  ToggleRow,
+  TV_REGION_OPTIONS,
+  useReminderToggle,
+} from "../../src/ui/components/SettingsRows";
 import { timeLabel } from "../../src/ui/format";
 import { installStatusText, isBusy } from "../../src/ui/install-update";
-import { ACCENTS, ACCENT_LABELS, accentSwatch, type AccentId } from "../../src/ui/palette";
 import { RELEASES_URL, REPO_URL, reportProblemUrl } from "../../src/ui/links";
-import { requestReminderPermission } from "../../src/ui/reminders-native";
-import { REMINDER_LEADS, type ReminderLead, type ThemePreference } from "../../src/ui/settings";
+import { REMINDER_LEADS, type ReminderLead } from "../../src/ui/settings";
 import { useSettings } from "../../src/ui/settings-context";
 import type { UpdateStatus } from "../../src/ui/updates";
-import { useColors, useScheme, DIVIDER } from "../../src/ui/theme";
+import { useColors, DIVIDER } from "../../src/ui/theme";
 import { APP_VERSION, useUpdate } from "../../src/ui/update-context";
-
-const THEME_OPTIONS: { value: ThemePreference; label: string }[] = [
-  { value: "system", label: "System" },
-  { value: "light", label: "Light" },
-  { value: "dark", label: "Dark" },
-];
-
-const TV_REGION_LABELS: Record<TvRegionPreference, string> = { auto: "Auto", CA: "Canada", US: "US" };
-const TV_REGION_OPTIONS = TV_REGIONS.map((value) => ({ value, label: TV_REGION_LABELS[value] }));
 
 const LEAD_OPTIONS = REMINDER_LEADS.map((n) => ({ value: String(n), label: `${n} min` }));
 
@@ -33,18 +28,8 @@ export default function SettingsScreen() {
   const { settings, update } = useSettings();
   const { status, checking, checkNow, install, installNow, cancelInstall, openInBrowser, canInstallInApp } =
     useUpdate();
-  const [permissionDenied, setPermissionDenied] = useState(false);
+  const { setReminders, permissionDenied } = useReminderToggle();
   const [notesOpen, setNotesOpen] = useState(false);
-
-  // Turning reminders on asks for the notification permission first; it stays off if refused.
-  const setReminders = async (enabled: boolean) => {
-    if (enabled && !(await requestReminderPermission().catch(() => false))) {
-      setPermissionDenied(true);
-      return;
-    }
-    setPermissionDenied(false);
-    update({ remindersEnabled: enabled });
-  };
 
   return (
     <ScrollView style={{ backgroundColor: colors.background }} contentContainerStyle={styles.content}>
@@ -58,7 +43,7 @@ export default function SettingsScreen() {
           value={settings.pureBlack}
           onChange={(pureBlack) => update({ pureBlack })}
         />
-        <AccentPicker value={settings.accent} onChange={(accent) => update({ accent })} />
+        <AccentPicker value={settings.accent} onChange={(accent) => update({ accent })} last />
       </Section>
 
       <Section title="Display">
@@ -213,6 +198,18 @@ export default function SettingsScreen() {
         )}
         <ReleaseNotesModal visible={notesOpen} onClose={() => setNotesOpen(false)} />
         <Pressable
+          onPress={() => router.push({ pathname: "/welcome", params: { again: "1" } })}
+          accessibilityRole="button"
+          style={[styles.row, styles.divider, { borderBottomColor: colors.border }]}
+        >
+          <View style={styles.rowText}>
+            <Text style={[styles.label, { color: colors.text }]}>Run setup again</Text>
+            <Text style={[styles.detail, { color: colors.muted }]}>
+              The first-run steps: favourite teams, theme and reminders. Your current choices stay picked.
+            </Text>
+          </View>
+        </Pressable>
+        <Pressable
           onPress={() => router.push("/diagnostics")}
           accessibilityRole="button"
           style={[styles.row, styles.divider, { borderBottomColor: colors.border }]}
@@ -234,16 +231,6 @@ export default function SettingsScreen() {
 
       <Text style={[styles.footer, { color: colors.muted }]}>Not affiliated with the NHL or any team.</Text>
     </ScrollView>
-  );
-}
-
-function Section({ title, children }: { title: string; children: ReactNode }) {
-  const colors = useColors();
-  return (
-    <View style={styles.section}>
-      <Text style={[styles.sectionTitle, { color: colors.muted }]}>{title.toUpperCase()}</Text>
-      <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>{children}</View>
-    </View>
   );
 }
 
@@ -289,70 +276,8 @@ function LinkRow({
   );
 }
 
-/** Round swatches for the accent colour, in the shades the current theme uses. */
-function AccentPicker({ value, onChange }: { value: AccentId; onChange: (accent: AccentId) => void }) {
-  const colors = useColors();
-  const scheme = useScheme();
-  return (
-    <View style={styles.row}>
-      <View style={styles.rowText}>
-        <Text style={[styles.label, { color: colors.text }]}>Accent colour</Text>
-        <Text style={[styles.detail, { color: colors.muted }]}>Links, buttons and highlights.</Text>
-        <View style={styles.swatches} accessibilityRole="radiogroup" accessibilityLabel="Accent colour">
-          {ACCENTS.map((accent) => {
-            const selected = accent === value;
-            return (
-              <Pressable
-                key={accent}
-                onPress={() => onChange(accent)}
-                hitSlop={4}
-                accessibilityRole="radio"
-                accessibilityState={{ checked: selected }}
-                accessibilityLabel={ACCENT_LABELS[accent]}
-                style={[styles.swatchRing, { borderColor: selected ? colors.text : "transparent" }]}
-              >
-                <View style={[styles.swatch, { backgroundColor: accentSwatch(accent, scheme) }]}>
-                  {selected && <Ionicons name="checkmark" size={18} color={colors.onAccent} />}
-                </View>
-              </Pressable>
-            );
-          })}
-        </View>
-      </View>
-    </View>
-  );
-}
-
-function ToggleRow({
-  label,
-  detail,
-  value,
-  onChange,
-  last = false,
-}: {
-  label: string;
-  detail?: string;
-  value: boolean;
-  onChange: (value: boolean) => void;
-  last?: boolean;
-}) {
-  const colors = useColors();
-  return (
-    <View style={[styles.row, !last && { borderBottomWidth: DIVIDER, borderBottomColor: colors.border }]}>
-      <View style={styles.rowText}>
-        <Text style={[styles.label, { color: colors.text }]}>{label}</Text>
-        {detail ? <Text style={[styles.detail, { color: colors.muted }]}>{detail}</Text> : null}
-      </View>
-      <Switch value={value} onValueChange={onChange} trackColor={{ true: colors.accent }} accessibilityLabel={label} />
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   content: { padding: 16, gap: 20 },
-  section: { gap: 6 },
-  sectionTitle: { fontSize: 12, fontWeight: "600", letterSpacing: 0.5, marginLeft: 4 },
-  card: { borderRadius: 12, borderWidth: StyleSheet.hairlineWidth, overflow: "hidden" },
   row: { flexDirection: "row", alignItems: "center", paddingHorizontal: 14, paddingVertical: 12, gap: 12 },
   rowText: { flex: 1, gap: 2 },
   label: { fontSize: 16 },
@@ -360,8 +285,5 @@ const styles = StyleSheet.create({
   leadPicker: { flex: 1 },
   divider: { borderBottomWidth: DIVIDER },
   linkText: { fontWeight: "600" },
-  swatches: { flexDirection: "row", flexWrap: "wrap", gap: 10, marginTop: 10 },
-  swatchRing: { borderRadius: 999, borderWidth: 2, padding: 2 },
-  swatch: { width: 32, height: 32, borderRadius: 999, alignItems: "center", justifyContent: "center" },
   footer: { textAlign: "center", fontSize: 12, lineHeight: 18 },
 });

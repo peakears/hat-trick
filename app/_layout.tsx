@@ -49,6 +49,7 @@ function ThemedStack() {
         <Stack.Screen name="player/[id]" options={{ title: "Player" }} />
         <Stack.Screen name="spotlight" options={{ title: "Player spotlight" }} />
         <Stack.Screen name="diagnostics" options={{ title: "Diagnostics" }} />
+        <Stack.Screen name="welcome" options={{ headerShown: false, gestureEnabled: false, animation: "fade" }} />
       </Stack>
       <Reminders />
       <StatusBar style="auto" />

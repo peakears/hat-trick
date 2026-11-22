@@ -30,14 +30,23 @@ describe("parseSettings", () => {
       tvRegion: "auto",
       spoilerShield: false,
       standingsView: "division",
+      onboardingComplete: false,
     });
   });
 
-  it("returns defaults for corrupt JSON or a non-object", () => {
-    expect(parseSettings("{not json")).toEqual(DEFAULT_SETTINGS);
-    expect(parseSettings("[]")).toEqual(DEFAULT_SETTINGS);
-    expect(parseSettings("null")).toEqual(DEFAULT_SETTINGS);
-    expect(parseSettings('"dark"')).toEqual(DEFAULT_SETTINGS);
+  it("returns defaults for corrupt JSON or a non-object, with setup done (something was stored)", () => {
+    const returning = { ...DEFAULT_SETTINGS, onboardingComplete: true };
+    expect(parseSettings("{not json")).toEqual(returning);
+    expect(parseSettings("[]")).toEqual(returning);
+    expect(parseSettings("null")).toEqual(returning);
+    expect(parseSettings('"dark"')).toEqual(returning);
+  });
+
+  it("treats stored settings from before first-run setup as having done it", () => {
+    expect(parseSettings(JSON.stringify({ theme: "dark" })).onboardingComplete).toBe(true);
+    expect(parseSettings(JSON.stringify({ onboardingComplete: "no" })).onboardingComplete).toBe(true);
+    expect(parseSettings(JSON.stringify({ onboardingComplete: false })).onboardingComplete).toBe(false);
+    expect(parseSettings(null).onboardingComplete).toBe(false);
   });
 
   it("keeps valid fields and defaults only the bad or missing ones", () => {
@@ -54,6 +63,7 @@ describe("parseSettings", () => {
       tvRegion: "auto",
       spoilerShield: false,
       standingsView: "division",
+      onboardingComplete: true,
     });
     expect(parseSettings(JSON.stringify({ theme: "purple", showBetting: true }))).toEqual({
       theme: "system",
@@ -68,6 +78,7 @@ describe("parseSettings", () => {
       tvRegion: "auto",
       spoilerShield: false,
       standingsView: "division",
+      onboardingComplete: true,
     });
   });
 
@@ -137,15 +148,26 @@ describe("loadSettings / saveSettings", () => {
       tvRegion: "CA",
       spoilerShield: true,
       standingsView: "conference",
+      onboardingComplete: true,
     };
     await saveSettings(store, settings);
     expect(await loadSettings(store)).toEqual(settings);
   });
 
-  it("falls back to defaults when the store throws", async () => {
+  it("falls back to defaults, with setup done, when the store throws", async () => {
     const store = new MemoryStore();
     store.get = () => Promise.reject(new Error("disk"));
-    expect(await loadSettings(store)).toEqual(DEFAULT_SETTINGS);
+    expect(await loadSettings(store)).toEqual({ ...DEFAULT_SETTINGS, onboardingComplete: true });
+  });
+
+  it("shows first-run setup only on a fresh install", async () => {
+    expect((await loadSettings(new MemoryStore())).onboardingComplete).toBe(false);
+  });
+
+  it("skips first-run setup for someone who used the app but never changed a setting", async () => {
+    const store = new MemoryStore();
+    await store.set("cache:v3:standings", "{}");
+    expect(await loadSettings(store)).toEqual({ ...DEFAULT_SETTINGS, onboardingComplete: true });
   });
 
   it("is stored outside the cache, so prune() leaves it alone", async () => {
