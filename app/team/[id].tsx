@@ -4,11 +4,13 @@ import { useState } from "react";
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import type { Game, StandingRow, TeamDetail } from "../../src/domain";
 import { FavoriteStar } from "../../src/ui/components/FavoriteStar";
+import { NextGameCard } from "../../src/ui/components/NextGameCard";
 import { StatTableView } from "../../src/ui/components/StatTableView";
 import { CrashScreen, Empty, ErrorView, Loading, OfflineBanner, UpdatedAt } from "../../src/ui/components/States";
 import { SpecialEventTag } from "../../src/ui/components/SpecialEventTag";
 import { TeamLogo } from "../../src/ui/components/TeamLogo";
 import { dateLabel, localDate, recordLabel } from "../../src/ui/format";
+import { pickNextGame, withoutNextGame, type NextGame } from "../../src/ui/next-game";
 import { useSpoilers } from "../../src/ui/spoiler-context";
 import { LEAGUE, useSportsData } from "../../src/ui/sports-data-context";
 import {
@@ -150,12 +152,15 @@ function GamesSection({ title, games, teamId }: { title: string; games?: Game[];
 function TeamExtras({
   teamId,
   data,
+  next,
   loading,
   error,
   onRetry,
 }: {
   teamId: string;
   data?: TeamDetail;
+  /** The game in the next game card, left out of the list it came from. */
+  next?: NextGame;
   loading: boolean;
   error?: Error;
   onRetry: () => void;
@@ -175,8 +180,8 @@ function TeamExtras({
   }
   return (
     <>
-      <GamesSection title="Recent games" games={data.recent} teamId={teamId} />
-      <GamesSection title="Upcoming games" games={data.upcoming} teamId={teamId} />
+      <GamesSection title="Recent games" games={withoutNextGame(data.recent, next, "recent")} teamId={teamId} />
+      <GamesSection title="Upcoming games" games={withoutNextGame(data.upcoming, next, "upcoming")} teamId={teamId} />
       <Text style={[styles.sectionTitle, { color: colors.muted }]}>Season stats</Text>
       {data.stats.length === 0 ? (
         <Text style={[styles.none, { color: colors.muted }]}>No player stats yet this season.</Text>
@@ -212,6 +217,8 @@ export default function TeamScreen() {
 
   const { team } = row;
   const splits = splitLines(row);
+  // From the team's schedule; no card in the offseason or when the schedule failed to load.
+  const next = pickNextGame(detail.data);
 
   return (
     <>
@@ -246,6 +253,8 @@ export default function TeamScreen() {
             <FavoriteStar team={team} size={26} />
           </View>
         </View>
+
+        {next && <NextGameCard game={next.game} teamId={team.id} standings={standings.data} />}
 
         <View style={[styles.recordCard, { backgroundColor: colors.card }]}>
           <View style={styles.recordRow} accessible accessibilityLabel={`Record ${recordLabel(row)}`}>
@@ -289,6 +298,7 @@ export default function TeamScreen() {
         <TeamExtras
           teamId={team.id}
           data={detail.data}
+          next={next}
           loading={detail.loading}
           error={detail.error}
           onRetry={detail.refresh}
