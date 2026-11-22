@@ -69,6 +69,11 @@ export function summarizeChannels(
   return { shown: channels.slice(0, max), more: Math.max(0, channels.length - max) };
 }
 
+/** What the TV line is called for screen readers: where it aired once over, where to watch before and during. */
+export function watchHeading(status: GameStatus): string {
+  return status === "final" ? "Aired on" : "Where to watch";
+}
+
 /** Plain text for screen readers and tests: "SN, TVAS, SCRIPPS (FLA)". */
 export function channelsLabel(channels: Channel[]): string {
   return channels.map((c) => (c.teamAbbrev ? `${c.network} (${c.teamAbbrev})` : c.network)).join(", ");

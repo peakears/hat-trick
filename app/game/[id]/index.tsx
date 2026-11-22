@@ -8,9 +8,9 @@ import { PageSkeleton } from "../../../src/ui/components/Skeleton";
 import { TeamLogo } from "../../../src/ui/components/TeamLogo";
 import { GoalSummary } from "../../../src/ui/components/GoalSummary";
 import { PenaltySummary } from "../../../src/ui/components/PenaltySummary";
+import { GameInfoLines } from "../../../src/ui/components/GameInfoLines";
 import { ThreeStars } from "../../../src/ui/components/ThreeStars";
-import { WhereToWatch } from "../../../src/ui/components/WhereToWatch";
-import { localDate, teamRecord, venueLabel } from "../../../src/ui/format";
+import { localDate, teamRecord } from "../../../src/ui/format";
 import { eventWeekStart, withSpecialEvents } from "../../../src/ui/special-events";
 import { useSpoilers } from "../../../src/ui/spoiler-context";
 import { LEAGUE, useSportsData } from "../../../src/ui/sports-data-context";
@@ -46,7 +46,6 @@ export default function GameScreen() {
 
   const { game, goals, threeStars, penalties } = detail.data;
   const live = game.status === "live";
-  const venue = venueLabel(game.venue);
   // While hidden: no score, shots, goals, three stars, penalties, box score, and no records (the standings already
   // count a finished game).
   const hidden = spoilers.isHidden(game);
@@ -97,33 +96,29 @@ export default function GameScreen() {
           <RefreshControl refreshing={detail.refreshing} onRefresh={detail.refresh} colors={[colors.accent]} />
         }
       >
-        <View style={[styles.summary, { backgroundColor: colors.card }]}>
-          {team(game.away)}
-          <View style={styles.middle}>
-            {hidden ? (
-              <Text style={[styles.hiddenScore, { color: colors.muted }]}>Score hidden</Text>
-            ) : (
-              <Text style={[styles.score, tabular, { color: colors.text }]}>
-                {game.away.score ?? "-"} – {game.home.score ?? "-"}
+        <View style={[styles.summaryCard, { backgroundColor: colors.card }]}>
+          <View style={styles.summary}>
+            {team(game.away)}
+            <View style={styles.middle}>
+              {hidden ? (
+                <Text style={[styles.hiddenScore, { color: colors.muted }]}>Score hidden</Text>
+              ) : (
+                <Text style={[styles.score, tabular, { color: colors.text }]}>
+                  {game.away.score ?? "-"} – {game.home.score ?? "-"}
+                </Text>
+              )}
+              <Text style={[styles.status, tabular, { color: live ? colors.live : colors.muted }]}>
+                {spoilers.statusLabel(game)}
               </Text>
-            )}
-            <Text style={[styles.status, tabular, { color: live ? colors.live : colors.muted }]}>
-              {spoilers.statusLabel(game)}
-            </Text>
-            {hidden && <RevealButton label="Show score" onPress={() => spoilers.reveal(game.id)} />}
+              {hidden && <RevealButton label="Show score" onPress={() => spoilers.reveal(game.id)} />}
+            </View>
+            {team(game.home)}
           </View>
-          {team(game.home)}
+          {/* Arena and TV channels, one compact line each, instead of a line and a card of their own. */}
+          <GameInfoLines game={game} />
         </View>
 
         <GameEvent game={game} />
-
-        {venue && (
-          <Text style={[styles.venue, { color: colors.muted }]} accessibilityLabel={`Played at ${venue}`}>
-            {venue}
-          </Text>
-        )}
-
-        <WhereToWatch game={game} />
 
         {!hidden && threeStars && <ThreeStars stars={threeStars} />}
 
@@ -177,17 +172,10 @@ const styles = StyleSheet.create({
     padding: 14,
     borderRadius: 12,
   },
-  venue: { fontSize: 13, textAlign: "center", marginTop: 10, marginHorizontal: 12 },
   boxScoreLabel: { fontSize: 15, fontWeight: "700" },
   boxScoreHint: { fontSize: 13 },
-  summary: {
-    flexDirection: "row",
-    alignItems: "center",
-    margin: 12,
-    marginBottom: 0,
-    padding: 16,
-    borderRadius: 12,
-  },
+  summaryCard: { margin: 12, marginBottom: 0, padding: 16, borderRadius: 12 },
+  summary: { flexDirection: "row", alignItems: "center" },
   team: { flex: 1, alignItems: "center", gap: 6 },
   teamLink: { alignItems: "center", gap: 6, maxWidth: "100%" },
   teamName: { flexShrink: 1, fontSize: 14, fontWeight: "600" },
