@@ -13,15 +13,16 @@ import {
 } from "../goals";
 import { tabular, useColors, DIVIDER } from "../theme";
 import { goalVideoLabel, isOpenableVideoUrl } from "../videos";
-import { openVideo } from "../videos-native";
+import { useOpenVideo } from "../use-open-video";
 
 /**
  * Goal-by-goal summary: time, team, scorer with their goal of the game ("(2)") and tags ("PP", "Hat trick"), which
  * goal of the season it was ("9th goal"), assists, the score after the goal, and a play button when the league has
- * the goal's video (opened in a browser tab).
+ * the goal's video.
  */
 export function GoalSummary({ goals }: { goals: Goal[] }) {
   const colors = useColors();
+  const open = useOpenVideo();
   if (goals.length === 0) return null;
   const numbers = scorerGameGoalNumbers(goals);
   const gameGoal = new Map(goals.map((g, i) => [g, numbers[i]]));
@@ -55,7 +56,7 @@ export function GoalSummary({ goals }: { goals: Goal[] }) {
                 {score && <Text style={[styles.score, tabular, { color: colors.text }]}>{score}</Text>}
                 {isOpenableVideoUrl(goal.videoUrl) && (
                   <Pressable
-                    onPress={() => goal.videoUrl && openVideo(goal.videoUrl, colors.card)}
+                    onPress={() => goal.videoUrl && open(goal.videoUrl, `Goal: ${goal.scorer.name}`)}
                     hitSlop={8}
                     accessibilityRole="link"
                     accessibilityLabel={goalVideoLabel(goal)}

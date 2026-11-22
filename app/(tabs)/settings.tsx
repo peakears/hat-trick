@@ -54,6 +54,12 @@ export default function SettingsScreen() {
           onChange={(showLogos) => update({ showLogos })}
         />
         <ToggleRow
+          label="Play videos in the app"
+          detail="Recaps and goal videos play here. Off opens them in a browser tab instead."
+          value={settings.playVideosInApp}
+          onChange={(playVideosInApp) => update({ playVideosInApp })}
+        />
+        <ToggleRow
           label="Show betting info"
           detail="Odds and lines, when available. Coming in a later version."
           value={settings.showBetting}

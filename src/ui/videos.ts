@@ -16,6 +16,24 @@ export function isOpenableVideoUrl(url: string | undefined): url is string {
   return url !== undefined && /^https:\/\/[a-z0-9.-]+\/[^\s]*$/i.test(url);
 }
 
+/** The host of an https URL, lower case and without a leading "www.", or undefined for any other URL. */
+function siteOf(url: string): string | undefined {
+  const host = /^https:\/\/([a-z0-9.-]+)(?:[/?#]|$)/i.exec(url)?.[1]?.toLowerCase();
+  return host?.replace(/^www\./, "");
+}
+
+/**
+ * What the in-app video screen does when its page navigates: "stay" for a page on the same site as the video
+ * (nhl.com and www.nhl.com count as one), "browser" for another https page (opened outside the app), and "block" for
+ * anything else (intent:, file:, http: and the like never load).
+ */
+export function videoNavigation(videoUrl: string, nextUrl: string): "stay" | "browser" | "block" {
+  if (nextUrl === "about:blank") return "stay";
+  const next = siteOf(nextUrl);
+  if (!next) return "block";
+  return next === siteOf(videoUrl) ? "stay" : "browser";
+}
+
 /** A game's videos that can be opened, recap first. */
 export function playableVideos(videos: GameVideo[] | undefined): GameVideo[] {
   const order: GameVideo["kind"][] = ["recap", "condensed"];

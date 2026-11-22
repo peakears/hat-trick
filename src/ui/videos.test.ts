@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Goal } from "../domain";
-import { goalVideoLabel, isOpenableVideoUrl, playableVideos } from "./videos";
+import { goalVideoLabel, isOpenableVideoUrl, playableVideos, videoNavigation } from "./videos";
 
 describe("videos", () => {
   it("opens only https web pages", () => {
@@ -34,5 +34,32 @@ describe("videos", () => {
       penaltyShot: false,
     } satisfies Goal;
     expect(goalVideoLabel(goal)).toBe("Watch M. Zuccarello's goal at 15:46 of the 1st");
+  });
+});
+
+describe("videoNavigation", () => {
+  const video = "https://www.nhl.com/video/lak-at-bos-recap-1";
+  it("stays on the video's own site, with or without www", () => {
+    expect(videoNavigation(video, "https://www.nhl.com/video/other-2")).toBe("stay");
+    expect(videoNavigation(video, "https://nhl.com/video/other-2")).toBe("stay");
+    expect(videoNavigation(video, "https://WWW.NHL.COM/")).toBe("stay");
+    expect(videoNavigation(video, "about:blank")).toBe("stay");
+  });
+
+  it("sends other https sites to the browser", () => {
+    expect(videoNavigation(video, "https://shop.nhl.com/")).toBe("browser");
+    expect(videoNavigation(video, "https://nhl.com.evil.example/video/a")).toBe("browser");
+    expect(videoNavigation(video, "https://evil.example/?u=https://www.nhl.com")).toBe("browser");
+  });
+
+  it("blocks anything that is not https", () => {
+    for (const url of [
+      "http://www.nhl.com/video/a",
+      "intent://x#Intent;end",
+      "file:///sdcard/a",
+      "javascript:alert(1)",
+    ]) {
+      expect(videoNavigation(video, url)).toBe("block");
+    }
   });
 });

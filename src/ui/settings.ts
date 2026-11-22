@@ -38,6 +38,8 @@ export interface Settings {
   spoilerShield: boolean;
   /** How the Standings tab groups teams; the last view picked. */
   standingsView: StandingsView;
+  /** Play game and goal videos on an in-app screen; off opens them in a browser tab. */
+  playVideosInApp: boolean;
   /** The first-run setup was finished or skipped, so it is not shown again. */
   onboardingComplete: boolean;
 }
@@ -55,6 +57,7 @@ export const DEFAULT_SETTINGS: Settings = {
   tvRegion: "auto",
   spoilerShield: false,
   standingsView: "division",
+  playVideosInApp: true,
   onboardingComplete: false,
 };
 
@@ -79,6 +82,7 @@ const schema = z.object({
   tvRegion: z.enum(TV_REGIONS).catch(DEFAULT_SETTINGS.tvRegion),
   spoilerShield: z.boolean().catch(DEFAULT_SETTINGS.spoilerShield),
   standingsView: z.enum(STANDINGS_VIEWS).catch(DEFAULT_SETTINGS.standingsView),
+  playVideosInApp: z.boolean().catch(DEFAULT_SETTINGS.playVideosInApp),
   // Stored settings without this field were saved by a version before first-run setup existed: that user has
   // used the app, so they skip it. Only a fresh install (nothing stored) starts with it false.
   onboardingComplete: z.boolean().catch(true),

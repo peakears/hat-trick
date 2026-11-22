@@ -30,6 +30,7 @@ describe("parseSettings", () => {
       tvRegion: "auto",
       spoilerShield: false,
       standingsView: "division",
+      playVideosInApp: true,
       onboardingComplete: false,
     });
   });
@@ -63,6 +64,7 @@ describe("parseSettings", () => {
       tvRegion: "auto",
       spoilerShield: false,
       standingsView: "division",
+      playVideosInApp: true,
       onboardingComplete: true,
     });
     expect(parseSettings(JSON.stringify({ theme: "purple", showBetting: true }))).toEqual({
@@ -78,6 +80,7 @@ describe("parseSettings", () => {
       tvRegion: "auto",
       spoilerShield: false,
       standingsView: "division",
+      playVideosInApp: true,
       onboardingComplete: true,
     });
   });
@@ -148,6 +151,7 @@ describe("loadSettings / saveSettings", () => {
       tvRegion: "CA",
       spoilerShield: true,
       standingsView: "conference",
+      playVideosInApp: false,
       onboardingComplete: true,
     };
     await saveSettings(store, settings);

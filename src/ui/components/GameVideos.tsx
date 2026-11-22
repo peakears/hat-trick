@@ -3,14 +3,15 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import type { GameVideo } from "../../domain";
 import { useColors, DIVIDER } from "../theme";
 import { playableVideos, VIDEO_LABELS } from "../videos";
-import { openVideo } from "../videos-native";
+import { useOpenVideo } from "../use-open-video";
 
 /**
- * A finished game's recap and condensed game, opened on the league's website in a browser tab. The rows name no
+ * A finished game's recap and condensed game, played on the in-app video screen or in a browser tab (Settings). The rows name no
  * players or score, so they are safe under the spoiler shield; the video page itself is the user's choice to open.
  */
 export function GameVideos({ videos }: { videos: GameVideo[] | undefined }) {
   const colors = useColors();
+  const open = useOpenVideo();
   const shown = playableVideos(videos);
   if (shown.length === 0) return null;
   return (
@@ -21,10 +22,9 @@ export function GameVideos({ videos }: { videos: GameVideo[] | undefined }) {
         return (
           <Pressable
             key={video.kind}
-            onPress={() => openVideo(video.url, colors.card)}
+            onPress={() => open(video.url, title)}
             accessibilityRole="link"
             accessibilityLabel={`Watch the ${title.toLowerCase()}`}
-            accessibilityHint="Opens in a browser tab"
             style={[styles.row, i > 0 && { borderTopWidth: DIVIDER, borderTopColor: colors.border }]}
           >
             <Ionicons name="play-circle" size={28} color={colors.accent} />
