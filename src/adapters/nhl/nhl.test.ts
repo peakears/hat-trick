@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { runLeagueAdapterContract } from "../../contract/league-adapter.contract";
 import { NhlAdapter, NhlApiError, NhlResponseError, type AdapterWarning } from ".";
-import { infractionLabel, landingSpecialEvent } from "./mappers";
+import { infractionLabel, landingSpecialEvent, nhlVideoUrl } from "./mappers";
 import { RawLandingSchema } from "./raw-types";
 
 // Real responses recorded from api-web.nhle.com on 2026-11-17 (club stats, the Toronto schedule and the landing: 2026-11-20;
@@ -269,6 +269,56 @@ describe("NHL adapter", () => {
     });
   });
 
+  describe("videos", () => {
+    it("links a final game's recap and condensed game, and each goal's clip, on nhl.com", async () => {
+      const { videos, goals } = await fixtureAdapter().adapter.getGameDetail("2026020333");
+      expect(videos).toEqual([
+        { kind: "recap", url: "https://www.nhl.com/video/lak-at-bos-recap-6408527036112" },
+        { kind: "condensed", url: "https://www.nhl.com/video/lak-at-bos-condensed-game-6408527438112" },
+      ]);
+      expect(goals![0].videoUrl).toBe(
+        "https://nhl.com/video/lak-bos-zuccarello-scores-goal-against-michael-dipietro-6408520589112",
+      );
+    });
+
+    it("has no game videos while a game is live", async () => {
+      const { videos } = await fixtureAdapter().adapter.getGameDetail("2026020342");
+      expect(videos).toEqual([]);
+    });
+
+    it("drops a video link that is not an nhl.com video page, keeping the rest of the game", async () => {
+      const { adapter } = fixtureAdapter((_url, body) => {
+        const game = body.games?.find((g: any) => g.id === 2026020333);
+        if (!game) return;
+        game.threeMinRecap = "https://evil.example/video/x";
+        game.condensedGame = 42;
+        game.goals[0].highlightClipSharingUrl = "https://nhl.com/video/../../evil";
+      });
+      const { videos, goals } = await adapter.getGameDetail("2026020333");
+      expect(videos).toEqual([]);
+      expect(goals).toHaveLength(3);
+      expect(goals![0].videoUrl).toBeUndefined();
+    });
+
+    it("accepts only whole nhl.com video page URLs", () => {
+      expect(nhlVideoUrl("/video/a-b-1")).toBe("https://www.nhl.com/video/a-b-1");
+      expect(nhlVideoUrl("https://www.nhl.com/video/a-b-1")).toBe("https://www.nhl.com/video/a-b-1");
+      for (const bad of [
+        undefined,
+        "",
+        "/video/",
+        "/video/a/b",
+        "//evil.example/video/a",
+        "http://nhl.com/video/a",
+        "https://nhl.com.evil.example/video/a",
+        "https://nhl.com/video/a?next=https://evil.example",
+        "https://evil.example/https://nhl.com/video/a",
+      ]) {
+        expect(nhlVideoUrl(bad)).toBeUndefined();
+      }
+    });
+  });
+
   describe("goal summary", () => {
     it("lists a final game's goals in the order scored", async () => {
       const { goals } = await fixtureAdapter().adapter.getGameDetail("2026020333");
@@ -320,9 +370,10 @@ describe("NHL adapter", () => {
       const detail = await adapter.getGameDetail("2026020333");
       expect(detail.game.id).toBe("2026020333");
       expect(detail.goals).toBeUndefined();
+      expect(detail.videos).toBeUndefined();
       expect(warnings).toHaveLength(1);
       expect(warnings[0].url).toMatch(/\/score\/\d{4}-\d{2}-\d{2}$/);
-      expect(warnings[0].message).toMatch(/^goals left out: .*Network request failed/);
+      expect(warnings[0].message).toMatch(/^goals and videos left out: .*Network request failed/);
     });
 
     it("carries the scorer's season goals", async () => {

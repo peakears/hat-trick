@@ -7,6 +7,7 @@ import type {
   GameSide,
   GameStar,
   GameStatus,
+  GameVideo,
   Goal,
   GoalStrength,
   LeaderBoard,
@@ -255,8 +256,33 @@ export function mapGoals(raw: RawGoal[] | undefined): Goal[] | undefined {
       penaltyShot: g.goalModifier === "penalty-shot",
       homeScore: g.homeScore,
       awayScore: g.awayScore,
+      videoUrl: nhlVideoUrl(g.highlightClipSharingUrl),
     };
   });
+}
+
+// A video page on nhl.com: the whole URL must match, so a link can never lead anywhere else.
+const VIDEO_PATH = /^\/video\/[a-z0-9-]+$/;
+const VIDEO_URL = /^https:\/\/(www\.)?nhl\.com\/video\/[a-z0-9-]+$/;
+
+/**
+ * An nhl.com video page from a full URL (goal clips) or a site path (recaps), or undefined for anything else.
+ * Exported for tests.
+ */
+export function nhlVideoUrl(raw: string | undefined): string | undefined {
+  if (!raw) return undefined;
+  if (VIDEO_URL.test(raw)) return raw;
+  return VIDEO_PATH.test(raw) ? `https://www.nhl.com${raw}` : undefined;
+}
+
+/** A finished game's recap and condensed game, from its entry in /score. */
+export function mapGameVideos(raw: RawGame | undefined): GameVideo[] {
+  const videos: GameVideo[] = [];
+  const recap = nhlVideoUrl(raw?.threeMinRecap);
+  const condensed = nhlVideoUrl(raw?.condensedGame);
+  if (recap) videos.push({ kind: "recap", url: recap });
+  if (condensed) videos.push({ kind: "condensed", url: condensed });
+  return videos;
 }
 
 // Seen: "MIN", "PS". The others are the codes the league is known to use, unverified (see raw-types.ts).

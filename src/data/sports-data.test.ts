@@ -120,16 +120,22 @@ describe("freshness", () => {
 });
 
 describe("gameDetailFreshness", () => {
-  const detail = (g: Game, withStars: boolean): GameDetail => ({
+  const detail = (g: Game, withStars: boolean, withRecap = withStars): GameDetail => ({
     game: g,
     boxscore: { home: [], away: [] },
     threeStars: withStars ? [{ rank: 1, player: { id: "1", league: "test", name: "A" }, stats: [] }] : undefined,
+    videos: withRecap ? [{ kind: "recap", url: "https://example.com/recap" }] : [],
   });
 
   it("re-checks a just-finished game soon until its three stars arrive", () => {
     const final = game("final", "2026-11-17T19:30:00Z"); // started 3.5 hours ago
     expect(gameDetailFreshness(detail(final, false), NOW)).toBe(FRESHNESS.awaitingStars);
     expect(gameDetailFreshness(detail(final, true), NOW)).toBe(FRESHNESS.recentFinal);
+  });
+
+  it("keeps re-checking a just-finished game until its recap is posted too", () => {
+    const final = game("final", "2026-11-17T19:30:00Z");
+    expect(gameDetailFreshness(detail(final, true, false), NOW)).toBe(FRESHNESS.awaitingStars);
   });
 
   it("stops waiting for stars a few hours after the game", () => {

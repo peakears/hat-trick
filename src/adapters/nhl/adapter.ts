@@ -4,6 +4,7 @@ import type {
   Game,
   GameDetail,
   GameStar,
+  GameVideo,
   Penalty,
   Goal,
   LeaderBoard,
@@ -22,6 +23,7 @@ import {
   mapBoxscoreSide,
   mapClubStats,
   mapGame,
+  mapGameVideos,
   mapGoals,
   mapLeaders,
   landingSpecialEvent,
@@ -111,14 +113,15 @@ export class NhlAdapter implements LeagueAdapter {
   async getGameDetail(gameId: string, options?: RequestOptions): Promise<GameDetail> {
     const raw = await this.fetch(`/gamecenter/${gameId}/boxscore`, RawBoxscoreSchema, options);
     const game = mapGame(raw);
-    const [goals, landing] = await Promise.all([
-      game.status === "scheduled" ? undefined : this.getGoals(raw.id, raw.gameDate, options),
+    const [fromScores, landing] = await Promise.all([
+      game.status === "scheduled" ? undefined : this.getScoreExtras(raw.id, raw.gameDate, options),
       game.status === "final" ? this.getLanding(raw, options) : undefined,
     ]);
     return {
       // The box score has no special event; a final game's landing does (others get it from the week's schedule).
       game: { ...game, specialEvent: game.specialEvent ?? landing?.specialEvent },
-      goals,
+      goals: fromScores?.goals,
+      videos: fromScores?.videos,
       threeStars: landing?.threeStars,
       penalties: landing?.penalties,
       boxscore: {
@@ -129,16 +132,21 @@ export class NhlAdapter implements LeagueAdapter {
   }
 
   /**
-   * The box score has no scoring summary, but the scores response for the game's date does.
-   * Goals are an extra: if this call fails the game page still shows, without them.
+   * The box score has no scoring summary or videos, but the scores response for the game's date has both.
+   * They are an extra: if this call fails the game page still shows, without them.
    */
-  private async getGoals(id: number, date: string | undefined, options?: RequestOptions): Promise<Goal[] | undefined> {
+  private async getScoreExtras(
+    id: number,
+    date: string | undefined,
+    options?: RequestOptions,
+  ): Promise<{ goals?: Goal[]; videos: GameVideo[] } | undefined> {
     if (!date) return undefined;
     try {
       const raw = await this.fetch(`/score/${date}`, RawScoreResponseSchema, options);
-      return mapGoals(raw.games?.find((g) => g.id === id)?.goals);
+      const game = raw.games?.find((g) => g.id === id);
+      return { goals: mapGoals(game?.goals), videos: mapGameVideos(game) };
     } catch (err) {
-      this.extraFailed(`/score/${date}`, "goals", err, options);
+      this.extraFailed(`/score/${date}`, "goals and videos", err, options);
       return undefined;
     }
   }

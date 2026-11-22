@@ -78,6 +78,8 @@ export const RawGoalSchema = z.object({
   assists: lenientArray(RawGoalAssistSchema, "goals.assists"),
   homeScore: num("goals.homeScore"),
   awayScore: num("goals.awayScore"),
+  // The goal's clip on nhl.com. Verified on 2026-11-17: "https://nhl.com/video/lak-bos-zuccarello-scores-goal-...-6408520589112".
+  highlightClipSharingUrl: str("goals.highlightClipSharingUrl"),
 });
 
 // A game's special event (club schedule, /schedule and the landing; not in /score or the box score). Verified on
@@ -106,6 +108,10 @@ export const RawGameSchema = z.object({
   // /score only, in the order scored. A bad goal is dropped on its own.
   goals: lenientArray(RawGoalSchema, "goals"),
   specialEvent: minor(RawSpecialEventSchema, "specialEvent"),
+  // Finished games in /score and the schedules: paths on nhl.com. Verified on 2026-11-17:
+  // "/video/lak-at-bos-recap-6408527036112", "/video/lak-at-bos-condensed-game-6408527438112". Absent while live.
+  threeMinRecap: str("threeMinRecap"),
+  condensedGame: str("condensedGame"),
 });
 
 export const RawScoreResponseSchema = z.object({
