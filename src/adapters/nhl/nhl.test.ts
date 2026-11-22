@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { runLeagueAdapterContract } from "../../contract/league-adapter.contract";
 import { NhlAdapter, NhlApiError, NhlResponseError, type AdapterWarning } from ".";
-import { landingSpecialEvent } from "./mappers";
+import { infractionLabel, landingSpecialEvent } from "./mappers";
 import { RawLandingSchema } from "./raw-types";
 
 // Real responses recorded from api-web.nhle.com on 2026-11-17 (club stats, the Toronto schedule and the landing: 2026-11-20;
@@ -492,6 +492,75 @@ describe("NHL adapter", () => {
       expect(first.player.headshotUrl).toBeUndefined();
       expect(first.player.name).toBe("D. Kuemper");
       expect(first.stats).toEqual([]);
+    });
+  });
+
+  describe("penalties", () => {
+    it("lists a final game's penalties from the landing in the order taken", async () => {
+      const { penalties } = await fixtureAdapter().adapter.getGameDetail("2026020333");
+      expect(penalties).toHaveLength(6);
+      expect(penalties![0]).toEqual({
+        teamId: "BOS",
+        period: 1,
+        periodLabel: "1st",
+        time: "18:31",
+        player: "M. Geekie",
+        sweaterNumber: 39,
+        infraction: "Roughing",
+        kind: "minor",
+        minutes: 2,
+        drawnBy: "Q. Byfield",
+      });
+      expect(penalties!.map((p) => `${p.periodLabel} ${p.time} ${p.teamId}`)).toEqual([
+        "1st 18:31 BOS",
+        "2nd 03:45 LAK",
+        "2nd 05:56 BOS",
+        "2nd 06:28 BOS",
+        "3rd 09:51 LAK",
+        "3rd 10:34 LAK",
+      ]);
+      // The two penalty shots in this game.
+      expect(penalties!.filter((p) => p.kind === "penaltyShot").map((p) => [p.infraction, p.minutes])).toEqual([
+        ["Tripping on a breakaway", 0],
+        ["Hooking on a breakaway", 0],
+      ]);
+    });
+
+    it("is empty for a game with no penalties and absent when the landing has no list", async () => {
+      const none = fixtureAdapter((url, body) => {
+        if (url.endsWith("/landing")) for (const period of body.summary.penalties) period.penalties = [];
+      });
+      expect((await none.adapter.getGameDetail("2026020333")).penalties).toEqual([]);
+      const missing = fixtureAdapter((url, body) => url.endsWith("/landing") && delete body.summary.penalties);
+      const detail = await missing.adapter.getGameDetail("2026020333");
+      expect(detail.penalties).toBeUndefined();
+      expect(detail.threeStars).toHaveLength(3);
+    });
+
+    it("drops one broken penalty and keeps a bench penalty with no player", async () => {
+      const { adapter, warnings } = fixtureAdapter((url, body) => {
+        if (!url.endsWith("/landing")) return;
+        delete body.summary.penalties[1].penalties[0].timeInPeriod;
+        const bench = body.summary.penalties[0].penalties[0];
+        delete bench.committedByPlayer;
+        delete bench.drawnBy;
+        bench.type = "BEN";
+        bench.descKey = "too-many-men-on-the-ice";
+      });
+      const penalties = (await adapter.getGameDetail("2026020333")).penalties!;
+      expect(penalties).toHaveLength(5);
+      expect(penalties[0]).toMatchObject({ player: undefined, drawnBy: undefined, kind: "minor" });
+      expect(penalties[0].infraction).toBe("Too many men on the ice");
+      expect(warnings.some((w) => w.message.includes("summary.penalties.penalties[0] dropped"))).toBe(true);
+    });
+
+    it("names infractions from the league's keys", () => {
+      expect(infractionLabel("roughing")).toBe("Roughing");
+      expect(infractionLabel("holding-the-stick")).toBe("Holding the stick");
+      expect(infractionLabel("interference-goalkeeper")).toBe("Goaltender interference");
+      expect(infractionLabel("delaying-game-puck-over-glass")).toBe("Delay of game (puck over glass)");
+      expect(infractionLabel("ps-hooking-on-breakaway")).toBe("Hooking on a breakaway");
+      expect(infractionLabel("ps-cross-checking-on-breakaway")).toBe("Cross-checking on a breakaway");
     });
   });
 

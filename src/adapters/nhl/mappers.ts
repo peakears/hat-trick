@@ -25,6 +25,8 @@ import type {
   StatItem,
   Team,
   TeamDetail,
+  Penalty,
+  PenaltyKind,
   Venue,
 } from "../../domain";
 import {
@@ -53,6 +55,8 @@ import type {
   RawGoal,
   RawGoalie,
   RawLanding,
+  RawPenalty,
+  RawPenaltyPeriod,
   RawSchedule,
   RawLeadersResponse,
   RawPlayerGame,
@@ -213,15 +217,18 @@ export function landingSpecialEvent(raw: RawLanding): string | undefined {
 
 const STRENGTHS: Record<string, GoalStrength> = { pp: "powerPlay", sh: "shortHanded" };
 
-function goalPeriodLabel(raw: RawGoal): string {
-  const pd = raw.periodDescriptor;
+function periodLabel(period: number, pd: { periodType: string; maxRegulationPeriods?: number } | undefined): string {
   if (pd?.periodType === "SO") return "SO";
   if (pd?.periodType === "OT") {
     // Playoff overtimes carry on from the regulation count: period 4 is OT, 5 is 2OT.
-    const n = raw.period - (pd.maxRegulationPeriods ?? 3);
+    const n = period - (pd.maxRegulationPeriods ?? 3);
     return n > 1 ? `${n}OT` : "OT";
   }
-  return ordinal(raw.period);
+  return ordinal(period);
+}
+
+function goalPeriodLabel(raw: RawGoal): string {
+  return periodLabel(raw.period, raw.periodDescriptor);
 }
 
 /** Goals in the order the API lists them (the order scored). */
@@ -250,6 +257,74 @@ export function mapGoals(raw: RawGoal[] | undefined): Goal[] | undefined {
       awayScore: g.awayScore,
     };
   });
+}
+
+// Seen: "MIN", "PS". The others are the codes the league is known to use, unverified (see raw-types.ts).
+const PENALTY_KINDS: Record<string, PenaltyKind> = {
+  MIN: "minor",
+  BEN: "minor", // bench minor
+  MAJ: "major",
+  MIS: "misconduct",
+  GAM: "gameMisconduct",
+  MAT: "match",
+  PS: "penaltyShot",
+};
+
+function penaltyKind(raw: RawPenalty): PenaltyKind {
+  const kind = PENALTY_KINDS[raw.type] ?? "other";
+  return kind === "minor" && raw.duration === 4 ? "doubleMinor" : kind;
+}
+
+// descKeys whose words do not read right with the hyphens turned into spaces. Others become "Holding the stick".
+const INFRACTIONS: Record<string, string> = {
+  "cross-checking": "Cross-checking",
+  "high-sticking": "High-sticking",
+  "hi-sticking": "High-sticking",
+  "interference-goalkeeper": "Goaltender interference",
+  "goalie-interference": "Goaltender interference",
+  "delaying-game": "Delay of game",
+  "delaying-game-puck-over-glass": "Delay of game (puck over glass)",
+  "delaying-game-unsuccessful-challenge": "Delay of game (failed challenge)",
+  "delaying-game-face-off-violation": "Delay of game (faceoff violation)",
+  "too-many-men-on-the-ice": "Too many men on the ice",
+  "unsportsmanlike-conduct": "Unsportsmanlike conduct",
+  "game-misconduct": "Game misconduct",
+};
+
+/** "Roughing", "Delay of game (puck over glass)"; a penalty shot's "ps-hooking-on-breakaway" is "Hooking on a breakaway". */
+export function infractionLabel(descKey: string): string {
+  const shot = /^ps-(.+)-on-breakaway$/.exec(descKey);
+  if (shot) return `${infractionLabel(shot[1])} on a breakaway`;
+  const known = INFRACTIONS[descKey];
+  if (known) return known;
+  const words = descKey.replace(/-/g, " ").trim();
+  return words.charAt(0).toUpperCase() + words.slice(1);
+}
+
+/** "M. Geekie", the same short form the goals use. */
+function shortName(raw: { firstName: { default: string }; lastName: { default: string } } | undefined) {
+  if (!raw) return undefined;
+  const first = raw.firstName.default.trim();
+  return first ? `${first.charAt(0)}. ${raw.lastName.default}` : raw.lastName.default;
+}
+
+/** The landing's penalties, flattened from per-period groups into the order taken. Undefined when it has no list. */
+export function mapPenalties(raw: RawPenaltyPeriod[] | undefined): Penalty[] | undefined {
+  if (!raw) return undefined;
+  return raw.flatMap((period) =>
+    (period.penalties ?? []).map((p) => ({
+      teamId: p.teamAbbrev.default,
+      period: period.periodDescriptor.number,
+      periodLabel: periodLabel(period.periodDescriptor.number, period.periodDescriptor),
+      time: p.timeInPeriod,
+      player: shortName(p.committedByPlayer),
+      sweaterNumber: p.committedByPlayer?.sweaterNumber,
+      infraction: infractionLabel(p.descKey),
+      kind: penaltyKind(p),
+      minutes: p.duration,
+      drawnBy: shortName(p.drawnBy),
+    })),
+  );
 }
 
 function mapPlayer(raw: { playerId: number; name: { default: string }; position?: string }): Player {

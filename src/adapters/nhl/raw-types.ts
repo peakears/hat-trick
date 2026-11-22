@@ -3,7 +3,7 @@
 //
 // Verified against live responses on 2026-11-17 (season 20262027): /score,
 // /gamecenter/{id}/boxscore (live and final), /standings/now, and both
-// stats-leaders endpoints. /gamecenter/{id}/landing (three stars only): 2026-11-20.
+// stats-leaders endpoints. /gamecenter/{id}/landing (three stars and penalties): 2026-11-20.
 //
 // Core fields (plain schemas) throw on mismatch. Minor fields (`minor()`) are
 // dropped with a warning. See validate.ts for the policy.
@@ -302,8 +302,8 @@ export const RawLeadersResponseSchema = z.record(z.string(), z.array(RawLeaderSc
 
 // ---------- Game landing (/gamecenter/{id}/landing) ----------
 // Verified on 2026-11-20 against a final game (summary.threeStars present) and a scheduled one
-// (no summary at all). Live games and the short "FINAL" state are unverified. Only the three
-// stars are read; the rest of the response (scoring, penalties) is ignored.
+// (no summary at all). Live games and the short "FINAL" state are unverified. The three stars and
+// the penalties are read; the rest of the response (scoring, which /score already gives) is ignored.
 
 export const RawThreeStarSchema = z.object({
   star: z.number(), // 1, 2, 3
@@ -322,10 +322,41 @@ export const RawThreeStarSchema = z.object({
   savePctg: num("threeStars.savePctg"),
 });
 
+// One penalty, from summary.penalties (grouped by period). Verified on 2026-11-20 in two final games: type "MIN"
+// (minor, duration 2) and "PS" (penalty shot, duration 0, descKey "ps-hooking-on-breakaway"). Other types (major,
+// misconduct, bench minor) and a penalty with no committedByPlayer (a bench minor) are unverified. There is no
+// player id. descKey is a slug, "roughing", "interference-goalkeeper", "delaying-game-puck-over-glass".
+const RawPenaltyPlayerSchema = z.object({
+  firstName: LocalizedSchema,
+  lastName: LocalizedSchema,
+  sweaterNumber: num("penalties.sweaterNumber"),
+});
+
+export const RawPenaltySchema = z.object({
+  timeInPeriod: z.string(), // elapsed, "18:31"
+  type: z.string(), // "MIN" | "PS"
+  duration: z.number(), // minutes; 0 for a penalty shot
+  descKey: z.string(),
+  teamAbbrev: LocalizedSchema, // { default: "BOS" } here, unlike the plain string in threeStars
+  committedByPlayer: minor(RawPenaltyPlayerSchema, "penalties.committedByPlayer"),
+  drawnBy: minor(RawPenaltyPlayerSchema, "penalties.drawnBy"),
+});
+
+export const RawPenaltyPeriodSchema = z.object({
+  periodDescriptor: RawPeriodDescriptorSchema,
+  penalties: lenientArray(RawPenaltySchema, "summary.penalties.penalties"),
+});
+
 export const RawLandingSchema = z.object({
   id: z.number(),
   specialEvent: minor(RawSpecialEventSchema, "specialEvent"),
-  summary: minor(z.object({ threeStars: lenientArray(RawThreeStarSchema, "summary.threeStars") }), "summary"),
+  summary: minor(
+    z.object({
+      threeStars: lenientArray(RawThreeStarSchema, "summary.threeStars"),
+      penalties: lenientArray(RawPenaltyPeriodSchema, "summary.penalties"),
+    }),
+    "summary",
+  ),
 });
 
 // ---------- Player (/player/{id}/landing) ----------
@@ -477,6 +508,8 @@ export type RawLeadersResponse = z.output<typeof RawLeadersResponseSchema>;
 export type RawSpotlight = z.output<typeof RawSpotlightSchema>;
 export type RawThreeStar = z.output<typeof RawThreeStarSchema>;
 export type RawLanding = z.output<typeof RawLandingSchema>;
+export type RawPenalty = z.output<typeof RawPenaltySchema>;
+export type RawPenaltyPeriod = z.output<typeof RawPenaltyPeriodSchema>;
 export type RawPlayerStats = z.output<typeof RawPlayerStatsSchema>;
 export type RawPlayerSeason = z.output<typeof RawPlayerSeasonSchema>;
 export type RawPlayerGame = z.output<typeof RawPlayerGameSchema>;
