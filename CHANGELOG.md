@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.9.0](https://github.com/peakears/hat-trick/compare/v1.8.0...v1.9.0) (2026-11-22)
+
+
+### Features
+
+* **app:** add a next game card to the team page ([#98](https://github.com/peakears/hat-trick/issues/98)) ([02bf49e](https://github.com/peakears/hat-trick/commit/02bf49ecb998d0160da1ac1e15e2512175c2a016)), closes [#76](https://github.com/peakears/hat-trick/issues/76)
+* **app:** add a penalty summary to finished game pages ([#97](https://github.com/peakears/hat-trick/issues/97)) ([73b4945](https://github.com/peakears/hat-trick/commit/73b4945ef597ca7eb6b4392f576d1d41b21651a3))
+* **app:** add pure black (OLED) and accent colour settings ([#100](https://github.com/peakears/hat-trick/issues/100)) ([0f45642](https://github.com/peakears/hat-trick/commit/0f45642f1b68db212dcdb4c79ffd70a5e8ae528f))
+
+
+### Bug Fixes
+
+* **app:** only poll the screen being shown ([#96](https://github.com/peakears/hat-trick/issues/96)) ([6905075](https://github.com/peakears/hat-trick/commit/69050758d49d0b5fcfe8cd5fceabcd59e7f5ef43))
+
 ## [1.8.0](https://github.com/peakears/hat-trick/compare/v1.7.0...v1.8.0) (2026-11-22)
 
 
