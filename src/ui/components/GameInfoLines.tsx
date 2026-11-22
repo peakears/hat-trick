@@ -3,7 +3,7 @@ import { StyleSheet, Text, View } from "react-native";
 import type { Game } from "../../domain";
 import { channelsFor, channelsLabel, watchHeading } from "../broadcasts";
 import { venueLabel } from "../format";
-import { useColors } from "../theme";
+import { useColors, DIVIDER } from "../theme";
 import { useTvRegion } from "../use-tv-region";
 
 /**
@@ -54,7 +54,7 @@ export function GameInfoLines({ game }: { game: Game }) {
 }
 
 const styles = StyleSheet.create({
-  box: { borderTopWidth: StyleSheet.hairlineWidth, marginTop: 12, paddingTop: 10, gap: 6 },
+  box: { borderTopWidth: DIVIDER, marginTop: 12, paddingTop: 10, gap: 6 },
   line: { flexDirection: "row", alignItems: "flex-start", gap: 6 },
   icon: { marginTop: 1 },
   text: { flex: 1, fontSize: 13 },

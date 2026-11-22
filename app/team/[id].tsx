@@ -23,7 +23,7 @@ import {
   teamGameSpoken,
   visibleGames,
 } from "../../src/ui/team";
-import { tabular, useColors } from "../../src/ui/theme";
+import { tabular, useColors, DIVIDER } from "../../src/ui/theme";
 import { usePolled } from "../../src/ui/use-polled";
 import { useScoresToday } from "../../src/ui/use-today";
 
@@ -120,7 +120,7 @@ function GamesSection({ title, games, teamId }: { title: string; games?: Game[];
       <Text style={[styles.sectionTitle, { color: colors.muted }]}>{title}</Text>
       <View style={[styles.gamesCard, { backgroundColor: colors.card }]}>
         {shown.map((g, i) => (
-          <View key={g.id} style={i > 0 && { borderTopColor: colors.border, borderTopWidth: StyleSheet.hairlineWidth }}>
+          <View key={g.id} style={i > 0 && { borderTopColor: colors.border, borderTopWidth: DIVIDER }}>
             <CompactGame game={g} teamId={teamId} today={today} />
           </View>
         ))}
@@ -284,10 +284,7 @@ export default function TeamScreen() {
             {splits.map((s, i) => (
               <View
                 key={s.label}
-                style={[
-                  styles.splitRow,
-                  i > 0 && { borderTopColor: colors.border, borderTopWidth: StyleSheet.hairlineWidth },
-                ]}
+                style={[styles.splitRow, i > 0 && { borderTopColor: colors.border, borderTopWidth: DIVIDER }]}
               >
                 <Text style={[styles.splitLabel, { color: colors.muted }]}>{s.label}</Text>
                 <Text style={[styles.splitRecord, tabular, { color: colors.text }]}>{s.record}</Text>
@@ -330,7 +327,7 @@ const styles = StyleSheet.create({
   recordPart: { alignItems: "center" },
   record: { fontSize: 44, fontWeight: "800" },
   recordLabel: { fontSize: 12, fontWeight: "700" },
-  tiles: { flexDirection: "row", alignSelf: "stretch", borderTopWidth: StyleSheet.hairlineWidth, paddingVertical: 12 },
+  tiles: { flexDirection: "row", alignSelf: "stretch", borderTopWidth: DIVIDER, paddingVertical: 12 },
   tile: { flex: 1, alignItems: "center" },
   tileValue: { fontSize: 18, fontWeight: "700" },
   tileLabel: { fontSize: 11, fontWeight: "600", marginTop: 2 },
@@ -363,7 +360,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 4,
     paddingVertical: 8,
-    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopWidth: DIVIDER,
   },
   toggleText: { fontSize: 13, fontWeight: "600" },
   errorCard: { padding: 14, gap: 6 },

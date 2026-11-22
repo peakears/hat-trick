@@ -10,7 +10,7 @@ import {
   scorerLabel,
   seasonGoalLabel,
 } from "../goals";
-import { tabular, useColors } from "../theme";
+import { tabular, useColors, DIVIDER } from "../theme";
 
 /**
  * Goal-by-goal summary: time, team, scorer with their goal of the game ("(2)") and tags ("PP", "Hat trick"), which
@@ -73,7 +73,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     paddingTop: 8,
     paddingBottom: 2,
-    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopWidth: DIVIDER,
   },
   row: { flexDirection: "row", alignItems: "center", paddingVertical: 5 },
   time: { width: 46, fontSize: 13 },

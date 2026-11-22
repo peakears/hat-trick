@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useRef, type ReactNode } from "react";
 import { Animated, StyleSheet, View, type DimensionValue, type StyleProp, type ViewStyle } from "react-native";
-import { useColors } from "../theme";
+import { useColors, DIVIDER } from "../theme";
 import { useReduceMotion } from "../use-reduce-motion";
 
 /**
@@ -118,13 +118,7 @@ export function ListSkeleton({ rows = 8 }: { rows?: number }) {
       <Bone width={120} height={12} style={styles.sectionLabel} />
       <View style={[styles.card, { backgroundColor: colors.card, paddingVertical: 4 }]}>
         {Array.from({ length: rows }, (_, i) => (
-          <View
-            key={i}
-            style={[
-              styles.listRow,
-              i > 0 && { borderTopColor: colors.border, borderTopWidth: StyleSheet.hairlineWidth },
-            ]}
-          >
+          <View key={i} style={[styles.listRow, i > 0 && { borderTopColor: colors.border, borderTopWidth: DIVIDER }]}>
             <Bone width={14} height={12} />
             <Bone width={24} height={24} radius={12} />
             <Bone width={`${45 + ((i * 17) % 30)}%`} height={13} />

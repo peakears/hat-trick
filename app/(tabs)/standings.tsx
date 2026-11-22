@@ -14,7 +14,7 @@ import {
   STANDINGS_VIEW_LABELS,
   standingsSections,
 } from "../../src/ui/standings";
-import { tabular, useColors } from "../../src/ui/theme";
+import { tabular, useColors, DIVIDER } from "../../src/ui/theme";
 import { usePolled } from "../../src/ui/use-polled";
 
 const NUM_WIDTH = 28;
@@ -140,7 +140,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 9,
     gap: 4,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: DIVIDER,
     borderBottomColor: "transparent",
   },
   teamRow: { borderLeftWidth: 3 },

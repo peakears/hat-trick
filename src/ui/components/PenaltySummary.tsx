@@ -11,7 +11,7 @@ import {
   powerPlayGoals,
   visiblePenalties,
 } from "../penalties";
-import { tabular, useColors } from "../theme";
+import { tabular, useColors, DIVIDER } from "../theme";
 
 /**
  * Penalty-by-penalty summary: time, team, player, infraction and who drew it, length, and the power-play goal it led
@@ -117,7 +117,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     paddingTop: 8,
     paddingBottom: 2,
-    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopWidth: DIVIDER,
   },
   row: { flexDirection: "row", alignItems: "center", paddingVertical: 5 },
   time: { width: 46, fontSize: 13 },
@@ -134,7 +134,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 4,
     paddingVertical: 8,
-    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopWidth: DIVIDER,
   },
   toggleText: { fontSize: 13, fontWeight: "600" },
 });

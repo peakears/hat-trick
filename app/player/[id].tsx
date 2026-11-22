@@ -18,7 +18,7 @@ import {
   seasonLineLabel,
 } from "../../src/ui/player";
 import { LEAGUE, useSportsData } from "../../src/ui/sports-data-context";
-import { tabular, useColors } from "../../src/ui/theme";
+import { tabular, useColors, DIVIDER } from "../../src/ui/theme";
 import { usePolled } from "../../src/ui/use-polled";
 
 /** A player page that fails to render keeps the header, so Back still returns to where you came from. */
@@ -143,10 +143,7 @@ export default function PlayerScreen() {
               {bio.map((row, i) => (
                 <View
                   key={row.label}
-                  style={[
-                    styles.bioRow,
-                    i > 0 && { borderTopColor: colors.border, borderTopWidth: StyleSheet.hairlineWidth },
-                  ]}
+                  style={[styles.bioRow, i > 0 && { borderTopColor: colors.border, borderTopWidth: DIVIDER }]}
                 >
                   <Text style={[styles.bioLabel, { color: colors.muted }]}>{row.label}</Text>
                   <Text style={[styles.bioValue, { color: colors.text }]}>{row.value}</Text>
@@ -236,7 +233,7 @@ const styles = StyleSheet.create({
   bioLabel: { width: 82, fontSize: 13, fontWeight: "600" },
   bioValue: { flex: 1, fontSize: 14 },
   careerLabel: { fontSize: 12, fontWeight: "600", marginBottom: 8 },
-  divided: { borderTopWidth: StyleSheet.hairlineWidth, marginTop: 12, paddingTop: 12 },
+  divided: { borderTopWidth: DIVIDER, marginTop: 12, paddingTop: 12 },
   switchRow: {
     flexDirection: "row",
     alignItems: "center",

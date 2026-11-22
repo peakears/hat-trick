@@ -1,7 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import type { Game } from "../../domain";
 import { useSpoilers } from "../spoiler-context";
-import { useColors } from "../theme";
+import { useColors, DIVIDER } from "../theme";
 
 /** On Scores while the shield hides at least one game: says so, and shows every score at once. */
 export function ShieldBanner({ games }: { games?: Game[] }) {
@@ -30,7 +30,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingVertical: 8,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: DIVIDER,
   },
   text: { fontSize: 13 },
   action: { fontSize: 13, fontWeight: "600" },
