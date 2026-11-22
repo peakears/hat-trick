@@ -38,6 +38,16 @@
           "resizeMode": "contain",
           "backgroundColor": "#0d1420"
         }
+      ],
+      [
+        "react-native-notify-kit",
+        {
+          "android": {
+            "foregroundService": {
+              "types": ["dataSync"]
+            }
+          }
+        }
       ]
     ]
   }

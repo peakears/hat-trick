@@ -14,6 +14,7 @@ import {
 import { timeLabel } from "../../src/ui/format";
 import { installStatusText, isBusy } from "../../src/ui/install-update";
 import { RELEASES_URL, REPO_URL, reportProblemUrl } from "../../src/ui/links";
+import { liveTrackingAvailable } from "../../src/ui/live-tracker-native";
 import { REMINDER_LEADS, type ReminderLead } from "../../src/ui/settings";
 import { useSettings } from "../../src/ui/settings-context";
 import type { UpdateStatus } from "../../src/ui/updates";
@@ -28,8 +29,11 @@ export default function SettingsScreen() {
   const { settings, update } = useSettings();
   const { status, checking, checkNow, install, installNow, cancelInstall, openInBrowser, canInstallInApp } =
     useUpdate();
-  const { setReminders, permissionDenied } = useReminderToggle();
+  const { setReminders, setLiveScores, permissionDenied } = useReminderToggle();
   const [notesOpen, setNotesOpen] = useState(false);
+
+  // Live scores also need the notification permission; the service only exists in the installed Android app.
+  const liveAvailable = liveTrackingAvailable();
 
   return (
     <ScrollView style={{ backgroundColor: colors.background }} contentContainerStyle={styles.content}>
@@ -105,7 +109,7 @@ export default function SettingsScreen() {
         </View>
       </Section>
 
-      <Section title="Reminders">
+      <Section title="Notifications">
         <ToggleRow
           label="Puck drop reminders"
           detail={
@@ -117,10 +121,9 @@ export default function SettingsScreen() {
           }
           value={settings.remindersEnabled}
           onChange={setReminders}
-          last={!settings.remindersEnabled}
         />
         {settings.remindersEnabled && (
-          <View style={styles.row}>
+          <View style={[styles.row, styles.divider, { borderBottomColor: colors.border }]}>
             <Text style={[styles.label, { color: colors.text }]}>Remind me</Text>
             <View style={styles.leadPicker}>
               <Segmented
@@ -130,6 +133,33 @@ export default function SettingsScreen() {
               />
             </View>
           </View>
+        )}
+        <ToggleRow
+          label="Live scores"
+          detail={
+            !liveAvailable
+              ? "Available in the installed Android app (not in Expo Go)."
+              : settings.favoriteTeams.length === 0
+                ? "Follows your favourite teams' games in a notification, even with the app closed. Star a team first."
+                : "Follows your favourite teams' games in a notification, even with the app closed. Starts when you open the app (or a reminder) near puck drop."
+          }
+          value={liveAvailable && settings.liveScores}
+          onChange={setLiveScores}
+          disabled={!liveAvailable}
+          last={!(liveAvailable && settings.liveScores)}
+        />
+        {liveAvailable && settings.liveScores && (
+          <ToggleRow
+            label="Goal alerts"
+            detail={
+              settings.spoilerShield
+                ? "Off while the spoiler shield is on."
+                : "A notification for each goal, with the scorer, and the final score."
+            }
+            value={settings.goalAlerts}
+            onChange={(goalAlerts) => update({ goalAlerts })}
+            last
+          />
         )}
       </Section>
 

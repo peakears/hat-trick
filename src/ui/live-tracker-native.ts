@@ -1,0 +1,155 @@
+// The only react-native-notify-kit code: the live score foreground service and its notifications (#114). Rules live
+// in live-tracker.ts, the polling loop in live-tracker-run.ts. Android only; in Expo Go (no native module) every
+// call here is a no-op and `liveTrackingAvailable()` is false, so the rest of the app works unchanged.
+import Constants, { ExecutionEnvironment } from "expo-constants";
+import { Platform } from "react-native";
+import type { Event, Notification } from "react-native-notify-kit";
+import type { Alert } from "./live-tracker";
+
+type Kit = typeof import("react-native-notify-kit");
+
+let kit: Kit | null | undefined;
+
+/** The library, or null where it cannot run (iOS, Expo Go, or the native module missing). Loaded once, lazily. */
+function load(): Kit | null {
+  if (kit !== undefined) return kit;
+  kit = null;
+  if (Platform.OS !== "android" || Constants.executionEnvironment === ExecutionEnvironment.StoreClient) return kit;
+  try {
+    // A require, not an import: in Expo Go the native module is missing and importing it would fail at startup.
+    kit = require("react-native-notify-kit") as Kit;
+  } catch {
+    kit = null;
+  }
+  return kit;
+}
+
+export function liveTrackingAvailable(): boolean {
+  return load() !== null;
+}
+
+const ONGOING_ID = "live-scores";
+const ONGOING_CHANNEL = "live-scores";
+const ALERT_CHANNEL = "goals";
+const STOP_ACTION = "stop";
+const SMALL_ICON = "notification_icon"; // from the expo-notifications plugin's monochrome icon
+const COLOR = "#2563eb";
+
+let channelsReady = false;
+
+async function channels(k: Kit): Promise<void> {
+  if (channelsReady) return;
+  const notifee = k.default;
+  // Quiet and low: the score changes all game long and must never buzz. Goals get their own loud channel.
+  await notifee.createChannel({ id: ONGOING_CHANNEL, name: "Live scores", importance: k.AndroidImportance.LOW });
+  await notifee.createChannel({ id: ALERT_CHANNEL, name: "Goals and finals", importance: k.AndroidImportance.HIGH });
+  channelsReady = true;
+}
+
+/**
+ * Shows or updates the ongoing score notification. The first call starts the foreground service (which runs the
+ * task given to `registerLiveService`); later calls only update the text.
+ */
+export async function showOngoing(text: { title: string; body: string; gameId?: string }): Promise<void> {
+  const k = load();
+  if (!k) return;
+  await channels(k);
+  const notification: Notification = {
+    id: ONGOING_ID,
+    title: text.title,
+    body: text.body,
+    data: text.gameId ? { gameId: text.gameId } : {},
+    android: {
+      channelId: ONGOING_CHANNEL,
+      asForegroundService: true,
+      foregroundServiceTypes: [k.AndroidForegroundServiceType.FOREGROUND_SERVICE_TYPE_DATA_SYNC],
+      ongoing: true,
+      onlyAlertOnce: true,
+      smallIcon: SMALL_ICON,
+      color: COLOR,
+      style: text.body.includes("\n") ? { type: k.AndroidStyle.BIGTEXT, text: text.body } : undefined,
+      pressAction: { id: "default", launchActivity: "default" },
+      actions: [{ title: "Stop", pressAction: { id: STOP_ACTION } }],
+    },
+  };
+  await k.default.displayNotification(notification);
+}
+
+/** Stops the foreground service and removes the ongoing notification. */
+export async function stopOngoing(): Promise<void> {
+  const k = load();
+  if (!k) return;
+  await k.default.stopForegroundService();
+  await k.default.cancelNotification(ONGOING_ID);
+}
+
+/** A goal or final notification; a tap opens the game. */
+export async function postAlert(alert: Alert, gameId: string): Promise<void> {
+  const k = load();
+  if (!k) return;
+  await channels(k);
+  await k.default.displayNotification({
+    id: alert.id,
+    title: alert.title,
+    body: alert.body,
+    data: { gameId },
+    android: {
+      channelId: ALERT_CHANNEL,
+      smallIcon: SMALL_ICON,
+      color: COLOR,
+      pressAction: { id: "default", launchActivity: "default" },
+    },
+  });
+}
+
+export interface LiveServiceHandlers {
+  /** The service's work: resolves when following ends (the service then stops). */
+  run: () => Promise<void>;
+  /** The Stop button, or Android ending the service (the dataSync time limit). */
+  onStop: () => void;
+}
+
+/**
+ * Registers the service task and the background event handler. Called once at startup, before the app renders
+ * (index.ts), as Android may start the JS for a notification event with no screen open.
+ */
+export function registerLiveService(handlers: LiveServiceHandlers): void {
+  const k = load();
+  if (!k) return;
+  k.default.registerForegroundService(() => handlers.run());
+  const onEvent = (event: Event) => {
+    const stop =
+      (event.type === k.EventType.ACTION_PRESS && event.detail.pressAction?.id === STOP_ACTION) ||
+      event.detail.foregroundServiceRunLimit !== undefined;
+    if (stop) handlers.onStop();
+  };
+  k.default.onBackgroundEvent(async (event) => onEvent(event));
+  k.default.onForegroundEvent(onEvent);
+}
+
+/** The game to open for a tapped live score, goal or final notification; undefined for others. */
+function tappedGame(k: Kit, event: Event): string | undefined {
+  if (event.type !== k.EventType.PRESS) return undefined;
+  const gameId = event.detail.notification?.data?.gameId;
+  return typeof gameId === "string" ? gameId : undefined;
+}
+
+/**
+ * Calls `open` with the game of a tapped notification: one that launched the app, and any tapped while it runs.
+ * Returns the unsubscribe function.
+ */
+export function onLiveNotificationTap(open: (gameId: string) => void): () => void {
+  const k = load();
+  if (!k) return () => {};
+  k.default
+    .getInitialNotification()
+    .then((initial) => {
+      const gameId = initial?.notification.data?.gameId;
+      if (typeof gameId === "string") open(gameId);
+    })
+    .catch(() => {});
+  return k.default.onForegroundEvent((event) => {
+    const gameId = tappedGame(k, event);
+    if (gameId) open(gameId);
+  });
+}

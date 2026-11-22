@@ -34,7 +34,16 @@ export function useReminderToggle() {
     setPermissionDenied(false);
     update({ remindersEnabled: enabled });
   };
-  return { setReminders, permissionDenied };
+  // Live scores post notifications too, so they need the same permission.
+  const setLiveScores = async (enabled: boolean) => {
+    if (enabled && !(await requestReminderPermission().catch(() => false))) {
+      setPermissionDenied(true);
+      return;
+    }
+    setPermissionDenied(false);
+    update({ liveScores: enabled });
+  };
+  return { setReminders, setLiveScores, permissionDenied };
 }
 
 /** A titled card of rows. */

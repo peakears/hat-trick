@@ -30,6 +30,10 @@ export interface Settings {
   /** Notify before a favourite team's game starts. Needs the notification permission. */
   remindersEnabled: boolean;
   reminderLeadMinutes: ReminderLead;
+  /** Follow favourite teams' live games in an ongoing notification, even with the app closed. Android only. */
+  liveScores: boolean;
+  /** While following a game, notify for each goal and the final. */
+  goalAlerts: boolean;
   /** Look for a newer release on GitHub (at most once a day). The only request the app makes besides game data. */
   checkForUpdates: boolean;
   /** Whose TV channels to show: "auto" uses the phone's region. */
@@ -51,6 +55,8 @@ export const DEFAULT_SETTINGS: Settings = {
   favoriteTeams: [],
   remindersEnabled: false,
   reminderLeadMinutes: 30,
+  liveScores: false,
+  goalAlerts: true,
   checkForUpdates: true,
   tvRegion: "auto",
   spoilerShield: false,
@@ -75,6 +81,8 @@ const schema = z.object({
     .catch([]),
   remindersEnabled: z.boolean().catch(DEFAULT_SETTINGS.remindersEnabled),
   reminderLeadMinutes: z.literal(REMINDER_LEADS).catch(DEFAULT_SETTINGS.reminderLeadMinutes),
+  liveScores: z.boolean().catch(DEFAULT_SETTINGS.liveScores),
+  goalAlerts: z.boolean().catch(DEFAULT_SETTINGS.goalAlerts),
   checkForUpdates: z.boolean().catch(DEFAULT_SETTINGS.checkForUpdates),
   tvRegion: z.enum(TV_REGIONS).catch(DEFAULT_SETTINGS.tvRegion),
   spoilerShield: z.boolean().catch(DEFAULT_SETTINGS.spoilerShield),

@@ -1,6 +1,7 @@
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider, type ErrorBoundaryProps } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { CrashScreen } from "../src/ui/components/States";
+import { useLiveTracking } from "../src/ui/use-live-tracking";
 import { useReminderSync, useReminderTaps } from "../src/ui/use-reminders";
 import { SettingsProvider } from "../src/ui/settings-context";
 import { SpoilerProvider } from "../src/ui/spoiler-context";
@@ -13,10 +14,14 @@ export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
   return <CrashScreen error={error} retry={retry} />;
 }
 
-/** Mounted inside the providers: schedules puck drop reminders and opens the game when one is tapped. */
+/**
+ * Mounted inside the providers: schedules puck drop reminders, starts the live score service when a favourite
+ * plays, and opens the game when one of their notifications is tapped.
+ */
 function Reminders() {
   useReminderSync();
   useReminderTaps();
+  useLiveTracking();
   return null;
 }
 
