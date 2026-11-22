@@ -1,7 +1,16 @@
 import { describe, expect, it } from "vitest";
 import type { DataMeta } from "../data";
 import type { Game, GameStatus, Goal, Standings } from "../domain";
-import { assistsLabel, goalTags, groupGoalsByPeriod, scoreAfterLabel } from "./goals";
+import {
+  assistsLabel,
+  gameGoalTag,
+  goalTags,
+  groupGoalsByPeriod,
+  scoreAfterLabel,
+  scorerGameGoalNumbers,
+  scorerLabel,
+  seasonGoalLabel,
+} from "./goals";
 import {
   addDays,
   dateLabel,
@@ -201,6 +210,22 @@ describe("goal summary helpers", () => {
     expect(assistsLabel(goal())).toBe("Unassisted");
     const a = (name: string) => ({ id: name, league: "nhl", name });
     expect(assistsLabel(goal({ assists: [a("E. Gustafsson"), a("B. Clarke")] }))).toBe("E. Gustafsson, B. Clarke");
+  });
+
+  it("puts the goal of the game after the scorer from the 2nd on, and the season goal in words", () => {
+    expect(scorerLabel(goal(), 1)).toBe("M. Zuccarello");
+    expect(scorerLabel(goal(), 0)).toBe("M. Zuccarello"); // shootout
+    expect(scorerLabel(goal(), 3)).toBe("M. Zuccarello (3)");
+    expect(seasonGoalLabel(goal({ scorerSeasonGoals: 21 }))).toBe("21st goal");
+    expect(seasonGoalLabel(goal({ scorerSeasonGoals: 12 }))).toBe("12th goal");
+    expect(seasonGoalLabel(goal())).toBeUndefined();
+  });
+
+  it("numbers each scorer's goals in the game, skipping the shootout", () => {
+    const by = (id: string, periodLabel = "1st") => goal({ scorer: { id, league: "nhl", name: id }, periodLabel });
+    const goals = [by("A"), by("B"), by("A"), by("A", "3rd"), by("A", "SO"), by("B", "OT"), by("A", "OT")];
+    expect(scorerGameGoalNumbers(goals)).toEqual([1, 1, 2, 3, 0, 2, 4]);
+    expect([0, 1, 2, 3, 4].map(gameGoalTag)).toEqual([undefined, undefined, undefined, "Hat trick", undefined]);
   });
 
   it("shows the score after the goal, away first", () => {

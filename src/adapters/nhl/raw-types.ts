@@ -72,6 +72,7 @@ export const RawGoalSchema = z.object({
   playerId: z.number(),
   name: LocalizedSchema, // abbreviated scorer, "M. Zuccarello"
   teamAbbrev: z.string(),
+  goalsToDate: num("goals.goalsToDate"), // the scorer's season total including this goal
   goalModifier: str("goals.goalModifier"),
   strength: str("goals.strength"),
   assists: lenientArray(RawGoalAssistSchema, "goals.assists"),

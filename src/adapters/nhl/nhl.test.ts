@@ -316,6 +316,29 @@ describe("NHL adapter", () => {
       expect(detail.goals).toBeUndefined();
     });
 
+    it("carries the scorer's season goals", async () => {
+      const { goals } = await fixtureAdapter().adapter.getGameDetail("2026020333");
+      expect(goals!.map((g) => [g.scorer.name, g.scorerSeasonGoals])).toEqual([
+        ["M. Zuccarello", 2],
+        ["A. Lee", 2],
+        ["E. Gustafsson", 2],
+      ]);
+    });
+
+    it("leaves the season goals out when missing, and on shootout goals", async () => {
+      const { adapter, warnings } = fixtureAdapter((_url, body) => {
+        if (!body.games) return;
+        const [first, second] = body.games.find((g: any) => g.id === 2026020333).goals;
+        delete first.goalsToDate;
+        second.periodDescriptor = { number: 5, periodType: "SO", maxRegulationPeriods: 3 };
+      });
+      const { goals } = await adapter.getGameDetail("2026020333");
+      expect(goals).toHaveLength(3);
+      expect(goals![0].scorerSeasonGoals).toBeUndefined();
+      expect(goals![1]).toMatchObject({ periodLabel: "SO", scorerSeasonGoals: undefined });
+      expect(warnings).toEqual([]);
+    });
+
     it("drops one broken goal without failing the game", async () => {
       const { adapter, warnings } = fixtureAdapter((_url, body) => {
         if (body.games) delete body.games.find((g: any) => g.id === 2026020333).goals[1].playerId;
