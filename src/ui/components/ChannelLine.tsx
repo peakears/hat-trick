@@ -1,6 +1,6 @@
 import { StyleSheet, Text, View } from "react-native";
 import { channelsLabel, summarizeChannels, type Channel } from "../broadcasts";
-import { useColors } from "../theme";
+import { useColors, DIVIDER } from "../theme";
 
 /**
  * The first few of a game's TV channels (already limited to the user's region), one line under a Scores card.
@@ -41,7 +41,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopWidth: DIVIDER,
     paddingHorizontal: 14,
     paddingVertical: 7,
   },

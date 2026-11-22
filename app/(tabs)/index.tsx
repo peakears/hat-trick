@@ -10,7 +10,7 @@ import { UpdateBanner } from "../../src/ui/components/UpdateBanner";
 import { addDays, dateLabel, groupGamesForScores } from "../../src/ui/format";
 import { useSettings } from "../../src/ui/settings-context";
 import { LEAGUE, useSportsData } from "../../src/ui/sports-data-context";
-import { useColors } from "../../src/ui/theme";
+import { useColors, DIVIDER } from "../../src/ui/theme";
 import { useDebounced } from "../../src/ui/use-debounced";
 import { eventWeekStart, withSpecialEvents } from "../../src/ui/special-events";
 import { usePolled } from "../../src/ui/use-polled";
@@ -108,7 +108,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingVertical: 10,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: DIVIDER,
   },
   dateCenter: { flexDirection: "row", alignItems: "center", gap: 10 },
   dateText: { fontSize: 17, fontWeight: "600" },

@@ -8,7 +8,7 @@ import { ListSkeleton } from "../src/ui/components/Skeleton";
 import { TeamLogo } from "../src/ui/components/TeamLogo";
 import { spotlightDetail } from "../src/ui/leaders";
 import { LEAGUE, useSportsData } from "../src/ui/sports-data-context";
-import { useColors } from "../src/ui/theme";
+import { useColors, DIVIDER } from "../src/ui/theme";
 import { usePolled } from "../src/ui/use-polled";
 
 /** A spotlight screen that fails to render keeps the header, so Back still returns to Leaders. */
@@ -56,7 +56,7 @@ export default function SpotlightScreen() {
               style={({ pressed }) => [
                 styles.row,
                 { backgroundColor: colors.card, opacity: pressed ? 0.6 : 1 },
-                index > 0 && { borderTopColor: colors.border, borderTopWidth: StyleSheet.hairlineWidth },
+                index > 0 && { borderTopColor: colors.border, borderTopWidth: DIVIDER },
               ]}
               accessibilityRole="button"
               accessibilityLabel={`${item.player.name}, ${detail}. Open player page`}

@@ -8,7 +8,7 @@ import { countdownLabel, daysAwayLabel, nextGameHeading, nextGamePhase, type Nex
 import { useSpoilers } from "../spoiler-context";
 import { LEAGUE, useSportsData } from "../sports-data-context";
 import { teamGameLine } from "../team";
-import { tabular, useColors } from "../theme";
+import { tabular, useColors, DIVIDER } from "../theme";
 import { usePolled } from "../use-polled";
 import { useScoresToday } from "../use-today";
 import { useTvRegion } from "../use-tv-region";
@@ -231,7 +231,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopWidth: DIVIDER,
     paddingVertical: 10,
   },
   link: { fontSize: 13, fontWeight: "600" },

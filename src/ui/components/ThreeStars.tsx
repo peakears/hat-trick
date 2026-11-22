@@ -3,7 +3,7 @@ import { useRouter } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import type { GameStar } from "../../domain";
 import { starAccessibilityLabel, starIconCount, starPlayerLine, starStatLine } from "../stars";
-import { tabular, useColors } from "../theme";
+import { tabular, useColors, DIVIDER } from "../theme";
 import { PlayerHeadshot } from "./PlayerHeadshot";
 
 /** The game's three stars: photo, name, team and a short stat line under it for each, first star first. Each opens the player page. */
@@ -23,7 +23,7 @@ export function ThreeStars({ stars }: { stars: GameStar[] }) {
           <Pressable
             key={`${star.rank}-${star.player.id}`}
             onPress={() => router.push({ pathname: "/player/[id]", params: { id: star.player.id } })}
-            style={[styles.row, i > 0 && { borderTopColor: colors.border, borderTopWidth: StyleSheet.hairlineWidth }]}
+            style={[styles.row, i > 0 && { borderTopColor: colors.border, borderTopWidth: DIVIDER }]}
             accessibilityRole="button"
             accessibilityLabel={`${starAccessibilityLabel(star)}. Open player page`}
           >

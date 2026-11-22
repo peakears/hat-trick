@@ -13,7 +13,7 @@ import { requestReminderPermission } from "../../src/ui/reminders-native";
 import { REMINDER_LEADS, type ReminderLead, type ThemePreference } from "../../src/ui/settings";
 import { useSettings } from "../../src/ui/settings-context";
 import type { UpdateStatus } from "../../src/ui/updates";
-import { useColors, useScheme } from "../../src/ui/theme";
+import { useColors, useScheme, DIVIDER } from "../../src/ui/theme";
 import { APP_VERSION, useUpdate } from "../../src/ui/update-context";
 
 const THEME_OPTIONS: { value: ThemePreference; label: string }[] = [
@@ -338,9 +338,7 @@ function ToggleRow({
 }) {
   const colors = useColors();
   return (
-    <View
-      style={[styles.row, !last && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border }]}
-    >
+    <View style={[styles.row, !last && { borderBottomWidth: DIVIDER, borderBottomColor: colors.border }]}>
       <View style={styles.rowText}>
         <Text style={[styles.label, { color: colors.text }]}>{label}</Text>
         {detail ? <Text style={[styles.detail, { color: colors.muted }]}>{detail}</Text> : null}
@@ -360,7 +358,7 @@ const styles = StyleSheet.create({
   label: { fontSize: 16 },
   detail: { fontSize: 13 },
   leadPicker: { flex: 1 },
-  divider: { borderBottomWidth: StyleSheet.hairlineWidth },
+  divider: { borderBottomWidth: DIVIDER },
   linkText: { fontWeight: "600" },
   swatches: { flexDirection: "row", flexWrap: "wrap", gap: 10, marginTop: 10 },
   swatchRing: { borderRadius: 999, borderWidth: 2, padding: 2 },

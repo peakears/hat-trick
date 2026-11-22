@@ -11,7 +11,7 @@ import { statValue } from "../../src/ui/format";
 import { LEADERS_MAX, leaderSectionKey, leaderValue, visibleLeaders } from "../../src/ui/leaders";
 import { combineFetched } from "../../src/ui/polling";
 import { LEAGUE, useSportsData } from "../../src/ui/sports-data-context";
-import { tabular, useColors } from "../../src/ui/theme";
+import { tabular, useColors, DIVIDER } from "../../src/ui/theme";
 import { usePolled } from "../../src/ui/use-polled";
 
 type Kind = "skaters" | "goalies";
@@ -160,7 +160,7 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingHorizontal: 12,
     paddingVertical: 8,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: DIVIDER,
   },
   rank: { width: 20, textAlign: "right", fontSize: 13 },
   who: { flex: 1 },
