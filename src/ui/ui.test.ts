@@ -27,7 +27,7 @@ import {
   venueLabel,
   winner,
 } from "./format";
-import { POLL, REFRESH_COOLDOWN_MS, canManualRefresh, combineFetched, nextPollDelay } from "./polling";
+import { POLL, REFRESH_COOLDOWN_MS, canManualRefresh, combineFetched, nextPollDelay, shouldPoll } from "./polling";
 import { isHorizontalDrag, swipeDayStep } from "./swipe";
 
 const NOW = Date.parse("2026-11-17T23:00:00Z");
@@ -362,6 +362,14 @@ describe("day swipe", () => {
 });
 
 describe("polling", () => {
+  it("polls only the screen shown, with the app in the foreground", () => {
+    expect(shouldPoll("active", true)).toBe(true);
+    expect(shouldPoll("inactive", true)).toBe(true); // iOS app switcher or a system sheet: still on screen
+    expect(shouldPoll("active", false)).toBe(false); // another tab, or a screen pushed on top
+    expect(shouldPoll("background", true)).toBe(false);
+    expect(shouldPoll(null, true)).toBe(true); // state not known yet at startup
+  });
+
   it("polls just after the data goes stale", () => {
     expect(nextPollDelay(meta(), NOW)).toBe(20_000 + POLL.margin);
   });
