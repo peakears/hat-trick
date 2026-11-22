@@ -35,7 +35,7 @@ Android may warn that the app is from an unknown developer, because it is not fr
 
 The app contacts only the NHL's public API (for game data) and GitHub (once a day, to see whether a newer release exists; you can turn this off in Settings). The app only downloads an update when you tap Update, only from this project's GitHub releases, and Android's installer accepts it only if it is signed with the same release key.
 
-Every pull request also gets a test APK, under **Artifacts** on its CI run. Test APKs are signed with a different key than releases, so Android will not install one over a release (or the other way round): uninstall first.
+Every pull request also gets a test APK, under **Artifacts** on its CI run. For a branch with no pull request, open **Actions**, pick **Test APK (manual)**, click **Run workflow** and choose the branch. Test APKs are signed with a different key than releases, so Android will not install one over a release (or the other way round): uninstall first.
 
 ## Getting started
 
