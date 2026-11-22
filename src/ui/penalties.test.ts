@@ -10,6 +10,8 @@ import {
   penaltyMinutesByTeam,
   penaltyPlayerLabel,
   powerPlayGoals,
+  PENALTIES_COLLAPSED,
+  visiblePenalties,
 } from "./penalties";
 
 const fixture = (file: string) =>
@@ -102,5 +104,30 @@ describe("penalty summary", () => {
     const two = [penalty({}), penalty({ time: "10:30" })];
     const result = powerPlayGoals(two, [goal({ time: "10:40" }), goal({ time: "11:10" })]);
     expect(result.map((g) => g?.time)).toEqual(["10:40", "11:10"]);
+  });
+});
+
+describe("long penalty lists", () => {
+  const list = (n: number) => Array.from({ length: n }, (_, i) => i + 1);
+
+  it("shows the first few, with the rest behind Show more", () => {
+    expect(PENALTIES_COLLAPSED).toBe(5);
+    expect(visiblePenalties(list(14), false)).toEqual({ shown: [1, 2, 3, 4, 5], more: 9 });
+    expect(visiblePenalties(list(14), true)).toEqual({ shown: list(14), more: 0 });
+  });
+
+  it("shows short lists whole, and never hides just one", () => {
+    expect(visiblePenalties(list(5), false)).toEqual({ shown: list(5), more: 0 });
+    expect(visiblePenalties(list(6), false)).toEqual({ shown: list(6), more: 0 });
+    expect(visiblePenalties(list(7), false)).toEqual({ shown: [1, 2, 3, 4, 5], more: 2 });
+    expect(visiblePenalties([], false)).toEqual({ shown: [], more: 0 });
+  });
+
+  it("keeps a hidden penalty's power-play goal matched to it, not to a shown one", () => {
+    // Matching runs on the whole list (as the summary does), so hiding penalties cannot move a goal.
+    const all = [...penalties, ...penalties.map((p) => ({ ...p }))];
+    const matched = powerPlayGoals(all, goals);
+    const { shown } = visiblePenalties(all, false);
+    expect(shown.map((p) => matched[all.indexOf(p)])).toEqual(powerPlayGoals(penalties, goals).slice(0, 5));
   });
 });

@@ -7,6 +7,19 @@ export interface PenaltyPeriod {
   penalties: Penalty[];
 }
 
+/** Penalties shown before "Show more". A rough game has 15 or more, which would push the box score row far down. */
+export const PENALTIES_COLLAPSED = 5;
+
+/**
+ * The penalties to show, in the order taken, and how many more are behind "Show more". One extra penalty is shown
+ * rather than hidden behind a "Show 1 more" toggle.
+ */
+export function visiblePenalties<T>(penalties: readonly T[], expanded: boolean): { shown: T[]; more: number } {
+  const all = expanded || penalties.length <= PENALTIES_COLLAPSED + 1;
+  const shown = all ? [...penalties] : penalties.slice(0, PENALTIES_COLLAPSED);
+  return { shown, more: penalties.length - shown.length };
+}
+
 /** Groups penalties by period, keeping the order taken. */
 export function groupPenaltiesByPeriod(penalties: Penalty[]): PenaltyPeriod[] {
   const out: PenaltyPeriod[] = [];
