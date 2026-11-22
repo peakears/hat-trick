@@ -30,6 +30,7 @@ import { useSettings } from "../src/ui/settings-context";
 import { LEAGUE, useSportsData } from "../src/ui/sports-data-context";
 import { useColors, DIVIDER } from "../src/ui/theme";
 import { usePolled } from "../src/ui/use-polled";
+import { useSpelling } from "../src/ui/use-spelling";
 
 /**
  * First-run setup (issue #120): shown once on a fresh install, before the tabs (the tabs layout redirects here),
@@ -283,13 +284,14 @@ function OptionsStep() {
   const { settings, update } = useSettings();
   const { setReminders, permissionDenied } = useReminderToggle();
   const favorites = settings.favoriteTeams.length;
+  const s = useSpelling();
   return (
     <>
       <StepHeading title="Game options" detail="All off unless you turn them on." />
       <Section title="Reminders">
         <ToggleRow
           label="Puck drop reminders"
-          detail={reminderHint(favorites, permissionDenied)}
+          detail={s(reminderHint(favorites, permissionDenied))}
           value={settings.remindersEnabled}
           onChange={setReminders}
           // Only asks for the notification permission when switched on, and only with a team to remind about.

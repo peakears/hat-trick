@@ -19,6 +19,7 @@ import { useSettings } from "../../src/ui/settings-context";
 import type { UpdateStatus } from "../../src/ui/updates";
 import { useColors, DIVIDER } from "../../src/ui/theme";
 import { APP_VERSION, useUpdate } from "../../src/ui/update-context";
+import { useSpelling } from "../../src/ui/use-spelling";
 
 const LEAD_OPTIONS = REMINDER_LEADS.map((n) => ({ value: String(n), label: `${n} min` }));
 
@@ -30,6 +31,7 @@ export default function SettingsScreen() {
     useUpdate();
   const { setReminders, permissionDenied } = useReminderToggle();
   const [notesOpen, setNotesOpen] = useState(false);
+  const s = useSpelling();
 
   return (
     <ScrollView style={{ backgroundColor: colors.background }} contentContainerStyle={styles.content}>
@@ -77,7 +79,7 @@ export default function SettingsScreen() {
           <View style={styles.rowText}>
             <Text style={[styles.label, { color: colors.text }]}>Show channels for</Text>
             <Text style={[styles.detail, { color: colors.muted }]}>
-              Auto uses your phone's region. Pick a country if it's wrong, for example when travelling.
+              {s("Auto uses your phone's region. Pick a country if it's wrong, for example when travelling.")}
             </Text>
           </View>
         </View>
@@ -88,7 +90,7 @@ export default function SettingsScreen() {
         />
       </Section>
 
-      <Section title="Favourite teams">
+      <Section title={s("Favourite teams")}>
         <View style={styles.row}>
           <View style={styles.rowText}>
             <Text style={[styles.label, { color: colors.text }]}>
@@ -103,7 +105,7 @@ export default function SettingsScreen() {
               onPress={() => update({ favoriteTeams: [] })}
               hitSlop={8}
               accessibilityRole="button"
-              accessibilityLabel="Clear favourite teams"
+              accessibilityLabel={s("Clear favourite teams")}
             >
               <Text style={[styles.label, { color: colors.accent }]}>Clear</Text>
             </Pressable>
@@ -118,8 +120,8 @@ export default function SettingsScreen() {
             permissionDenied
               ? "Notifications are blocked. Allow them for Hat Trick in your phone's settings, then try again."
               : settings.favoriteTeams.length === 0
-                ? "Notifies you before your favourite teams' games. Star a team first."
-                : "Notifies you before your favourite teams' games."
+                ? s("Notifies you before your favourite teams' games. Star a team first.")
+                : s("Notifies you before your favourite teams' games.")
           }
           value={settings.remindersEnabled}
           onChange={setReminders}
@@ -214,7 +216,7 @@ export default function SettingsScreen() {
           <View style={styles.rowText}>
             <Text style={[styles.label, { color: colors.text }]}>Run setup again</Text>
             <Text style={[styles.detail, { color: colors.muted }]}>
-              Favourite teams, theme and reminders. Your choices stay picked.
+              {s("Favourite teams, theme and reminders. Your choices stay picked.")}
             </Text>
           </View>
         </Pressable>

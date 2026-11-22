@@ -1,5 +1,6 @@
 import { useRouter } from "expo-router";
 import type { StatTable } from "../../domain";
+import { useSpelling } from "../use-spelling";
 import { StatGrid } from "./StatGrid";
 
 /**
@@ -8,9 +9,10 @@ import { StatGrid } from "./StatGrid";
  */
 export function StatTableView({ table, linkPlayers = true }: { table: StatTable; linkPlayers?: boolean }) {
   const router = useRouter();
+  const s = useSpelling();
   return (
     <StatGrid
-      title={table.title}
+      title={s(table.title)}
       columns={table.columns}
       rows={table.rows.map((row) => ({
         key: row.player.id,

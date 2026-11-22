@@ -7,6 +7,7 @@ import { requestReminderPermission } from "../reminders-native";
 import type { ThemePreference } from "../settings";
 import { useSettings } from "../settings-context";
 import { useColors, useScheme, DIVIDER } from "../theme";
+import { useSpelling } from "../use-spelling";
 
 /** Controls shared by the Settings tab and first-run setup, so a choice looks the same in both. */
 
@@ -93,12 +94,13 @@ export function AccentPicker({
 }) {
   const colors = useColors();
   const scheme = useScheme();
+  const s = useSpelling();
   return (
     <View style={[styles.row, !last && styles.divider, !last && { borderBottomColor: colors.border }]}>
       <View style={styles.rowText}>
-        <Text style={[styles.label, { color: colors.text }]}>Accent colour</Text>
+        <Text style={[styles.label, { color: colors.text }]}>{s("Accent colour")}</Text>
         <Text style={[styles.detail, { color: colors.muted }]}>Links, buttons and highlights.</Text>
-        <View style={styles.swatches} accessibilityRole="radiogroup" accessibilityLabel="Accent colour">
+        <View style={styles.swatches} accessibilityRole="radiogroup" accessibilityLabel={s("Accent colour")}>
           {ACCENTS.map((accent) => {
             const selected = accent === value;
             return (

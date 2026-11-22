@@ -20,6 +20,7 @@ import {
 import { LEAGUE, useSportsData } from "../../src/ui/sports-data-context";
 import { tabular, useColors, DIVIDER } from "../../src/ui/theme";
 import { usePolled } from "../../src/ui/use-polled";
+import { useSpelling } from "../../src/ui/use-spelling";
 
 /** A player page that fails to render keeps the header, so Back still returns to where you came from. */
 export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
@@ -55,6 +56,7 @@ export default function PlayerScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const sports = useSportsData();
   const colors = useColors();
+  const s = useSpelling();
   const router = useRouter();
   const detail = usePolled(`player:${id}`, (o) => sports.getPlayer(LEAGUE, id, o));
   const [playoffs, setPlayoffs] = useState(false);
@@ -92,7 +94,7 @@ export default function PlayerScreen() {
             <Text style={[styles.name, { color: colors.text }]} numberOfLines={2} accessibilityRole="header">
               {d.player.name}
             </Text>
-            <Text style={[styles.subtitle, { color: colors.muted }]}>{playerSubtitle(d)}</Text>
+            <Text style={[styles.subtitle, { color: colors.muted }]}>{s(playerSubtitle(d))}</Text>
             {team && (
               <Pressable
                 onPress={() => router.push({ pathname: "/team/[id]", params: { id: team.id } })}

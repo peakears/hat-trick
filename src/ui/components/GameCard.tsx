@@ -8,6 +8,7 @@ import { useSettings } from "../settings-context";
 import { useSpoilers } from "../spoiler-context";
 import { tabular, useColors } from "../theme";
 import { useTvRegion } from "../use-tv-region";
+import { useSpelling } from "../use-spelling";
 import { ChannelLine } from "./ChannelLine";
 import { FlashScore } from "./FlashScore";
 import { RevealButton } from "./ShieldUi";
@@ -20,6 +21,7 @@ export function GameCard({ game }: { game: Game }) {
   const router = useRouter();
   const { settings } = useSettings();
   const spoilers = useSpoilers();
+  const s = useSpelling();
   const hidden = spoilers.isHidden(game);
   const statusLabel = spoilers.statusLabel(game);
   // A hidden game must not give the winner away through bold or dimmed names either.
@@ -29,7 +31,7 @@ export function GameCard({ game }: { game: Game }) {
   const favoriteNames = [game.away, game.home]
     .filter((side) => isFavorite(settings.favoriteTeams, side.team.id))
     .map((side) => side.team.name);
-  const favoriteNote = favoriteNames.length > 0 ? `. Favourite: ${favoriteNames.join(", ")}` : "";
+  const favoriteNote = favoriteNames.length > 0 ? `. ${s("Favourite")}: ${favoriteNames.join(", ")}` : "";
   const region = useTvRegion();
   const channels = showsChannelsOnCard(game.status) ? channelsFor(game, region) : [];
   const showScores = game.status !== "scheduled" && game.status !== "postponed";
