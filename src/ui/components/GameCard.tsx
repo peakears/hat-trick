@@ -116,8 +116,9 @@ const styles = StyleSheet.create({
   teamName: { flex: 1, fontSize: 16 },
   bold: { fontWeight: "700" },
   record: { fontSize: 13, fontWeight: "600", marginRight: 12 },
-  scoreBox: { marginRight: 12 },
-  score: { fontSize: 20, fontWeight: "700", minWidth: 28, textAlign: "right" },
+  // Room for two digits keeps the scores lined up; the number sits at the right and the flash glow hugs it.
+  scoreBox: { marginRight: 12, minWidth: 28, alignItems: "flex-end" },
+  score: { fontSize: 20, fontWeight: "700", textAlign: "right" },
   status: {
     width: 96,
     alignItems: "center",

@@ -19,7 +19,10 @@ export function FlashScore({
 }: {
   value: number | null;
   live: boolean;
-  /** The number's text style. Put margins in `containerStyle`, so the glow stays centred on the number. */
+  /**
+   * The number's text style. Put margins and any minimum width in `containerStyle` (with `alignItems` to place the
+   * number in it), so the glow stays the size of the number and centred on it.
+   */
   style?: StyleProp<TextStyle>;
   containerStyle?: StyleProp<ViewStyle>;
   children: React.ReactNode;
@@ -51,11 +54,15 @@ export function FlashScore({
 
   return (
     <View style={containerStyle}>
-      <Animated.View
-        pointerEvents="none"
-        style={[styles.glow, { backgroundColor: colors.accent, opacity: Animated.multiply(glow, 0.22) }]}
-      />
-      <Animated.Text style={[style, { transform: [{ scale }] }]}>{children}</Animated.Text>
+      {/* The glow wraps this inner view, which is only as wide as the digits: a column that reserves room for two
+          digits (minWidth on the container, with alignItems) still gets a one-digit glow for "1". */}
+      <View>
+        <Animated.View
+          pointerEvents="none"
+          style={[styles.glow, { backgroundColor: colors.accent, opacity: Animated.multiply(glow, 0.22) }]}
+        />
+        <Animated.Text style={[style, { transform: [{ scale }] }]}>{children}</Animated.Text>
+      </View>
     </View>
   );
 }
