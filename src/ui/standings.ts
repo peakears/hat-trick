@@ -11,6 +11,9 @@ export const STANDINGS_VIEW_LABELS: Record<StandingsView, string> = {
   league: "League",
 };
 
+/** The column row's title in views with no division under the heading (Conference, League). */
+export const GROUPLESS_TITLE = "Team";
+
 export interface StandingsItem {
   row: StandingRow;
   /** Position within the section it is shown in. */
@@ -20,7 +23,10 @@ export interface StandingsItem {
 export interface StandingsSection {
   key: string;
   title: string;
-  /** A conference heading drawn above this section: set on the first division of each conference. */
+  /**
+   * The accent heading drawn above this section: the conference, on the first division of each conference (and on
+   * each conference in Conference view), or "League" in League view.
+   */
   conference?: string;
   /** Wild card view: the playoff line is drawn below this many rows of the section. */
   playoffLine?: number;
@@ -78,7 +84,15 @@ export function standingsSections(standings: Standings | undefined, view: Standi
   if (!standings) return [];
 
   if (view === "league") {
-    return [{ key: "league", title: "League", data: leagueOrder(standings).map((row, i) => ({ row, rank: i + 1 })) }];
+    // The same two levels as Division view: an accent heading, then the column row (here just "Team").
+    return [
+      {
+        key: "league",
+        conference: "League",
+        title: GROUPLESS_TITLE,
+        data: leagueOrder(standings).map((row, i) => ({ row, rank: i + 1 })),
+      },
+    ];
   }
 
   if (view === "conference") {
@@ -92,7 +106,8 @@ export function standingsSections(standings: Standings | undefined, view: Standi
       .sort(([a], [b]) => byName(a, b))
       .map(([name, rows]) => ({
         key: `conference:${name ?? "other"}`,
-        title: name ?? "Other",
+        // The conference is the accent heading, as in Division and Wild card views; teams with none are "Other".
+        ...(name ? { conference: name, title: GROUPLESS_TITLE } : { title: "Other" }),
         data: rows.map((row, i) => ({ row, rank: i + 1 })),
       }));
   }

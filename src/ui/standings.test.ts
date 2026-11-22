@@ -50,7 +50,11 @@ describe("standingsSections", () => {
 
   it("conference view: each conference in the league's order, ranked 1..16", () => {
     const sections = standingsSections(nhl, "conference");
-    expect(sections.map((s) => s.title)).toEqual(["Eastern Conference", "Western Conference"]);
+    // The same heading style as Division and Wild card: the conference above, then the column row.
+    expect(sections.map((s) => [s.conference, s.title])).toEqual([
+      ["Eastern Conference", "Team"],
+      ["Western Conference", "Team"],
+    ]);
     expect(sections.map((s) => s.data.length)).toEqual([16, 16]);
     expect(ids(sections[0].data).slice(0, 3)).toEqual(["CAR", "TBL", "NJD"]);
     expect(ids(sections[1].data).slice(0, 3)).toEqual(["EDM", "MIN", "VGK"]);
@@ -83,6 +87,7 @@ describe("standingsSections", () => {
 
   it("league view: every team, by league rank", () => {
     const [league] = standingsSections(nhl, "league");
+    expect([league.conference, league.title]).toEqual(["League", "Team"]);
     expect(league.data).toHaveLength(32);
     expect(ids(league.data).slice(0, 4)).toEqual(["EDM", "MIN", "CAR", "TBL"]);
     expect(league.data[31]).toMatchObject({ rank: 32, row: { team: { id: "VAN" } } });
