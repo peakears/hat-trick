@@ -68,7 +68,7 @@ curl -s https://api-web.nhle.com/v1/schedule/2026-11-17 -o schedule-2026-11-17.j
 
 Open work lives in GitHub issues, the source of truth; do not copy it here. Design notes an issue does not hold:
 
-- Betting info (#7): opt-in, behind the settings switch, only if a usable source exists (NHL partner odds, else a keyed odds API with the user's own key). Display only: no sportsbook links or affiliate codes (that would make the app commercial). Add a README note: odds are restricted in some places.
+- Betting info (#7): opt-in, behind a Settings switch (`showBetting` exists in `settings.ts` but has no row until then), only if a usable source exists (NHL partner odds, else a keyed odds API with the user's own key). Display only: no sportsbook links or affiliate codes (that would make the app commercial). Add a README note: odds are restricted in some places.
 - Alternate app icons (#9): colour variants from `generate.py` as `activity-alias` entries; needs a config plugin for `expo prebuild`.
 - Second league (#8): needs a league switcher (replacing the fixed `LEAGUE` constant) and an adapter that passes the contract. Golf needs new domain types. Good time to split `mappers.ts` and `settings.tsx` if they have grown.
 

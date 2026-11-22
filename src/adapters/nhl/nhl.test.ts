@@ -974,7 +974,7 @@ describe("NHL adapter", () => {
         "Goals",
         "Assists",
         "Power-play goals",
-        "Faceoff %",
+        "Faceoff win %",
         "Penalty minutes",
       ]);
     });
