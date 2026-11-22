@@ -203,24 +203,29 @@ function goalPeriodLabel(raw: RawGoal): string {
 /** Goals in the order the API lists them (the order scored). */
 export function mapGoals(raw: RawGoal[] | undefined): Goal[] | undefined {
   if (!raw) return undefined;
-  return raw.map((g) => ({
-    teamId: g.teamAbbrev,
-    period: g.period,
-    periodLabel: goalPeriodLabel(g),
-    time: g.timeInPeriod,
-    scorer: { id: String(g.playerId), league: LEAGUE, name: g.name.default, teamId: g.teamAbbrev },
-    assists: (g.assists ?? []).map((a) => ({
-      id: String(a.playerId),
-      league: LEAGUE,
-      name: a.name.default,
+  return raw.map((g) => {
+    // Shootout goals do not count toward a player's season, so they get no total.
+    const shootout = g.periodDescriptor?.periodType === "SO";
+    return {
       teamId: g.teamAbbrev,
-    })),
-    strength: STRENGTHS[g.strength ?? ""] ?? "even",
-    emptyNet: g.goalModifier === "empty-net",
-    penaltyShot: g.goalModifier === "penalty-shot",
-    homeScore: g.homeScore,
-    awayScore: g.awayScore,
-  }));
+      period: g.period,
+      periodLabel: goalPeriodLabel(g),
+      time: g.timeInPeriod,
+      scorer: { id: String(g.playerId), league: LEAGUE, name: g.name.default, teamId: g.teamAbbrev },
+      scorerSeasonGoals: shootout ? undefined : g.goalsToDate,
+      assists: (g.assists ?? []).map((a) => ({
+        id: String(a.playerId),
+        league: LEAGUE,
+        name: a.name.default,
+        teamId: g.teamAbbrev,
+      })),
+      strength: STRENGTHS[g.strength ?? ""] ?? "even",
+      emptyNet: g.goalModifier === "empty-net",
+      penaltyShot: g.goalModifier === "penalty-shot",
+      homeScore: g.homeScore,
+      awayScore: g.awayScore,
+    };
+  });
 }
 
 function mapPlayer(raw: { playerId: number; name: { default: string }; position?: string }): Player {

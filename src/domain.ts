@@ -105,6 +105,8 @@ export interface Goal {
   periodLabel: string; // "1st", "OT", "2OT", "SO" - adapter formats it
   time: string; // elapsed in the period, "15:46"
   scorer: Player;
+  /** The scorer's season goals including this one; undefined when unknown and on shootout goals. */
+  scorerSeasonGoals?: number;
   assists: Player[]; // empty for an unassisted goal
   strength: GoalStrength;
   emptyNet: boolean;
