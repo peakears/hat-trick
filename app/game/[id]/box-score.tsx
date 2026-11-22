@@ -1,7 +1,8 @@
 import { Stack, useLocalSearchParams, type ErrorBoundaryProps } from "expo-router";
 import { useState } from "react";
-import { RefreshControl, ScrollView, StyleSheet, View } from "react-native";
+import { ScrollView, StyleSheet, View } from "react-native";
 import { RevealButton } from "../../../src/ui/components/ShieldUi";
+import { PullToRefresh } from "../../../src/ui/components/PullToRefresh";
 import { Segmented } from "../../../src/ui/components/Segmented";
 import { CrashScreen, Empty, ErrorView, Loading, OfflineBanner, UpdatedAt } from "../../../src/ui/components/States";
 import { StatTableView } from "../../../src/ui/components/StatTableView";
@@ -43,11 +44,7 @@ export default function BoxScoreScreen() {
     <>
       <Stack.Screen options={{ title: `${game.away.team.abbrev} @ ${game.home.team.abbrev} box score` }} />
       <OfflineBanner meta={detail.meta} />
-      <ScrollView
-        refreshControl={
-          <RefreshControl refreshing={detail.refreshing} onRefresh={detail.refresh} colors={[colors.accent]} />
-        }
-      >
+      <ScrollView refreshControl={<PullToRefresh refreshing={detail.refreshing} onRefresh={detail.refresh} />}>
         {hidden ? (
           <View style={styles.hidden}>
             <Empty message="Box score hidden by the spoiler shield." />

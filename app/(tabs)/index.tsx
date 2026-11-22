@@ -1,7 +1,8 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useMemo, useState } from "react";
-import { Pressable, RefreshControl, SectionList, StyleSheet, Text, View } from "react-native";
+import { Pressable, SectionList, StyleSheet, Text, View } from "react-native";
 import { DatePickerButton } from "../../src/ui/components/DatePickerButton";
+import { PullToRefresh } from "../../src/ui/components/PullToRefresh";
 import { GameCard } from "../../src/ui/components/GameCard";
 import { Empty, ErrorView, Loading, OfflineBanner, UpdatedAt } from "../../src/ui/components/States";
 import { ShieldBanner } from "../../src/ui/components/ShieldBanner";
@@ -88,9 +89,7 @@ export default function ScoresScreen() {
           )}
           stickySectionHeadersEnabled={false}
           contentContainerStyle={styles.list}
-          refreshControl={
-            <RefreshControl refreshing={scores.refreshing} onRefresh={scores.refresh} colors={[colors.accent]} />
-          }
+          refreshControl={<PullToRefresh refreshing={scores.refreshing} onRefresh={scores.refresh} />}
           ListEmptyComponent={<Empty message="No games on this date." />}
           ListFooterComponent={<UpdatedAt meta={scores.meta} />}
         />

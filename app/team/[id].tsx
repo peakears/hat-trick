@@ -1,9 +1,10 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Stack, useLocalSearchParams, useRouter, type ErrorBoundaryProps } from "expo-router";
 import { useState } from "react";
-import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import type { Game, StandingRow, TeamDetail } from "../../src/domain";
 import { FavoriteStar } from "../../src/ui/components/FavoriteStar";
+import { PullToRefresh } from "../../src/ui/components/PullToRefresh";
 import { NextGameCard } from "../../src/ui/components/NextGameCard";
 import { StatTableView } from "../../src/ui/components/StatTableView";
 import { CrashScreen, Empty, ErrorView, Loading, OfflineBanner, UpdatedAt } from "../../src/ui/components/States";
@@ -226,13 +227,12 @@ export default function TeamScreen() {
       <OfflineBanner meta={standings.meta} />
       <ScrollView
         refreshControl={
-          <RefreshControl
+          <PullToRefresh
             refreshing={standings.refreshing || detail.refreshing}
             onRefresh={() => {
               standings.refresh();
               detail.refresh();
             }}
-            colors={[colors.accent]}
           />
         }
       >

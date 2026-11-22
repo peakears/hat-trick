@@ -1,8 +1,9 @@
 import { Stack, useLocalSearchParams, useRouter, type ErrorBoundaryProps } from "expo-router";
 import { useState } from "react";
-import { Pressable, RefreshControl, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
 import type { StatItem } from "../../src/domain";
 import { PlayerHeadshot } from "../../src/ui/components/PlayerHeadshot";
+import { PullToRefresh } from "../../src/ui/components/PullToRefresh";
 import { Segmented } from "../../src/ui/components/Segmented";
 import { StatGrid } from "../../src/ui/components/StatGrid";
 import { CrashScreen, ErrorView, Loading, OfflineBanner, UpdatedAt } from "../../src/ui/components/States";
@@ -80,11 +81,7 @@ export default function PlayerScreen() {
     <>
       <Stack.Screen options={{ title: d.player.name }} />
       <OfflineBanner meta={detail.meta} />
-      <ScrollView
-        refreshControl={
-          <RefreshControl refreshing={detail.refreshing} onRefresh={detail.refresh} colors={[colors.accent]} />
-        }
-      >
+      <ScrollView refreshControl={<PullToRefresh refreshing={detail.refreshing} onRefresh={detail.refresh} />}>
         <View style={[styles.card, styles.header, { backgroundColor: colors.card }]}>
           <PlayerHeadshot player={d.player} size={88} />
           <View style={styles.headerText}>

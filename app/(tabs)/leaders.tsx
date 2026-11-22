@@ -1,9 +1,10 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { Pressable, RefreshControl, SectionList, StyleSheet, Text, View } from "react-native";
+import { Pressable, SectionList, StyleSheet, Text, View } from "react-native";
 import type { FetchOptions } from "../../src/data";
 import { Segmented } from "../../src/ui/components/Segmented";
+import { PullToRefresh } from "../../src/ui/components/PullToRefresh";
 import { ErrorView, Loading, OfflineBanner, UpdatedAt } from "../../src/ui/components/States";
 import { TeamLogo } from "../../src/ui/components/TeamLogo";
 import { statValue } from "../../src/ui/format";
@@ -84,9 +85,7 @@ export default function LeadersScreen() {
           sections={sections}
           keyExtractor={(e, i) => `${e.player.id}-${i}`}
           stickySectionHeadersEnabled
-          refreshControl={
-            <RefreshControl refreshing={leaders.refreshing} onRefresh={leaders.refresh} colors={[colors.accent]} />
-          }
+          refreshControl={<PullToRefresh refreshing={leaders.refreshing} onRefresh={leaders.refresh} />}
           renderSectionHeader={({ section }) => (
             <Text style={[styles.header, { color: colors.text, backgroundColor: colors.background }]}>
               {section.title}

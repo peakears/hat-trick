@@ -1,7 +1,8 @@
 import { Stack, useLocalSearchParams, useRouter, type ErrorBoundaryProps } from "expo-router";
-import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import type { Game, GameSide } from "../../../src/domain";
 import { RevealButton } from "../../../src/ui/components/ShieldUi";
+import { PullToRefresh } from "../../../src/ui/components/PullToRefresh";
 import { SpecialEventTag } from "../../../src/ui/components/SpecialEventTag";
 import { CrashScreen, Empty, ErrorView, Loading, OfflineBanner, UpdatedAt } from "../../../src/ui/components/States";
 import { TeamLogo } from "../../../src/ui/components/TeamLogo";
@@ -91,11 +92,7 @@ export default function GameScreen() {
     <>
       <Stack.Screen options={{ title: `${game.away.team.abbrev} @ ${game.home.team.abbrev}` }} />
       <OfflineBanner meta={detail.meta} />
-      <ScrollView
-        refreshControl={
-          <RefreshControl refreshing={detail.refreshing} onRefresh={detail.refresh} colors={[colors.accent]} />
-        }
-      >
+      <ScrollView refreshControl={<PullToRefresh refreshing={detail.refreshing} onRefresh={detail.refresh} />}>
         <View style={[styles.summary, { backgroundColor: colors.card }]}>
           {team(game.away)}
           <View style={styles.middle}>

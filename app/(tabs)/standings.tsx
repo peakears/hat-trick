@@ -1,7 +1,8 @@
 import { useRouter } from "expo-router";
-import { Pressable, RefreshControl, SectionList, StyleSheet, Text, View } from "react-native";
+import { Pressable, SectionList, StyleSheet, Text, View } from "react-native";
 import type { StandingRow } from "../../src/domain";
 import { Segmented } from "../../src/ui/components/Segmented";
+import { PullToRefresh } from "../../src/ui/components/PullToRefresh";
 import { ErrorView, Loading, OfflineBanner, UpdatedAt } from "../../src/ui/components/States";
 import { TeamLogo } from "../../src/ui/components/TeamLogo";
 import { isFavorite } from "../../src/ui/favorites";
@@ -61,9 +62,7 @@ export default function StandingsScreen() {
         sections={sections}
         keyExtractor={(item) => item.row.team.id}
         stickySectionHeadersEnabled
-        refreshControl={
-          <RefreshControl refreshing={standings.refreshing} onRefresh={standings.refresh} colors={[colors.accent]} />
-        }
+        refreshControl={<PullToRefresh refreshing={standings.refreshing} onRefresh={standings.refresh} />}
         renderSectionHeader={({ section }) => (
           <View style={{ backgroundColor: colors.background }}>
             {section.conference && (
