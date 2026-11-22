@@ -11,6 +11,7 @@ import { useSettings } from "../../src/ui/settings-context";
 import { LEAGUE, useSportsData } from "../../src/ui/sports-data-context";
 import { useColors } from "../../src/ui/theme";
 import { useDebounced } from "../../src/ui/use-debounced";
+import { eventWeekStart, withSpecialEvents } from "../../src/ui/special-events";
 import { usePolled } from "../../src/ui/use-polled";
 import { useDaySwipe } from "../../src/ui/use-swipe";
 import { useScoresToday } from "../../src/ui/use-today";
@@ -31,12 +32,19 @@ export default function ScoresScreen() {
   const settledDate = useDebounced(date, DAY_SETTLE_MS);
   const switching = settledDate !== date;
   const scores = usePolled(`scores:${settledDate}`, (o) => sports.getScores(LEAGUE, settledDate, o));
+  // Special event tags come from a separate week lookup (the scores do not carry them). Best effort: if it fails,
+  // the cards just have no tag.
+  const weekStart = eventWeekStart(settledDate);
+  const events = usePolled(`events:${weekStart}`, (o) => sports.getSpecialEvents(LEAGUE, weekStart, o));
   const swipe = useDaySwipe((step) => go(addDays(date, step)));
   // Favourite teams' games first, then live games on top and finished ones below, each group under its own
   // header; regrouped on each poll as games start and end.
   const sections = useMemo(
-    () => (scores.data ? groupGamesForScores(scores.data, settings.favoriteTeams) : undefined),
-    [scores.data, settings.favoriteTeams],
+    () =>
+      scores.data
+        ? groupGamesForScores(withSpecialEvents(scores.data, events.data), settings.favoriteTeams)
+        : undefined,
+    [scores.data, events.data, settings.favoriteTeams],
   );
   const games = useMemo(() => sections?.flatMap((s) => s.data), [sections]);
 

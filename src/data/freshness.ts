@@ -38,6 +38,8 @@ export const FRESHNESS = {
   player: 30 * MINUTE,
   /** The league picks its featured players by hand, a few times a week at most. */
   spotlight: 6 * HOUR,
+  /** Special events are set when the schedule is made. */
+  specialEvents: 12 * HOUR,
 } as const;
 
 /** How long one game stays fresh. */

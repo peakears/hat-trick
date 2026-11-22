@@ -1,13 +1,15 @@
 import { Stack, useLocalSearchParams, useRouter, type ErrorBoundaryProps } from "expo-router";
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
-import type { GameSide } from "../../../src/domain";
+import type { Game, GameSide } from "../../../src/domain";
 import { RevealButton } from "../../../src/ui/components/ShieldUi";
+import { SpecialEventTag } from "../../../src/ui/components/SpecialEventTag";
 import { CrashScreen, Empty, ErrorView, Loading, OfflineBanner, UpdatedAt } from "../../../src/ui/components/States";
 import { TeamLogo } from "../../../src/ui/components/TeamLogo";
 import { GoalSummary } from "../../../src/ui/components/GoalSummary";
 import { ThreeStars } from "../../../src/ui/components/ThreeStars";
 import { WhereToWatch } from "../../../src/ui/components/WhereToWatch";
-import { teamRecord, venueLabel } from "../../../src/ui/format";
+import { localDate, teamRecord, venueLabel } from "../../../src/ui/format";
+import { eventWeekStart, withSpecialEvents } from "../../../src/ui/special-events";
 import { useSpoilers } from "../../../src/ui/spoiler-context";
 import { LEAGUE, useSportsData } from "../../../src/ui/sports-data-context";
 import { tabular, useColors } from "../../../src/ui/theme";
@@ -111,6 +113,8 @@ export default function GameScreen() {
           {team(game.home)}
         </View>
 
+        <GameEvent game={game} />
+
         {venue && (
           <Text style={[styles.venue, { color: colors.muted }]} accessibilityLabel={`Played at ${venue}`}>
             {venue}
@@ -142,7 +146,21 @@ export default function GameScreen() {
   );
 }
 
+/**
+ * The game's special event. A final game's landing names it; otherwise it comes from the week lookup the Scores tab
+ * shares (cached for hours), so a live game's 20-second polls never ask for it again.
+ */
+function GameEvent({ game }: { game: Game }) {
+  const sports = useSportsData();
+  // The league's calendar day is the game's local date for nearly every viewer; the week lookup covers Monday to Sunday.
+  const weekStart = eventWeekStart(localDate(new Date(game.startTime)));
+  const events = usePolled(`events:${weekStart}`, (o) => sports.getSpecialEvents(LEAGUE, weekStart, o));
+  const [withEvent] = withSpecialEvents([game], events.data);
+  return <SpecialEventTag name={withEvent.specialEvent} style={styles.event} />;
+}
+
 const styles = StyleSheet.create({
+  event: { textAlign: "center", marginTop: 12, marginHorizontal: 12 },
   boxScoreRow: {
     flexDirection: "row",
     alignItems: "center",

@@ -10,6 +10,7 @@ import type {
   RequestOptions,
   Standings,
   TeamDetail,
+  SpecialEvents,
   SpotlightEntry,
 } from "../domain";
 import { NhlAdapter } from "../adapters/nhl";
@@ -66,6 +67,9 @@ class FakeAdapter implements LeagueAdapter {
   }
   getLeaders(_query?: unknown, options?: RequestOptions): Promise<LeaderBoard[]> {
     return this.run(() => [], options);
+  }
+  getSpecialEvents(_date: string, options?: RequestOptions): Promise<SpecialEvents> {
+    return this.run(() => ({ g1: "Winter Classic" }), options);
   }
   getSpotlight(options?: RequestOptions): Promise<SpotlightEntry[]> {
     return this.run(() => [], options);
@@ -195,6 +199,16 @@ describe("SportsData", () => {
     expect(again.meta.source).toBe("cache");
     await data.getTeam("test", "BBB");
     expect(adapter.calls).toBe(2);
+  });
+
+  it("caches a week's special events for hours", async () => {
+    const first = await data.getSpecialEvents("test", "2026-11-16");
+    expect(first.data).toEqual({ g1: "Winter Classic" });
+    expect(first.meta.key).toBe("test:events:2026-11-16");
+    expect(Date.parse(first.meta.staleAt) - Date.parse(first.meta.fetchedAt)).toBe(FRESHNESS.specialEvents);
+    now += FRESHNESS.specialEvents - 1;
+    expect((await data.getSpecialEvents("test", "2026-11-16")).meta.source).toBe("cache");
+    expect(adapter.calls).toBe(1);
   });
 
   it("serves fresh data from the cache without a network call", async () => {

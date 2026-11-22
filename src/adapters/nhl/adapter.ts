@@ -7,6 +7,7 @@ import type {
   Goal,
   LeaderBoard,
   LeaderQuery,
+  SpecialEvents,
   SpotlightEntry,
   LeagueAdapter,
   PlayerDetail,
@@ -22,6 +23,8 @@ import {
   mapGame,
   mapGoals,
   mapLeaders,
+  landingSpecialEvent,
+  mapSpecialEvents,
   mapSpotlight,
   mapStandings,
   mapPlayerDetail,
@@ -36,6 +39,7 @@ import {
   RawLandingSchema,
   RawLeadersResponseSchema,
   RawPlayerLandingSchema,
+  RawScheduleSchema,
   RawSpotlightSchema,
   RawScoreResponseSchema,
   RawStandingsResponseSchema,
@@ -94,6 +98,10 @@ export class NhlAdapter implements LeagueAdapter {
     return mapLeaders(raw, categories);
   }
 
+  async getSpecialEvents(date: string, options?: RequestOptions): Promise<SpecialEvents> {
+    return mapSpecialEvents(await this.fetch(`/schedule/${date}`, RawScheduleSchema, options));
+  }
+
   async getSpotlight(options?: RequestOptions): Promise<SpotlightEntry[]> {
     return mapSpotlight(await this.fetch("/player-spotlight", RawSpotlightSchema, options));
   }
@@ -101,14 +109,15 @@ export class NhlAdapter implements LeagueAdapter {
   async getGameDetail(gameId: string, options?: RequestOptions): Promise<GameDetail> {
     const raw = await this.fetch(`/gamecenter/${gameId}/boxscore`, RawBoxscoreSchema, options);
     const game = mapGame(raw);
-    const [goals, threeStars] = await Promise.all([
+    const [goals, landing] = await Promise.all([
       game.status === "scheduled" ? undefined : this.getGoals(raw.id, raw.gameDate, options),
-      game.status === "final" ? this.getThreeStars(raw, options) : undefined,
+      game.status === "final" ? this.getLanding(raw, options) : undefined,
     ]);
     return {
-      game,
+      // The box score has no special event; a final game's landing does (others get it from the week's schedule).
+      game: { ...game, specialEvent: game.specialEvent ?? landing?.specialEvent },
       goals,
-      threeStars,
+      threeStars: landing?.threeStars,
       boxscore: {
         home: mapBoxscoreSide(raw.playerByGameStats?.homeTeam),
         away: mapBoxscoreSide(raw.playerByGameStats?.awayTeam),
@@ -131,13 +140,16 @@ export class NhlAdapter implements LeagueAdapter {
   }
 
   /**
-   * The three stars are only in the game's landing response, and only after the game. Like the goals,
-   * they are an extra: if this call fails the game page shows without them.
+   * The three stars are only in the game's landing response, and only after the game; it also names a special event.
+   * Like the goals, they are an extra: if this call fails the game page shows without them.
    */
-  private async getThreeStars(boxscore: RawBoxscore, options?: RequestOptions): Promise<GameStar[] | undefined> {
+  private async getLanding(
+    boxscore: RawBoxscore,
+    options?: RequestOptions,
+  ): Promise<{ threeStars?: GameStar[]; specialEvent?: string } | undefined> {
     try {
       const raw = await this.fetch(`/gamecenter/${boxscore.id}/landing`, RawLandingSchema, options);
-      return mapThreeStars(raw, boxscore);
+      return { threeStars: mapThreeStars(raw, boxscore), specialEvent: landingSpecialEvent(raw) };
     } catch {
       return undefined;
     }

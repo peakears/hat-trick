@@ -35,6 +35,8 @@ export interface ContractInputs {
   teamIds: string[];
   /** Player ids with recorded player fixtures. Should include a skater and a goalie. */
   playerIds: string[];
+  /** Week start dates (YYYY-MM-DD) with recorded special event fixtures. */
+  specialEventDates: string[];
 }
 
 export interface ContractOptions {
@@ -213,6 +215,18 @@ export function runLeagueAdapterContract(options: ContractOptions): void {
           expectJsonSafe(boards);
         },
       );
+    });
+
+    describe("getSpecialEvents", () => {
+      it.each(inputs.specialEventDates)("returns event names by game id for the week of %s", async (date) => {
+        const events = await makeAdapter().getSpecialEvents(date);
+        for (const [gameId, name] of Object.entries(events)) {
+          expect(gameId, "game id").not.toBe("");
+          expect(typeof name).toBe("string");
+          expect(name.trim(), "event name").not.toBe("");
+        }
+        expectJsonSafe(events);
+      });
     });
 
     describe("getSpotlight", () => {

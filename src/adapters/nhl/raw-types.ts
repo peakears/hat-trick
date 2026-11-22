@@ -80,6 +80,10 @@ export const RawGoalSchema = z.object({
   awayScore: num("goals.awayScore"),
 });
 
+// A game's special event (club schedule, /schedule and the landing; not in /score or the box score). Verified on
+// 2026-11-21: { parentId: 44, name: { default: "Original 6 Series", fr: ... } }; the landing adds a light logo URL.
+const RawSpecialEventSchema = z.object({ name: LocalizedSchema });
+
 export const RawGameSchema = z.object({
   id: z.number(),
   startTimeUTC: z.string(),
@@ -101,6 +105,7 @@ export const RawGameSchema = z.object({
   tvBroadcasts: lenientArray(RawBroadcastSchema, "tvBroadcasts"),
   // /score only, in the order scored. A bad goal is dropped on its own.
   goals: lenientArray(RawGoalSchema, "goals"),
+  specialEvent: minor(RawSpecialEventSchema, "specialEvent"),
 });
 
 export const RawScoreResponseSchema = z.object({
@@ -210,6 +215,18 @@ export const RawClubScheduleSchema = z.object({
   games: lenientArray(RawGameSchema, "games"),
 });
 
+// ---------- Week schedule (/schedule/{date}) ----------
+// Only read for special events: a week of games from the date asked for (2026-11-17 gave the 17th to the 23rd).
+
+const RawScheduleGameSchema = z.object({
+  id: z.number(),
+  specialEvent: minor(RawSpecialEventSchema, "specialEvent"),
+});
+
+export const RawScheduleSchema = z.object({
+  gameWeek: lenientArray(z.object({ games: lenientArray(RawScheduleGameSchema, "gameWeek.games") }), "gameWeek"),
+});
+
 // ---------- Standings (/standings/now) ----------
 
 export const RawStandingSchema = z.object({
@@ -307,6 +324,7 @@ export const RawThreeStarSchema = z.object({
 
 export const RawLandingSchema = z.object({
   id: z.number(),
+  specialEvent: minor(RawSpecialEventSchema, "specialEvent"),
   summary: minor(z.object({ threeStars: lenientArray(RawThreeStarSchema, "summary.threeStars") }), "summary"),
 });
 
@@ -451,6 +469,7 @@ export type RawClubSkater = z.output<typeof RawClubSkaterSchema>;
 export type RawClubGoalie = z.output<typeof RawClubGoalieSchema>;
 export type RawClubStats = z.output<typeof RawClubStatsSchema>;
 export type RawClubSchedule = z.output<typeof RawClubScheduleSchema>;
+export type RawSchedule = z.output<typeof RawScheduleSchema>;
 export type RawStanding = z.output<typeof RawStandingSchema>;
 export type RawStandingsResponse = z.output<typeof RawStandingsResponseSchema>;
 export type RawLeader = z.output<typeof RawLeaderSchema>;

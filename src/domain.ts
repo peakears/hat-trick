@@ -72,6 +72,8 @@ export interface Game {
   /** TV listings in every country the league reports, in the league's order. Empty or absent when none are known. */
   broadcasts?: Broadcast[];
   venue?: Venue;
+  /** The league's name for a special game or series it is part of: "Winter Classic", "Original 6 Series". */
+  specialEvent?: string;
 }
 
 // ---------- Generic stat tables ----------
@@ -295,6 +297,9 @@ export interface SpotlightEntry {
   sweaterNumber?: number;
 }
 
+/** Special event names by game id ("Original 6 Series"), for games that are part of one. */
+export type SpecialEvents = Record<string, string>;
+
 // ---------- Adapter contract ----------
 
 export interface LeaderQuery {
@@ -322,6 +327,12 @@ export interface LeagueAdapter {
   getStandings(options?: RequestOptions): Promise<Standings>;
 
   getLeaders(query?: LeaderQuery, options?: RequestOptions): Promise<LeaderBoard[]>;
+
+  /**
+   * Special event names for the games in the week starting on `date` (YYYY-MM-DD), by game id. Empty when there are
+   * none or the league has no such thing. The scores do not always carry them, so the UI asks for these separately.
+   */
+  getSpecialEvents(date: string, options?: RequestOptions): Promise<SpecialEvents>;
 
   /** The players the league is featuring, in its order. Empty when the league has no such list. */
   getSpotlight(options?: RequestOptions): Promise<SpotlightEntry[]>;

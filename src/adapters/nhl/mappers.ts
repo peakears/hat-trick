@@ -10,6 +10,7 @@ import type {
   Goal,
   GoalStrength,
   LeaderBoard,
+  SpecialEvents,
   SpotlightEntry,
   Player,
   PlayerDetail,
@@ -52,6 +53,7 @@ import type {
   RawGoal,
   RawGoalie,
   RawLanding,
+  RawSchedule,
   RawLeadersResponse,
   RawPlayerGame,
   RawPlayerLanding,
@@ -184,7 +186,29 @@ export function mapGame(raw: RawGame): Game {
     away: mapSide(raw.awayTeam, status),
     broadcasts: mapBroadcasts(raw.tvBroadcasts),
     venue: mapVenue(raw),
+    specialEvent: specialEventName(raw.specialEvent),
   };
+}
+
+function specialEventName(raw: { name: { default: string } } | undefined): string | undefined {
+  return raw?.name.default.trim() || undefined;
+}
+
+/** Special event names by game id for a week of the schedule. */
+export function mapSpecialEvents(raw: RawSchedule): SpecialEvents {
+  const events: SpecialEvents = {};
+  for (const day of raw.gameWeek ?? []) {
+    for (const game of day.games ?? []) {
+      const name = specialEventName(game.specialEvent);
+      if (name) events[String(game.id)] = name;
+    }
+  }
+  return events;
+}
+
+/** The landing's special event, for a game whose box score has none. */
+export function landingSpecialEvent(raw: RawLanding): string | undefined {
+  return specialEventName(raw.specialEvent);
 }
 
 const STRENGTHS: Record<string, GoalStrength> = { pp: "powerPlay", sh: "shortHanded" };

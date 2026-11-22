@@ -6,6 +6,7 @@ import type { Game, StandingRow, TeamDetail } from "../../src/domain";
 import { FavoriteStar } from "../../src/ui/components/FavoriteStar";
 import { StatTableView } from "../../src/ui/components/StatTableView";
 import { CrashScreen, Empty, ErrorView, Loading, OfflineBanner, UpdatedAt } from "../../src/ui/components/States";
+import { SpecialEventTag } from "../../src/ui/components/SpecialEventTag";
 import { TeamLogo } from "../../src/ui/components/TeamLogo";
 import { dateLabel, localDate, recordLabel } from "../../src/ui/format";
 import { useSpoilers } from "../../src/ui/spoiler-context";
@@ -84,16 +85,20 @@ function CompactGame({ game, teamId, today }: { game: Game; teamId: string; toda
       onPress={() => router.push({ pathname: "/game/[id]", params: { id: game.id } })}
       style={({ pressed }) => [styles.gameRow, { opacity: pressed ? 0.6 : 1 }]}
       accessibilityRole="button"
-      accessibilityLabel={`${date}, ${teamGameSpoken(line)}${line.result || line.liveScore ? "" : `, ${spoilers.statusLabel(game)}`}. Open game`}
+      accessibilityLabel={`${date}, ${teamGameSpoken(line)}${game.specialEvent ? `, ${game.specialEvent}` : ""}${line.result || line.liveScore ? "" : `, ${spoilers.statusLabel(game)}`}. Open game`}
     >
       <Text style={[styles.gameDate, { color: colors.muted }]} numberOfLines={1}>
         {date}
       </Text>
       <Text style={[styles.gameWhere, { color: colors.muted }]}>{line.home ? "vs" : "@"}</Text>
       <TeamLogo team={line.opponent} size={22} />
-      <Text style={[styles.gameOpponent, { color: colors.text }]} numberOfLines={1}>
-        {line.opponent.name}
-      </Text>
+      {/* The event (from the team's schedule) goes under the opponent, keeping the row's columns lined up. */}
+      <View style={styles.gameOpponentBox}>
+        <Text style={[styles.gameOpponent, { color: colors.text }]} numberOfLines={1}>
+          {line.opponent.name}
+        </Text>
+        <SpecialEventTag name={game.specialEvent} style={styles.gameEvent} />
+      </View>
       {outcome}
     </Pressable>
   );
@@ -336,7 +341,9 @@ const styles = StyleSheet.create({
   gameRow: { flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 10 },
   gameDate: { width: 86, fontSize: 13 },
   gameWhere: { width: 20, fontSize: 13, textAlign: "center" },
-  gameOpponent: { flex: 1, fontSize: 14, fontWeight: "600" },
+  gameOpponentBox: { flex: 1 },
+  gameOpponent: { fontSize: 14, fontWeight: "600" },
+  gameEvent: { fontSize: 10, marginTop: 1 },
   gameOutcome: { fontSize: 14, textAlign: "right" },
   bold: { fontWeight: "800" },
   toggle: {
