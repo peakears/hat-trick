@@ -2,7 +2,8 @@ import { useRouter } from "expo-router";
 import { Pressable, RefreshControl, SectionList, StyleSheet, Text, View } from "react-native";
 import type { StandingRow } from "../../src/domain";
 import { Segmented } from "../../src/ui/components/Segmented";
-import { ErrorView, Loading, OfflineBanner, UpdatedAt } from "../../src/ui/components/States";
+import { ErrorView, OfflineBanner, UpdatedAt } from "../../src/ui/components/States";
+import { ListSkeleton } from "../../src/ui/components/Skeleton";
 import { TeamLogo } from "../../src/ui/components/TeamLogo";
 import { isFavorite } from "../../src/ui/favorites";
 import { useSettings } from "../../src/ui/settings-context";
@@ -35,7 +36,7 @@ export default function StandingsScreen() {
   const { settings, update } = useSettings();
   const standings = usePolled("standings", (o) => sports.getStandings(LEAGUE, o));
 
-  if (standings.loading) return <Loading />;
+  if (standings.loading) return <ListSkeleton />;
   if (!standings.data && standings.error) {
     return <ErrorView title="Couldn't load standings" error={standings.error} onRetry={standings.refresh} />;
   }

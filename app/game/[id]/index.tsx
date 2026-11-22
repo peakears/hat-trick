@@ -3,7 +3,8 @@ import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "r
 import type { Game, GameSide } from "../../../src/domain";
 import { RevealButton } from "../../../src/ui/components/ShieldUi";
 import { SpecialEventTag } from "../../../src/ui/components/SpecialEventTag";
-import { CrashScreen, Empty, ErrorView, Loading, OfflineBanner, UpdatedAt } from "../../../src/ui/components/States";
+import { CrashScreen, Empty, ErrorView, OfflineBanner, UpdatedAt } from "../../../src/ui/components/States";
+import { PageSkeleton } from "../../../src/ui/components/Skeleton";
 import { TeamLogo } from "../../../src/ui/components/TeamLogo";
 import { GoalSummary } from "../../../src/ui/components/GoalSummary";
 import { PenaltySummary } from "../../../src/ui/components/PenaltySummary";
@@ -32,7 +33,7 @@ export default function GameScreen() {
   // if standings fail to load, the records are just left out.
   const standings = usePolled("standings", (o) => sports.getStandings(LEAGUE, o));
 
-  if (detail.loading) return <Loading />;
+  if (detail.loading) return <PageSkeleton />;
   if (!detail.data) {
     return (
       <ErrorView

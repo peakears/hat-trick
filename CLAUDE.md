@@ -28,6 +28,7 @@ adapters -> domain model -> on-device cache -> Expo app UI
 - **Extras are best effort.** A screen's main request decides whether it loads; anything added from another request (the game page's goals, three stars and special event, the team page's schedule) is caught in the adapter and left out if it fails. A new extra follows the same pattern, and a test drops it to prove the screen still works.
 - **One `usePolled` per source that can fail on its own.** The team page loads `standings` and `team:{id}` separately, and Scores loads the scores and the week's special events separately, so one failure never hides the other's data.
 - **Share cache entries instead of fetching again.** The team page and the game page read the Standings tab's `standings` entry; the game page, box score and the team page's next game card (while live) share `game:{id}`; Scores and the game page share `events:{monday}`. Use the same key and the data costs no request.
+- **A loading screen shows the shape of what is coming.** Screens show a `Skeleton` layout (`ScoresSkeleton`, `PageSkeleton`, `ListSkeleton`) while their first data loads, never a spinner; a new screen picks the closest one or adds a layout there.
 - **Keep slow-changing data out of fast polls.** A live game re-polls every 20 s; data that never changes during a game (special events) gets its own key with a long TTL rather than riding along with the poll.
 
 ## Rules

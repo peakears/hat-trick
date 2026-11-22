@@ -3,7 +3,8 @@ import { useRouter, type ErrorBoundaryProps } from "expo-router";
 import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from "react-native";
 import type { FetchOptions } from "../src/data";
 import { PlayerHeadshot } from "../src/ui/components/PlayerHeadshot";
-import { CrashScreen, Empty, ErrorView, Loading, OfflineBanner, UpdatedAt } from "../src/ui/components/States";
+import { CrashScreen, Empty, ErrorView, OfflineBanner, UpdatedAt } from "../src/ui/components/States";
+import { ListSkeleton } from "../src/ui/components/Skeleton";
 import { TeamLogo } from "../src/ui/components/TeamLogo";
 import { spotlightDetail } from "../src/ui/leaders";
 import { LEAGUE, useSportsData } from "../src/ui/sports-data-context";
@@ -22,7 +23,7 @@ export default function SpotlightScreen() {
   const router = useRouter();
   const spotlight = usePolled("spotlight", (o: FetchOptions) => sports.getSpotlight(LEAGUE, o));
 
-  if (spotlight.loading) return <Loading />;
+  if (spotlight.loading) return <ListSkeleton />;
   if (!spotlight.data) {
     return (
       <ErrorView

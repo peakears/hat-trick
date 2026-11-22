@@ -4,7 +4,8 @@ import { useState } from "react";
 import { Pressable, RefreshControl, SectionList, StyleSheet, Text, View } from "react-native";
 import type { FetchOptions } from "../../src/data";
 import { Segmented } from "../../src/ui/components/Segmented";
-import { ErrorView, Loading, OfflineBanner, UpdatedAt } from "../../src/ui/components/States";
+import { ErrorView, OfflineBanner, UpdatedAt } from "../../src/ui/components/States";
+import { ListSkeleton } from "../../src/ui/components/Skeleton";
 import { TeamLogo } from "../../src/ui/components/TeamLogo";
 import { statValue } from "../../src/ui/format";
 import { LEADERS_MAX, leaderSectionKey, leaderValue, visibleLeaders } from "../../src/ui/leaders";
@@ -76,7 +77,7 @@ export default function LeadersScreen() {
       />
       <OfflineBanner meta={leaders.meta} />
       {leaders.loading ? (
-        <Loading />
+        <ListSkeleton />
       ) : !leaders.data && leaders.error ? (
         <ErrorView title="Couldn't load leaders" error={leaders.error} onRetry={leaders.refresh} />
       ) : (
