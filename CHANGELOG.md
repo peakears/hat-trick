@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.8.0](https://github.com/peakears/hat-trick/compare/v1.7.0...v1.8.0) (2026-11-22)
+
+
+### Features
+
+* **app:** add conference, wild card and league views to Standings ([#89](https://github.com/peakears/hat-trick/issues/89)) ([5b51ad7](https://github.com/peakears/hat-trick/commit/5b51ad72bda60350b0ecd63c487657146e4bf8b9))
+* **app:** show each scorer's goal of the game and of the season in the goal summary ([#93](https://github.com/peakears/hat-trick/issues/93)) ([8f1170b](https://github.com/peakears/hat-trick/commit/8f1170bfecd292c535d4488690dd3a2526c994b4)), closes [#91](https://github.com/peakears/hat-trick/issues/91)
+* **app:** tag special games such as the Winter Classic ([#94](https://github.com/peakears/hat-trick/issues/94)) ([120fe93](https://github.com/peakears/hat-trick/commit/120fe9335a5b960c01cdb9cf835fe0694b4d1003)), closes [#63](https://github.com/peakears/hat-trick/issues/63)
+
+
+### Bug Fixes
+
+* **app:** space the box score row on live games and capitalize Shoots / Catches ([#90](https://github.com/peakears/hat-trick/issues/90)) ([972049a](https://github.com/peakears/hat-trick/commit/972049a1d0c1e3fc851cfc9e9de7e8a683236c88))
+
 ## [1.7.0](https://github.com/peakears/hat-trick/compare/v1.6.0...v1.7.0) (2026-11-21)
 
 
