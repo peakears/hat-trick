@@ -143,9 +143,31 @@ export default function SettingsScreen() {
         <View style={[styles.row, styles.divider, { borderBottomColor: colors.border }]}>
           <View style={styles.rowText}>
             <Text style={[styles.label, { color: colors.text }]}>Hat Trick {APP_VERSION}</Text>
-            <Text style={[styles.detail, { color: colors.muted }]}>
-              {installStatusText(install) ?? updateDetail(status, checking)}
-            </Text>
+            <View style={styles.statusLine}>
+              <Text style={[styles.detail, styles.statusText, { color: colors.muted }]}>
+                {installStatusText(install) ?? updateDetail(status, checking)}
+              </Text>
+              {/* A separate button beside the status, so "What's new" and "Update" stay two focusable controls. */}
+              {status.kind === "available" ? (
+                <Pressable
+                  onPress={() => setNotesOpen(true)}
+                  hitSlop={8}
+                  accessibilityRole="button"
+                  accessibilityLabel={`What's new in version ${status.release.version}`}
+                >
+                  <Text style={[styles.detail, styles.linkText, { color: colors.accent }]}>What's new</Text>
+                </Pressable>
+              ) : (
+                <Pressable
+                  onPress={() => Linking.openURL(RELEASES_URL).catch(() => {})}
+                  hitSlop={8}
+                  accessibilityRole="link"
+                  accessibilityLabel="Release notes"
+                >
+                  <Text style={[styles.detail, styles.linkText, { color: colors.accent }]}>Release notes</Text>
+                </Pressable>
+              )}
+            </View>
           </View>
           {status.kind === "available" && install.kind === "downloading" ? (
             <Pressable
@@ -178,24 +200,11 @@ export default function SettingsScreen() {
         </View>
         <ToggleRow
           label="Check for updates automatically"
-          detail="Asks GitHub for the latest release at most once a day. Nothing is downloaded until you tap Update."
+          detail="Once a day at most, from GitHub. Nothing downloads until you tap Update."
           value={settings.checkForUpdates}
           onChange={(checkForUpdates) => update({ checkForUpdates })}
         />
         <LinkRow label="GitHub repository" detail="peakears/hat-trick" url={REPO_URL} />
-        {status.kind === "available" ? (
-          <Pressable
-            onPress={() => setNotesOpen(true)}
-            accessibilityRole="button"
-            style={[styles.row, styles.divider, { borderBottomColor: colors.border }]}
-          >
-            <View style={styles.rowText}>
-              <Text style={[styles.label, { color: colors.text }]}>What's new in {status.release.version}</Text>
-            </View>
-          </Pressable>
-        ) : (
-          <LinkRow label="Release notes" url={RELEASES_URL} />
-        )}
         <ReleaseNotesModal visible={notesOpen} onClose={() => setNotesOpen(false)} />
         <Pressable
           onPress={() => router.push({ pathname: "/welcome", params: { again: "1" } })}
@@ -205,7 +214,7 @@ export default function SettingsScreen() {
           <View style={styles.rowText}>
             <Text style={[styles.label, { color: colors.text }]}>Run setup again</Text>
             <Text style={[styles.detail, { color: colors.muted }]}>
-              The first-run steps: favourite teams, theme and reminders. Your current choices stay picked.
+              Favourite teams, theme and reminders. Your choices stay picked.
             </Text>
           </View>
         </Pressable>
@@ -217,13 +226,13 @@ export default function SettingsScreen() {
           <View style={styles.rowText}>
             <Text style={[styles.label, { color: colors.text }]}>Diagnostics</Text>
             <Text style={[styles.detail, { color: colors.muted }]}>
-              Problems the app had loading data. Stays on your phone unless you share it.
+              Problems loading data. Stays on your phone unless you share it.
             </Text>
           </View>
         </Pressable>
         <LinkRow
           label="Report a problem"
-          detail="Opens a new issue with your app version filled in. To include the diagnostics log, report from Diagnostics."
+          detail="Opens a GitHub issue with your app version. To attach the diagnostics log, report from Diagnostics."
           url={reportProblemUrl({ version: APP_VERSION, platform: Platform.OS, osVersion: Platform.Version })}
           last
         />
@@ -285,5 +294,7 @@ const styles = StyleSheet.create({
   leadPicker: { flex: 1 },
   divider: { borderBottomWidth: DIVIDER },
   linkText: { fontWeight: "600" },
+  statusText: { flexShrink: 1 },
+  statusLine: { flexDirection: "row", flexWrap: "wrap", alignItems: "baseline", columnGap: 8 },
   footer: { textAlign: "center", fontSize: 12, lineHeight: 18 },
 });
