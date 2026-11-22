@@ -14,6 +14,15 @@ export const POLL = {
   margin: 500,
 } as const;
 
+/**
+ * Whether a screen's polling timer may run: only while the app is in the foreground and the screen is the one shown.
+ * Tabs and stacked screens stay mounted when you leave them, so without the focus check every screen you passed
+ * would keep polling behind the one you are looking at.
+ */
+export function shouldPoll(appState: string | null | undefined, focused: boolean): boolean {
+  return focused && appState !== "background";
+}
+
 /** A manual refresh (pull down) is ignored while the data on screen is newer than this. */
 export const REFRESH_COOLDOWN_MS = 30_000;
 

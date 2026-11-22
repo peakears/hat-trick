@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useIsFocused } from "expo-router";
 import { AppState } from "react-native";
 import type { DataMeta, Fetched, FetchOptions } from "../data";
-import { canManualRefresh, nextPollDelay } from "./polling";
+import { canManualRefresh, nextPollDelay, shouldPoll } from "./polling";
 
 export interface Polled<T> {
   data?: T;
@@ -26,7 +27,9 @@ interface State<T> {
 
 /**
  * Loads data through SportsData and polls it again around `meta.staleAt` while the app is in the
- * foreground. Polling stops in the background and resumes (with an immediate check) on return.
+ * foreground and the screen is focused. Polling stops in the background or when you leave the screen (tabs and
+ * stacked screens stay mounted), and resumes with an immediate check on return. That check is cache-first, so it
+ * costs no request while the data is still fresh.
  *
  * `key` identifies what is loaded (e.g. the date); when it changes, the old data is cleared.
  */
@@ -34,6 +37,10 @@ export function usePolled<T>(key: string, load: (options: FetchOptions) => Promi
   const [state, setState] = useState<State<T>>({ key, refreshing: false });
   const loadRef = useRef(load);
   const runRef = useRef<(force: boolean) => void>(() => {});
+  const pauseRef = useRef<() => void>(() => {});
+  const focused = useIsFocused();
+  const focusedRef = useRef(focused);
+  focusedRef.current = focused;
 
   useEffect(() => {
     loadRef.current = load;
@@ -48,7 +55,7 @@ export function usePolled<T>(key: string, load: (options: FetchOptions) => Promi
 
     const schedule = (ms: number) => {
       clearTimeout(timer);
-      if (AppState.currentState === "background") return;
+      if (!shouldPoll(AppState.currentState, focusedRef.current)) return;
       timer = setTimeout(() => run(false), ms);
     };
 
@@ -67,9 +74,10 @@ export function usePolled<T>(key: string, load: (options: FetchOptions) => Promi
       }
     };
     runRef.current = run;
+    pauseRef.current = () => clearTimeout(timer);
 
     const subscription = AppState.addEventListener("change", (next) => {
-      if (next === "active") run(false);
+      if (next === "active" && focusedRef.current) run(false);
       else clearTimeout(timer);
     });
 
@@ -80,6 +88,16 @@ export function usePolled<T>(key: string, load: (options: FetchOptions) => Promi
       subscription.remove();
     };
   }, [key]);
+
+  // Leaving the screen stops its timer; coming back checks at once (from the cache if still fresh) and resumes.
+  // The first focus is skipped: the effect above has just loaded.
+  const wasFocused = useRef(focused);
+  useEffect(() => {
+    if (focused === wasFocused.current) return;
+    wasFocused.current = focused;
+    if (focused) runRef.current(false);
+    else pauseRef.current();
+  }, [focused]);
 
   // Until the effect for a new key runs, don't show the previous key's data.
   const current = state.key === key ? state : { key, refreshing: false };
