@@ -77,7 +77,7 @@ export class NhlAdapter implements LeagueAdapter {
 
   async getScores(date: string, options?: RequestOptions): Promise<Game[]> {
     const raw = await this.fetch(`/score/${date}`, RawScoreResponseSchema, options);
-    return (raw.games ?? []).map(mapGame);
+    return raw.games.map(mapGame);
   }
 
   async getStandings(options?: RequestOptions): Promise<Standings> {
@@ -136,7 +136,7 @@ export class NhlAdapter implements LeagueAdapter {
     if (!date) return undefined;
     try {
       const raw = await this.fetch(`/score/${date}`, RawScoreResponseSchema, options);
-      return mapGoals(raw.games?.find((g) => g.id === id)?.goals);
+      return mapGoals(raw.games.find((g) => g.id === id)?.goals);
     } catch {
       return undefined;
     }

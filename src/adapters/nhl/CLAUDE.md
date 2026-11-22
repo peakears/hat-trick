@@ -6,7 +6,7 @@ Base URL `https://api-web.nhle.com/v1`: unofficial, no key, unreachable from Cla
 
 ## Which endpoint has what
 
-- `/score/{date}`: the day's games and, per game, the goals in the order scored (scorer's `goalsToDate`, the season total including that goal). No special events.
+- `/score/{date}`: the day's games and, per game, the goals in the order scored (scorer's `goalsToDate`, the season total including that goal). No special events. `games` is always present, empty on a day without games, so it is a core field: a response without it (a CDN or VPN error sent as JSON) fails instead of being cached as "no games". The same goes for `standings` in `/standings/now`.
 - `/gamecenter/{id}/boxscore`: the game and player stats. No goals and no special event, and no team records (the game page gets those from the standings).
 - `/gamecenter/{id}/landing`: the three stars (`summary.threeStars`, final games only), the penalties (`summary.penalties`, grouped by period, no player ids, `teamAbbrev` a localized object) and `specialEvent`. Read only for final games, so live landings are unverified.
 - `getGameDetail` = box score + `/score/{gameDate}` for the goals (best effort) + the landing for final games (best effort), joined by player id for the stars' saves and TOI. `gameDetailFreshness` re-checks a final game every 2 min for 6 h after puck drop until the stars arrive.

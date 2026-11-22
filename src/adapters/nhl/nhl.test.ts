@@ -10,6 +10,7 @@ import { RawLandingSchema } from "./raw-types";
 const FIXTURES: [RegExp, string][] = [
   [/\/score\/2026-11-17$/, "score-2026-11-17.json"], // final + live games
   [/\/score\/2026-11-18$/, "score-2026-11-18.json"], // scheduled games
+  [/\/score\/2026-12-25$/, "score-2026-12-25.json"], // no games (Christmas), recorded 2026-11-22
   [/\/standings\/now$/, "standings-now.json"],
   [/\/skater-stats-leaders\//, "skater-leaders.json"],
   [/\/goalie-stats-leaders\//, "goalie-leaders.json"],
@@ -978,6 +979,30 @@ describe("NHL adapter", () => {
   // ---------- API drift ----------
 
   describe("API drift", () => {
+    it("returns no games for a day without games", async () => {
+      const { adapter, warnings } = fixtureAdapter();
+      expect(await adapter.getScores("2026-12-25")).toEqual([]);
+      expect(warnings).toEqual([]);
+    });
+
+    it("rejects a scores or standings response without its list, instead of showing nothing", async () => {
+      // What a CDN or VPN error page sent as JSON looks like to the adapter: valid JSON, no data.
+      for (const body of [{}, { message: "Access denied" }, { currentDate: "2026-11-17" }]) {
+        const adapter = new NhlAdapter({ fetch: async () => jsonResponse(body) });
+        await expect(adapter.getScores("2026-11-17")).rejects.toBeInstanceOf(NhlResponseError);
+        await expect(adapter.getStandings()).rejects.toBeInstanceOf(NhlResponseError);
+      }
+    });
+
+    it("still loads the game page when the goals request gets a bad response", async () => {
+      const { adapter } = fixtureAdapter((url, body) => {
+        if (url.includes("/score/")) delete body.games;
+      });
+      const detail = await adapter.getGameDetail("2026020333");
+      expect(detail.game.id).toBe("2026020333");
+      expect(detail.goals).toBeUndefined();
+    });
+
     it("drops a minor field with the wrong type and warns", async () => {
       const { adapter, warnings } = fixtureAdapter((_url, body) => {
         body.playerByGameStats.homeTeam.goalies[1].savePctg = ".905";

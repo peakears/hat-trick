@@ -437,7 +437,7 @@ export function mapStandings(raw: RawStandingsResponse): Standings {
   const groups = new Map<string, StandingsGroup>();
 
   // The API returns teams sorted by points, so index order is rank order.
-  for (const s of raw.standings ?? []) {
+  for (const s of raw.standings) {
     const name = s.divisionName ?? s.divisionAbbrev ?? "League";
     let group = groups.get(name);
     if (!group) {

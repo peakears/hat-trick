@@ -110,7 +110,10 @@ export const RawGameSchema = z.object({
 
 export const RawScoreResponseSchema = z.object({
   currentDate: str("currentDate"),
-  games: z.array(RawGameSchema).optional(),
+  // Core: always present, empty on a day without games (verified 2026-11-22 on Dec 24 and 25 and in July).
+  // A response without it is not a scores response (a CDN or VPN error page sent as JSON), so it must
+  // fail rather than be cached as "no games".
+  games: z.array(RawGameSchema),
 });
 
 // ---------- Box score players ----------
@@ -279,7 +282,8 @@ export const RawStandingSchema = z.object({
 export const RawStandingsResponseSchema = z.object({
   standingsDateTimeUtc: str("standingsDateTimeUtc"),
   wildCardIndicator: bool("wildCardIndicator"),
-  standings: z.array(RawStandingSchema).optional(),
+  // Core: always present, empty in the off-season (verified 2026-11-22). Missing means the response is not standings.
+  standings: z.array(RawStandingSchema),
 });
 
 // ---------- Leaders (/{skater,goalie}-stats-leaders/current) ----------
