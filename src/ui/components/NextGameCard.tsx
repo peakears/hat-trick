@@ -13,6 +13,7 @@ import { usePolled } from "../use-polled";
 import { useScoresToday } from "../use-today";
 import { useTvRegion } from "../use-tv-region";
 import { RevealButton } from "./ShieldUi";
+import { FlashScore } from "./FlashScore";
 import { TeamLogo } from "./TeamLogo";
 
 /** The current time, updated every `ms` while `active` (for the countdown). */
@@ -117,9 +118,23 @@ function NextGameView({ game, teamId, standings }: { game: Game; teamId: string;
               <RevealButton label="Show score" onPress={() => spoilers.reveal(game.id)} />
             </View>
           ) : (
-            <Text style={[styles.score, tabular, { color: colors.text }]}>
-              {game.away.score ?? "-"} – {game.home.score ?? "-"}
-            </Text>
+            <View style={styles.scorePair}>
+              <FlashScore
+                value={game.away.score}
+                live={phase === "live"}
+                style={[styles.score, tabular, { color: colors.text }]}
+              >
+                {game.away.score ?? "-"}
+              </FlashScore>
+              <Text style={[styles.score, { color: colors.text }]}>–</Text>
+              <FlashScore
+                value={game.home.score}
+                live={phase === "live"}
+                style={[styles.score, tabular, { color: colors.text }]}
+              >
+                {game.home.score ?? "-"}
+              </FlashScore>
+            </View>
           )}
           <Side game={game} side="home" />
         </View>
@@ -208,6 +223,7 @@ const styles = StyleSheet.create({
   scoreRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 },
   side: { width: 72, alignItems: "center", gap: 4 },
   sog: { fontSize: 12 },
+  scorePair: { flexDirection: "row", alignItems: "center", gap: 6 },
   score: { fontSize: 34, fontWeight: "800" },
   hiddenBox: { alignItems: "center", gap: 6 },
   hiddenText: { fontSize: 15, fontWeight: "600" },

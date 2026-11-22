@@ -6,6 +6,7 @@ import { SpecialEventTag } from "../../../src/ui/components/SpecialEventTag";
 import { CrashScreen, Empty, ErrorView, OfflineBanner, UpdatedAt } from "../../../src/ui/components/States";
 import { PageSkeleton } from "../../../src/ui/components/Skeleton";
 import { TeamLogo } from "../../../src/ui/components/TeamLogo";
+import { FlashScore } from "../../../src/ui/components/FlashScore";
 import { GoalSummary } from "../../../src/ui/components/GoalSummary";
 import { PenaltySummary } from "../../../src/ui/components/PenaltySummary";
 import { GameInfoLines } from "../../../src/ui/components/GameInfoLines";
@@ -103,9 +104,23 @@ export default function GameScreen() {
               {hidden ? (
                 <Text style={[styles.hiddenScore, { color: colors.muted }]}>Score hidden</Text>
               ) : (
-                <Text style={[styles.score, tabular, { color: colors.text }]}>
-                  {game.away.score ?? "-"} – {game.home.score ?? "-"}
-                </Text>
+                <View style={styles.scoreRow}>
+                  <FlashScore
+                    value={game.away.score}
+                    live={live}
+                    style={[styles.score, tabular, { color: colors.text }]}
+                  >
+                    {game.away.score ?? "-"}
+                  </FlashScore>
+                  <Text style={[styles.score, { color: colors.text }]}>–</Text>
+                  <FlashScore
+                    value={game.home.score}
+                    live={live}
+                    style={[styles.score, tabular, { color: colors.text }]}
+                  >
+                    {game.home.score ?? "-"}
+                  </FlashScore>
+                </View>
               )}
               <Text style={[styles.status, tabular, { color: live ? colors.live : colors.muted }]}>
                 {spoilers.statusLabel(game)}
@@ -193,6 +208,7 @@ const styles = StyleSheet.create({
   sogValue: { fontSize: 14, fontWeight: "700" },
   sogLabel: { fontSize: 10, fontWeight: "600", letterSpacing: 0.5 },
   middle: { alignItems: "center", paddingHorizontal: 8, gap: 4 },
+  scoreRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   score: { fontSize: 30, fontWeight: "800" },
   hiddenScore: { fontSize: 16, fontWeight: "600" },
   status: { fontSize: 13, fontWeight: "600" },
