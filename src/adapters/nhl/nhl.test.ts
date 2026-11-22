@@ -2,6 +2,8 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { runLeagueAdapterContract } from "../../contract/league-adapter.contract";
 import { NhlAdapter, NhlApiError, NhlResponseError, type AdapterWarning } from ".";
+import { landingSpecialEvent } from "./mappers";
+import { RawLandingSchema } from "./raw-types";
 
 // Real responses recorded from api-web.nhle.com on 2026-11-17 (club stats, the Toronto schedule and the landing: 2026-11-20;
 // the player spotlight and skater leaders, 20 per category: 2026-11-21).
@@ -19,6 +21,7 @@ const FIXTURES: [RegExp, string][] = [
   [/\/player-spotlight$/, "player-spotlight.json"], // recorded 2026-11-21
   [/\/club-stats\/TOR\/now$/, "club-stats-TOR-now.json"],
   [/\/club-schedule-season\/TOR\/now$/, "club-schedule-season-TOR-now.json"],
+  [/\/schedule\/2026-11-17$/, "schedule-2026-11-17.json"], // recorded 2026-11-21: the week of the 17th to the 23rd
 ];
 
 function loadFixture(file: string): any {
@@ -76,6 +79,7 @@ runLeagueAdapterContract({
     leaderQueries: [{}, { category: "goals", limit: 3 }, { category: "savePctg" }, { category: "goalsAgainstAverage" }],
     teamIds: ["TOR"],
     playerIds: ["8474563", "8475311"], // Doughty (D), Kuemper (G)
+    specialEventDates: ["2026-11-17"],
   },
 });
 
@@ -353,6 +357,46 @@ describe("NHL adapter", () => {
         if (body.games) delete body.games.find((g: any) => g.id === 2026020333).goals[0].assists;
       });
       expect((await adapter.getGameDetail("2026020333")).goals![0].assists).toEqual([]);
+    });
+  });
+
+  describe("special events", () => {
+    it("names the week's special games by id from the schedule", async () => {
+      const events = await fixtureAdapter().adapter.getSpecialEvents("2026-11-17");
+      expect(events).toEqual({ "2026020338": "Original 6 Series", "2026020344": "Original 6 Series" });
+    });
+
+    it("drops a broken event on its own and keeps the rest", async () => {
+      const { adapter, warnings } = fixtureAdapter((url, body) => {
+        if (!url.includes("/schedule/")) return;
+        const game = body.gameWeek[0].games.find((g: any) => g.id === 2026020338);
+        game.specialEvent = { parentId: 44 }; // no name
+      });
+      expect(await adapter.getSpecialEvents("2026-11-17")).toEqual({ "2026020344": "Original 6 Series" });
+      expect(warnings.some((w) => w.message.includes("specialEvent"))).toBe(true);
+    });
+
+    it("marks the event on the team's schedule, which carries it", async () => {
+      const { recent } = await fixtureAdapter().adapter.getTeam("TOR");
+      expect(recent!.find((g) => g.id === "2026020338")?.specialEvent).toBe("Original 6 Series");
+      expect(recent!.filter((g) => g.specialEvent)).toHaveLength(1);
+    });
+
+    it("has none on the scores, which do not carry it", async () => {
+      const games = await fixtureAdapter().adapter.getScores("2026-11-17");
+      expect(games.find((g) => g.id === "2026020338")).toBeDefined();
+      expect(games.some((g) => g.specialEvent)).toBe(false);
+    });
+
+    it("takes a final game's event from its landing", async () => {
+      // The recorded landing of the Original 6 game (TOR @ CHI, 2026-11-17).
+      const landing = RawLandingSchema.parse(loadFixture("landing-2026020338-final.json"));
+      expect(landingSpecialEvent(landing)).toBe("Original 6 Series");
+      const { adapter } = fixtureAdapter((url, body) => {
+        if (url.endsWith("/landing")) body.specialEvent = landing.specialEvent;
+      });
+      expect((await adapter.getGameDetail("2026020333")).game.specialEvent).toBe("Original 6 Series");
+      expect((await fixtureAdapter().adapter.getGameDetail("2026020333")).game.specialEvent).toBeUndefined();
     });
   });
 

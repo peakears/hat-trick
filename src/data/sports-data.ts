@@ -16,6 +16,7 @@ import type {
   Standings,
   PlayerDetail,
   TeamDetail,
+  SpecialEvents,
   SpotlightEntry,
 } from "../domain";
 import type { AdapterRegistry } from "../registry";
@@ -24,7 +25,7 @@ import type { KeyValueStore } from "./store";
 import type { DataMeta, Fetched, FetchOptions } from "./types";
 
 /** Bump when the shape of cached domain data changes, so old entries are ignored. */
-export const CACHE_VERSION = 11;
+export const CACHE_VERSION = 12;
 
 /** Storage keys are prefixed so the cache can share a store with app settings. */
 const PREFIX = "cache:";
@@ -96,6 +97,19 @@ export class SportsData {
         key: `${league}:leaders:${category}:${limit}`,
         load: (o) => this.registry.get(league).getLeaders(query, o),
         freshFor: () => FRESHNESS.leaders,
+      },
+      options,
+    );
+  }
+
+  /** Special event names for the week starting on `weekStart`, by game id. */
+  getSpecialEvents(league: LeagueId, weekStart: string, options?: FetchOptions): Promise<Fetched<SpecialEvents>> {
+    return this.get(
+      {
+        league,
+        key: `${league}:events:${weekStart}`,
+        load: (o) => this.registry.get(league).getSpecialEvents(weekStart, o),
+        freshFor: () => FRESHNESS.specialEvents,
       },
       options,
     );

@@ -10,6 +10,7 @@ import { tabular, useColors } from "../theme";
 import { useTvRegion } from "../use-tv-region";
 import { ChannelLine } from "./ChannelLine";
 import { RevealButton } from "./ShieldUi";
+import { SpecialEventTag } from "./SpecialEventTag";
 import { TeamLogo } from "./TeamLogo";
 
 /** One game in the scores list: away team on top, home below, status on the right. */
@@ -74,10 +75,11 @@ export function GameCard({ game }: { game: Game }) {
         { backgroundColor: colors.card, borderColor: colors.cardBorder, opacity: pressed ? 0.7 : 1 },
       ]}
       accessibilityRole="button"
-      accessibilityLabel={`${game.away.team.name} at ${game.home.team.name}, ${statusLabel}${hidden ? ". Score hidden" : ""}${favoriteNote}${channels.length > 0 ? `. On TV: ${channelsLabel(channels)}` : ""}`}
+      accessibilityLabel={`${game.specialEvent ? `${game.specialEvent}. ` : ""}${game.away.team.name} at ${game.home.team.name}, ${statusLabel}${hidden ? ". Score hidden" : ""}${favoriteNote}${channels.length > 0 ? `. On TV: ${channelsLabel(channels)}` : ""}`}
     >
       <View style={styles.main}>
         <View style={styles.teams}>
+          <SpecialEventTag name={game.specialEvent} />
           {row(game.away, "away")}
           {row(game.home, "home")}
         </View>
