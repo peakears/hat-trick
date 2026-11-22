@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { KeyValueStore } from "../data";
 import { TV_REGIONS, type TvRegionPreference } from "./broadcasts";
+import { STANDINGS_VIEWS, type StandingsView } from "./standings";
 
 /**
  * User preferences, stored on the device under their own key (never under `cache:`,
@@ -30,6 +31,8 @@ export interface Settings {
   tvRegion: TvRegionPreference;
   /** Hide scores and box scores until the user taps to show them (for watching games on delay). */
   spoilerShield: boolean;
+  /** How the Standings tab groups teams; the last view picked. */
+  standingsView: StandingsView;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -42,6 +45,7 @@ export const DEFAULT_SETTINGS: Settings = {
   checkForUpdates: true,
   tvRegion: "auto",
   spoilerShield: false,
+  standingsView: "division",
 };
 
 export const SETTINGS_KEY = "settings:v1";
@@ -62,6 +66,7 @@ const schema = z.object({
   checkForUpdates: z.boolean().catch(DEFAULT_SETTINGS.checkForUpdates),
   tvRegion: z.enum(TV_REGIONS).catch(DEFAULT_SETTINGS.tvRegion),
   spoilerShield: z.boolean().catch(DEFAULT_SETTINGS.spoilerShield),
+  standingsView: z.enum(STANDINGS_VIEWS).catch(DEFAULT_SETTINGS.standingsView),
 });
 
 export function parseSettings(raw: string | null): Settings {

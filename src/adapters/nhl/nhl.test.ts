@@ -587,7 +587,32 @@ describe("NHL adapter", () => {
         home: { wins: 7, losses: 3, otLosses: 2, goalsFor: 43, goalsAgainst: 40 },
         road: { wins: 10, losses: 0, otLosses: 1, goalsFor: 49, goalsAgainst: 22 },
         divisionName: "Pacific",
+        conferenceName: "Western Conference",
+        leagueRank: 1,
       });
+    });
+
+    it("maps the wild card race: no rank for division spots, two spots per conference", async () => {
+      const standings = await fixtureAdapter().adapter.getStandings();
+      const rows = standings.groups.flatMap((g) => g.rows);
+      const byId = (id: string) => rows.find((r) => r.team.id === id);
+      expect(standings.wildCardSpots).toBe(2);
+      expect(byId("EDM")?.wildCardRank).toBeUndefined();
+      expect(byId("DAL")?.wildCardRank).toBe(1);
+      expect(byId("VAN")?.wildCardRank).toBe(10);
+    });
+
+    it("has no wild cards when the response says so or sends no wild card order", async () => {
+      const off = fixtureAdapter((url, body) => {
+        if (/\/standings\/now$/.test(url)) body.wildCardIndicator = false;
+      });
+      expect((await off.adapter.getStandings()).wildCardSpots).toBeUndefined();
+      const missing = fixtureAdapter((url, body) => {
+        if (/\/standings\/now$/.test(url)) for (const s of body.standings) delete s.wildcardSequence;
+      });
+      const standings = await missing.adapter.getStandings();
+      expect(standings.wildCardSpots).toBeUndefined();
+      expect(standings.groups.flatMap((g) => g.rows).every((r) => r.wildCardRank === undefined)).toBe(true);
     });
 
     it("drops a split whose wins or losses are missing, keeping the rest", async () => {
