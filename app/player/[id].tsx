@@ -17,7 +17,7 @@ import {
   playerSubtitle,
   seasonLineLabel,
 } from "../../src/ui/player/player";
-import { LEAGUE, useSportsData } from "../../src/ui/data/sports-data-context";
+import { NHL, useSportsData } from "../../src/ui/data/sports-data-context";
 import { tabular, useColors, DIVIDER } from "../../src/ui/theme/theme";
 import { usePolled } from "../../src/ui/data/use-polled";
 
@@ -56,7 +56,7 @@ export default function PlayerScreen() {
   const sports = useSportsData();
   const colors = useColors();
   const router = useRouter();
-  const detail = usePolled(`player:${id}`, (o) => sports.getPlayer(LEAGUE, id, o));
+  const detail = usePolled(`player:${id}`, (o) => sports.getPlayer(NHL, id, o));
   const [playoffs, setPlayoffs] = useState(false);
   const [allLeagues, setAllLeagues] = useState(false);
 

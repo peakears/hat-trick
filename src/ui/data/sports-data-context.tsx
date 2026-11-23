@@ -5,8 +5,11 @@ import type { LeagueId } from "../../domain";
 import { AdapterRegistry } from "../../registry";
 import { AsyncStorageStore } from "./async-storage-store";
 
-/** The league the app shows. Only the NHL exists so far; a league picker comes with the second league. */
-export const LEAGUE: LeagueId = "nhl";
+/**
+ * The NHL, for the parts of the app only it has so far: game, team, player and spotlight pages, first-run setup,
+ * favourites, reminders and live scores. The tabs show the picked league (useLeague in use-league.ts).
+ */
+export const NHL: LeagueId = "nhl";
 
 export interface Services {
   data: SportsData;

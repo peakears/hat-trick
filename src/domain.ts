@@ -353,6 +353,31 @@ export interface RequestOptions {
   onWarning?: (warning: AdapterWarning) => void;
 }
 
+/**
+ * Parts of the app a league may not have. An adapter leaves out the method for a feature it does not support
+ * (see FEATURE_METHODS), and the UI hides what leads there: a second league can start with scores, standings and
+ * leaders only.
+ */
+export type LeagueFeature = "specialEvents" | "spotlight" | "gameDetail" | "team" | "player";
+
+/** The adapter method behind each optional feature. */
+export const FEATURE_METHODS = {
+  specialEvents: "getSpecialEvents",
+  spotlight: "getSpotlight",
+  gameDetail: "getGameDetail",
+  team: "getTeam",
+  player: "getPlayer",
+} as const satisfies Record<LeagueFeature, keyof LeagueAdapter>;
+
+/** Whether `adapter` has the method for `feature`. */
+export function adapterSupports(adapter: LeagueAdapter, feature: LeagueFeature): boolean {
+  return typeof adapter[FEATURE_METHODS[feature]] === "function";
+}
+
+/**
+ * Every league has scores, standings and leaders; the other methods are optional (LeagueFeature). An optional
+ * method, when present, behaves as described here.
+ */
 export interface LeagueAdapter {
   readonly league: LeagueId;
 
@@ -367,16 +392,16 @@ export interface LeagueAdapter {
    * Special event names for the games in the week starting on `date` (YYYY-MM-DD), by game id. Empty when there are
    * none or the league has no such thing. The scores do not always carry them, so the UI asks for these separately.
    */
-  getSpecialEvents(date: string, options?: RequestOptions): Promise<SpecialEvents>;
+  getSpecialEvents?(date: string, options?: RequestOptions): Promise<SpecialEvents>;
 
   /** The players the league is featuring, in its order. Empty when the league has no such list. */
-  getSpotlight(options?: RequestOptions): Promise<SpotlightEntry[]>;
+  getSpotlight?(options?: RequestOptions): Promise<SpotlightEntry[]>;
 
-  getGameDetail(gameId: string, options?: RequestOptions): Promise<GameDetail>;
+  getGameDetail?(gameId: string, options?: RequestOptions): Promise<GameDetail>;
 
   /** A team's season stats and its recent and upcoming games. `teamId` is a Team.id. */
-  getTeam(teamId: string, options?: RequestOptions): Promise<TeamDetail>;
+  getTeam?(teamId: string, options?: RequestOptions): Promise<TeamDetail>;
 
   /** A player's bio, stats and recent games. `playerId` is a Player.id. */
-  getPlayer(playerId: string, options?: RequestOptions): Promise<PlayerDetail>;
+  getPlayer?(playerId: string, options?: RequestOptions): Promise<PlayerDetail>;
 }

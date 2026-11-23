@@ -7,7 +7,7 @@ import { CrashScreen, Empty, ErrorView, OfflineBanner, UpdatedAt } from "../../.
 import { ListSkeleton } from "../../../src/ui/components/Skeleton";
 import { StatTableView } from "../../../src/ui/components/StatTableView";
 import { useSpoilers } from "../../../src/ui/spoilers/spoiler-context";
-import { LEAGUE, useSportsData } from "../../../src/ui/data/sports-data-context";
+import { NHL, useSportsData } from "../../../src/ui/data/sports-data-context";
 import { useColors } from "../../../src/ui/theme/theme";
 import { usePolled } from "../../../src/ui/data/use-polled";
 
@@ -23,7 +23,7 @@ export default function BoxScoreScreen() {
   const colors = useColors();
   const spoilers = useSpoilers();
   const [side, setSide] = useState<"away" | "home">("away");
-  const detail = usePolled(`game:${id}`, (o) => sports.getGameDetail(LEAGUE, id, o));
+  const detail = usePolled(`game:${id}`, (o) => sports.getGameDetail(NHL, id, o));
 
   if (detail.loading) return <ListSkeleton />;
   if (!detail.data) {
