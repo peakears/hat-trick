@@ -71,7 +71,7 @@ Open work lives in GitHub issues, the source of truth; do not copy it here. Desi
 
 - Betting info (#7): opt-in, behind a Settings switch (`showBetting` exists in `settings.ts` but has no row until then), only if a usable source exists (NHL partner odds, else a keyed odds API with the user's own key). Display only: no sportsbook links or affiliate codes (that would make the app commercial). Add a README note: odds are restricted in some places.
 - Alternate app icons (#9): colour variants from `generate.py` as `activity-alias` entries; needs a config plugin for `expo prebuild`.
-- Second league (#8): the NBA, built on the `nba` branch (below) from ESPN's keyless site API, which this session can reach (unlike the NHL API), so fixtures can be recorded here. MVP: Scores, Standings and Leaders and a league switcher; no game, team or player pages, and favourites, reminders and live scores stay NHL only (favourites are bare abbreviations, and `BOS` is two teams). Then the adapter passes the contract with its optional features left out. Golf needs new domain types. Good time to split `mappers.ts` and `settings.tsx` if they have grown.
+- Second league (#8): the NBA, built on the `nba` branch (below) from ESPN's keyless site API, which this session can reach (unlike the NHL API), so fixtures can be recorded here. MVP: Scores, Standings and Leaders and a league switcher, then game, team and player pages; favourites, reminders and live scores stay NHL only (favourites are bare abbreviations, and `BOS` is two teams). Then the adapter passes the contract with its optional features left out. Golf needs new domain types. Good time to split `mappers.ts` and `settings.tsx` if they have grown.
 
 ## Commits and releases
 
