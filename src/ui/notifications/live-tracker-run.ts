@@ -6,7 +6,7 @@ import { loadSettings, type Settings } from "../settings/settings";
 import { scoresToday } from "../common/format";
 import { followUpdate, gamesToFollow, ongoingSummary, TRACK_POLL_MS, type FollowState } from "./live-tracker";
 import { liveTrackingAvailable, postAlert, registerLiveService, showOngoing, stopOngoing } from "./live-tracker-native";
-import { getServices, LEAGUE } from "../data/sports-data-context";
+import { getServices, NHL } from "../data/sports-data-context";
 
 let running = false;
 /** When a start was asked for and the service has not called runLoop yet; a start that never arrives expires. */
@@ -39,7 +39,7 @@ export async function startLiveTracking(): Promise<void> {
   const { data, store } = getServices();
   const settings = await loadSettings(store);
   if (!wanted(settings)) return;
-  const scores = await data.getScores(LEAGUE, scoresToday()).catch(() => undefined);
+  const scores = await data.getScores(NHL, scoresToday()).catch(() => undefined);
   const games = gamesToFollow(scores?.data ?? [], settings.favoriteTeams, Date.now()).filter(
     (g) => !stoppedGames.has(g.id),
   );
@@ -68,14 +68,14 @@ async function runLoop(): Promise<void> {
       const settings = await loadSettings(store);
       if (!wanted(settings)) break;
       const now = Date.now();
-      const scores = await data.getScores(LEAGUE, scoresToday()).catch(() => undefined);
+      const scores = await data.getScores(NHL, scoresToday()).catch(() => undefined);
       for (const game of gamesToFollow(scores?.data ?? [], settings.favoriteTeams, now)) {
         if (!stoppedGames.has(game.id) && !followed.has(game.id)) followed.set(game.id, undefined);
       }
 
       const lines: { gameId: string; title: string; body: string }[] = [];
       for (const [gameId, previous] of followed) {
-        const detail = await data.getGameDetail(LEAGUE, gameId).catch(() => undefined);
+        const detail = await data.getGameDetail(NHL, gameId).catch(() => undefined);
         if (!detail) continue; // offline for now: keep following, try again next check
         const update = followUpdate(previous, detail.data, {
           hidden: settings.spoilerShield,

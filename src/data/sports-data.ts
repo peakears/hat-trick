@@ -11,6 +11,8 @@ import type {
   GameDetail,
   LeaderBoard,
   LeaderQuery,
+  LeagueAdapter,
+  LeagueFeature,
   LeagueId,
   RequestOptions,
   Standings,
@@ -19,6 +21,7 @@ import type {
   SpecialEvents,
   SpotlightEntry,
 } from "../domain";
+import { adapterSupports } from "../domain";
 import type { AdapterRegistry } from "../registry";
 import { FRESHNESS, gameDetailFreshness, scoresFreshness, teamFreshness } from "./freshness";
 import type { DiagnosticsLog, NewLogEntry } from "./diagnostics";
@@ -37,6 +40,17 @@ interface CacheEntry<T> {
   fetchedAt: number;
   staleAt: number;
   warnings: string[];
+}
+
+/** A call for a feature the league's adapter does not have (LeagueFeature). */
+export class UnsupportedFeatureError extends Error {
+  constructor(
+    readonly league: LeagueId,
+    readonly feature: LeagueFeature,
+  ) {
+    super(`${league} has no ${feature}`);
+    this.name = "UnsupportedFeatureError";
+  }
 }
 
 export interface SportsDataOptions {
@@ -107,65 +121,105 @@ export class SportsData {
     );
   }
 
-  /** Special event names for the week starting on `weekStart`, by game id. */
-  getSpecialEvents(league: LeagueId, weekStart: string, options?: FetchOptions): Promise<Fetched<SpecialEvents>> {
+  /** Special event names for the week starting on `weekStart`, by game id; empty for a league without them. */
+  async getSpecialEvents(league: LeagueId, weekStart: string, options?: FetchOptions): Promise<Fetched<SpecialEvents>> {
+    const key = `${league}:events:${weekStart}`;
+    // A league without them has none: an empty answer, fresh as long as a real one, so Scores needs no special case.
+    if (!this.supports(league, "specialEvents")) {
+      const now = this.now();
+      const meta = {
+        league,
+        key,
+        source: "cache" as const,
+        fetchedAt: new Date(now).toISOString(),
+        staleAt: new Date(now + FRESHNESS.specialEvents).toISOString(),
+        stale: false,
+        warnings: [],
+      };
+      return { data: {}, meta };
+    }
+    const adapter = this.optional(league, "specialEvents");
     return this.get(
       {
         league,
-        key: `${league}:events:${weekStart}`,
-        load: (o) => this.registry.get(league).getSpecialEvents(weekStart, o),
+        key,
+        load: (o) => adapter.getSpecialEvents!(weekStart, o),
         freshFor: () => FRESHNESS.specialEvents,
       },
       options,
     );
   }
 
-  getSpotlight(league: LeagueId, options?: FetchOptions): Promise<Fetched<SpotlightEntry[]>> {
+  async getSpotlight(league: LeagueId, options?: FetchOptions): Promise<Fetched<SpotlightEntry[]>> {
+    const adapter = this.optional(league, "spotlight");
     return this.get(
       {
         league,
         key: `${league}:spotlight`,
-        load: (o) => this.registry.get(league).getSpotlight(o),
+        load: (o) => adapter.getSpotlight!(o),
         freshFor: () => FRESHNESS.spotlight,
       },
       options,
     );
   }
 
-  getGameDetail(league: LeagueId, gameId: string, options?: FetchOptions): Promise<Fetched<GameDetail>> {
+  async getGameDetail(league: LeagueId, gameId: string, options?: FetchOptions): Promise<Fetched<GameDetail>> {
+    const adapter = this.optional(league, "gameDetail");
     return this.get(
       {
         league,
         key: `${league}:game:${gameId}`,
-        load: (o) => this.registry.get(league).getGameDetail(gameId, o),
+        load: (o) => adapter.getGameDetail!(gameId, o),
         freshFor: (detail, now) => gameDetailFreshness(detail, now),
       },
       options,
     );
   }
 
-  getTeam(league: LeagueId, teamId: string, options?: FetchOptions): Promise<Fetched<TeamDetail>> {
+  async getTeam(league: LeagueId, teamId: string, options?: FetchOptions): Promise<Fetched<TeamDetail>> {
+    const adapter = this.optional(league, "team");
     return this.get(
       {
         league,
         key: `${league}:team:${teamId}`,
-        load: (o) => this.registry.get(league).getTeam(teamId, o),
+        load: (o) => adapter.getTeam!(teamId, o),
         freshFor: (detail, now) => teamFreshness(detail, now),
       },
       options,
     );
   }
 
-  getPlayer(league: LeagueId, playerId: string, options?: FetchOptions): Promise<Fetched<PlayerDetail>> {
+  async getPlayer(league: LeagueId, playerId: string, options?: FetchOptions): Promise<Fetched<PlayerDetail>> {
+    const adapter = this.optional(league, "player");
     return this.get(
       {
         league,
         key: `${league}:player:${playerId}`,
-        load: (o) => this.registry.get(league).getPlayer(playerId, o),
+        load: (o) => adapter.getPlayer!(playerId, o),
         freshFor: () => FRESHNESS.player,
       },
       options,
     );
+  }
+
+  /** The leagues the app has, in the order they were registered. */
+  leagues(): LeagueId[] {
+    return this.registry.leagues();
+  }
+
+  /** Whether `league` has `feature` (game pages, team pages, ...); the UI hides what leads to one it lacks. */
+  supports(league: LeagueId, feature: LeagueFeature): boolean {
+    return adapterSupports(this.registry.get(league), feature);
+  }
+
+  /**
+   * The adapter, when it has `feature`. Otherwise UnsupportedFeatureError, before any request or cache read, so a
+   * screen that should not have been reachable fails plainly and nothing reaches the diagnostics log.
+   */
+  private optional(league: LeagueId, feature: LeagueFeature): LeagueAdapter {
+    const adapter = this.registry.get(league);
+    if (!adapterSupports(adapter, feature)) throw new UnsupportedFeatureError(league, feature);
+    return adapter;
   }
 
   /**

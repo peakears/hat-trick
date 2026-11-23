@@ -6,7 +6,7 @@ import { addDays, scoresToday } from "../common/format";
 import { planReminders } from "./reminders";
 import { applyReminders, cancelAllReminders, hasReminderPermission } from "./reminders-native";
 import { useSettings } from "../settings/settings-context";
-import { LEAGUE, useSportsData } from "../data/sports-data-context";
+import { NHL, useSportsData } from "../data/sports-data-context";
 
 /** How many days ahead to look for favourite teams' games (today plus the next six). */
 const LOOKAHEAD_DAYS = 7;
@@ -43,7 +43,7 @@ export function useReminderSync(): void {
 
       const first = scoresToday();
       const dates = Array.from({ length: LOOKAHEAD_DAYS }, (_, i) => addDays(first, i));
-      const results = await Promise.allSettled(dates.map((d) => sports.getScores(LEAGUE, d)));
+      const results = await Promise.allSettled(dates.map((d) => sports.getScores(NHL, d)));
       // If any day failed to load, keep what is scheduled rather than cancel reminders for games we could not see.
       if (cancelled || results.some((r) => r.status === "rejected")) return;
 

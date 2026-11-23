@@ -44,6 +44,8 @@ export interface Settings {
   standingsView: StandingsView;
   /** The first-run setup was finished or skipped, so it is not shown again. */
   onboardingComplete: boolean;
+  /** The league the Scores, Standings and Leaders tabs show (a LeagueId). One the app lacks shows the NHL. */
+  league: string;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -62,6 +64,7 @@ export const DEFAULT_SETTINGS: Settings = {
   spoilerShield: false,
   standingsView: "division",
   onboardingComplete: false,
+  league: "nhl",
 };
 
 export const SETTINGS_KEY = "settings:v1";
@@ -90,6 +93,7 @@ const schema = z.object({
   // Stored settings without this field were saved by a version before first-run setup existed: that user has
   // used the app, so they skip it. Only a fresh install (nothing stored) starts with it false.
   onboardingComplete: z.boolean().catch(true),
+  league: z.string().min(1).catch(DEFAULT_SETTINGS.league),
 });
 
 /** Defaults for someone who has used the app before but whose stored settings are unreadable. */

@@ -33,6 +33,7 @@ describe("parseSettings", () => {
       spoilerShield: false,
       standingsView: "division",
       onboardingComplete: false,
+      league: "nhl",
     });
   });
 
@@ -68,6 +69,7 @@ describe("parseSettings", () => {
       spoilerShield: false,
       standingsView: "division",
       onboardingComplete: true,
+      league: "nhl",
     });
     expect(parseSettings(JSON.stringify({ theme: "purple", showBetting: true }))).toEqual({
       theme: "system",
@@ -85,6 +87,7 @@ describe("parseSettings", () => {
       spoilerShield: false,
       standingsView: "division",
       onboardingComplete: true,
+      league: "nhl",
     });
   });
 
@@ -161,6 +164,7 @@ describe("loadSettings / saveSettings", () => {
       spoilerShield: true,
       standingsView: "conference",
       onboardingComplete: true,
+      league: "nba",
     };
     await saveSettings(store, settings);
     expect(await loadSettings(store)).toEqual(settings);
