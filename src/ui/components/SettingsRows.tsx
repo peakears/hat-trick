@@ -1,12 +1,12 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useState, type ReactNode } from "react";
 import { Pressable, StyleSheet, Switch, Text, View } from "react-native";
-import { TV_REGIONS, type TvRegionPreference } from "../broadcasts";
-import { ACCENTS, ACCENT_LABELS, accentSwatch, type AccentId } from "../palette";
-import { requestReminderPermission } from "../reminders-native";
-import type { ThemePreference } from "../settings";
-import { useSettings } from "../settings-context";
-import { useColors, useScheme, DIVIDER } from "../theme";
+import { TV_REGIONS, type TvRegionPreference } from "../game/broadcasts";
+import { ACCENTS, ACCENT_LABELS, accentSwatch, type AccentId } from "../theme/palette";
+import { requestReminderPermission } from "../notifications/reminders-native";
+import type { ThemePreference } from "../settings/settings";
+import { useSettings } from "../settings/settings-context";
+import { useColors, useScheme, DIVIDER } from "../theme/theme";
 
 /** Controls shared by the Settings tab and first-run setup, so a choice looks the same in both. */
 

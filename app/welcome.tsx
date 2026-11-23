@@ -16,7 +16,7 @@ import {
 } from "../src/ui/components/SettingsRows";
 import { TeamGridSkeleton } from "../src/ui/components/Skeleton";
 import { TeamLogo } from "../src/ui/components/TeamLogo";
-import { isFavorite } from "../src/ui/favorites";
+import { isFavorite } from "../src/ui/team/favorites";
 import {
   nextStep,
   previousStep,
@@ -24,12 +24,12 @@ import {
   stepProgress,
   teamsByDivision,
   type OnboardingStep,
-} from "../src/ui/onboarding";
-import { REMINDER_LEADS, type ReminderLead } from "../src/ui/settings";
-import { useSettings } from "../src/ui/settings-context";
-import { NHL, useSportsData } from "../src/ui/sports-data-context";
-import { useColors, DIVIDER } from "../src/ui/theme";
-import { usePolled } from "../src/ui/use-polled";
+} from "../src/ui/settings/onboarding";
+import { REMINDER_LEADS, type ReminderLead } from "../src/ui/settings/settings";
+import { useSettings } from "../src/ui/settings/settings-context";
+import { NHL, useSportsData } from "../src/ui/data/sports-data-context";
+import { useColors, DIVIDER } from "../src/ui/theme/theme";
+import { usePolled } from "../src/ui/data/use-polled";
 
 /**
  * First-run setup (issue #120): shown once on a fresh install, before the tabs (the tabs layout redirects here),

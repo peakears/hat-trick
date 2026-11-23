@@ -1,10 +1,10 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { StyleSheet, Text, View } from "react-native";
 import type { Game } from "../../domain";
-import { channelsFor, channelsLabel, watchHeading } from "../broadcasts";
-import { venueLabel } from "../format";
-import { useColors, DIVIDER } from "../theme";
-import { useTvRegion } from "../use-tv-region";
+import { channelsFor, channelsLabel, watchHeading } from "../game/broadcasts";
+import { venueLabel } from "../common/format";
+import { useColors, DIVIDER } from "../theme/theme";
+import { useTvRegion } from "../game/use-tv-region";
 
 /**
  * The bottom of the game page's score card: where the game is played and every TV channel for the viewer's country,

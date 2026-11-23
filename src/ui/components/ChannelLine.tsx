@@ -1,6 +1,6 @@
 import { StyleSheet, Text, View } from "react-native";
-import { channelsLabel, summarizeChannels, type Channel } from "../broadcasts";
-import { useColors, DIVIDER } from "../theme";
+import { channelsLabel, summarizeChannels, type Channel } from "../game/broadcasts";
+import { useColors, DIVIDER } from "../theme/theme";
 
 /**
  * The first few of a game's TV channels (already limited to the user's region), one line under a Scores card.

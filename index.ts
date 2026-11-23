@@ -2,6 +2,6 @@
 // Android can start the JS for the service or a notification event with no screen open, so this cannot wait for
 // a component to mount.
 import "expo-router/entry";
-import { registerLiveTracking } from "./src/ui/live-tracker-run";
+import { registerLiveTracking } from "./src/ui/notifications/live-tracker-run";
 
 registerLiveTracking();

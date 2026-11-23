@@ -6,10 +6,10 @@ import { PlayerHeadshot } from "../src/ui/components/PlayerHeadshot";
 import { CrashScreen, Empty, ErrorView, OfflineBanner, UpdatedAt } from "../src/ui/components/States";
 import { ListSkeleton } from "../src/ui/components/Skeleton";
 import { TeamLogo } from "../src/ui/components/TeamLogo";
-import { spotlightDetail } from "../src/ui/leaders";
-import { NHL, useSportsData } from "../src/ui/sports-data-context";
-import { useColors, DIVIDER } from "../src/ui/theme";
-import { usePolled } from "../src/ui/use-polled";
+import { spotlightDetail } from "../src/ui/leaders/leaders";
+import { NHL, useSportsData } from "../src/ui/data/sports-data-context";
+import { useColors, DIVIDER } from "../src/ui/theme/theme";
+import { usePolled } from "../src/ui/data/use-polled";
 
 /** A spotlight screen that fails to render keeps the header, so Back still returns to Leaders. */
 export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {

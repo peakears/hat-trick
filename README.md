@@ -81,7 +81,7 @@ league adapters -> domain model -> on-device cache -> app UI
 - `src/registry.ts`: looks up an adapter by league id
 - `src/adapters/nhl/`: the NHL adapter
 - `src/data/`: on-device cache; refreshes live games every 20 seconds, keeps finished games for days, and serves the last known data when offline
-- `src/ui/`: React Native pieces shared by screens (polling hook, settings, components, formatting)
+- `src/ui/`: React Native pieces shared by screens, one folder per feature (data and polling, settings, scores, game, standings, notifications, updates and more) plus shared components
 - `app/`: the screens, using [Expo Router](https://docs.expo.dev/router/introduction/) (one file per route): the Scores, Standings, Leaders and Settings tabs, and the game page
 
 Settings (including favourite teams) are stored on the device, separately from cached data. Puck drop reminders are local notifications scheduled on the device. Live scores are checked by the app itself, from the same NHL API, while a followed game is on. The TV country is read from the phone's region setting, with no location permission and no network request. The only other network request is the daily update check against GitHub. Videos are not played by the app: tapping one opens nhl.com's own page in a browser tab, only for nhl.com video links.

@@ -1,7 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import type { Game } from "../../domain";
-import { useSpoilers } from "../spoiler-context";
-import { useColors, DIVIDER } from "../theme";
+import { useSpoilers } from "../spoilers/spoiler-context";
+import { useColors, DIVIDER } from "../theme/theme";
 
 /** On Scores while the shield hides at least one game: says so, and shows every score at once. */
 export function ShieldBanner({ games }: { games?: Game[] }) {

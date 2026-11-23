@@ -10,10 +10,10 @@ import {
   scorerGameGoalNumbers,
   scorerLabel,
   seasonGoalLabel,
-} from "../goals";
-import { tabular, useColors, DIVIDER } from "../theme";
-import { goalVideoLabel, isOpenableVideoUrl } from "../videos";
-import { openVideo } from "../videos-native";
+} from "../game/goals";
+import { tabular, useColors, DIVIDER } from "../theme/theme";
+import { goalVideoLabel, isOpenableVideoUrl } from "../game/videos";
+import { openVideo } from "../game/videos-native";
 
 /**
  * Goal-by-goal summary: time, team, scorer with their goal of the game ("(2)") and tags ("PP", "Hat trick"), which

@@ -1,5 +1,5 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { useColors } from "../theme";
+import { useColors } from "../theme/theme";
 
 /** A small switch of a few options, e.g. Skaters | Goalies. Labels shrink to fit on narrow screens. */
 export function Segmented<T extends string>({

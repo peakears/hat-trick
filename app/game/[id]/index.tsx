@@ -12,12 +12,12 @@ import { PenaltySummary } from "../../../src/ui/components/PenaltySummary";
 import { GameInfoLines } from "../../../src/ui/components/GameInfoLines";
 import { GameVideos } from "../../../src/ui/components/GameVideos";
 import { ThreeStars } from "../../../src/ui/components/ThreeStars";
-import { localDate, teamRecord } from "../../../src/ui/format";
-import { eventWeekStart, withSpecialEvents } from "../../../src/ui/special-events";
-import { useSpoilers } from "../../../src/ui/spoiler-context";
-import { NHL, useSportsData } from "../../../src/ui/sports-data-context";
-import { tabular, useColors } from "../../../src/ui/theme";
-import { usePolled } from "../../../src/ui/use-polled";
+import { localDate, teamRecord } from "../../../src/ui/common/format";
+import { eventWeekStart, withSpecialEvents } from "../../../src/ui/scores/special-events";
+import { useSpoilers } from "../../../src/ui/spoilers/spoiler-context";
+import { NHL, useSportsData } from "../../../src/ui/data/sports-data-context";
+import { tabular, useColors } from "../../../src/ui/theme/theme";
+import { usePolled } from "../../../src/ui/data/use-polled";
 
 /** A game page that fails to render keeps the header, so Back still returns to the scores. */
 export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {

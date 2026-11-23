@@ -7,13 +7,13 @@ import { Segmented } from "../../src/ui/components/Segmented";
 import { ErrorView, OfflineBanner, UpdatedAt } from "../../src/ui/components/States";
 import { ListSkeleton } from "../../src/ui/components/Skeleton";
 import { TeamLogo } from "../../src/ui/components/TeamLogo";
-import { statValue } from "../../src/ui/format";
-import { LEADERS_MAX, leaderSectionKey, leaderValue, visibleLeaders } from "../../src/ui/leaders";
-import { combineFetched } from "../../src/ui/polling";
-import { useSportsData } from "../../src/ui/sports-data-context";
-import { useLeague } from "../../src/ui/use-league";
-import { tabular, useColors, DIVIDER } from "../../src/ui/theme";
-import { usePolled } from "../../src/ui/use-polled";
+import { statValue } from "../../src/ui/common/format";
+import { LEADERS_MAX, leaderSectionKey, leaderValue, visibleLeaders } from "../../src/ui/leaders/leaders";
+import { combineFetched } from "../../src/ui/data/polling";
+import { useSportsData } from "../../src/ui/data/sports-data-context";
+import { useLeague } from "../../src/ui/data/use-league";
+import { tabular, useColors, DIVIDER } from "../../src/ui/theme/theme";
+import { usePolled } from "../../src/ui/data/use-polled";
 
 type Kind = "skaters" | "goalies";
 

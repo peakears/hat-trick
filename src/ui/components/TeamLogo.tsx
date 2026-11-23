@@ -1,8 +1,8 @@
 import { Image } from "expo-image";
 import { StyleSheet, Text, View } from "react-native";
 import type { Team } from "../../domain";
-import { useSettings } from "../settings-context";
-import { useColors } from "../theme";
+import { useSettings } from "../settings/settings-context";
+import { useColors } from "../theme/theme";
 
 /**
  * A team logo loaded from the league API at runtime (never bundled: see the README disclaimer).
