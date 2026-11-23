@@ -10,7 +10,8 @@ import { TeamLogo } from "../../src/ui/components/TeamLogo";
 import { statValue } from "../../src/ui/format";
 import { LEADERS_MAX, leaderSectionKey, leaderValue, visibleLeaders } from "../../src/ui/leaders";
 import { combineFetched } from "../../src/ui/polling";
-import { LEAGUE, useSportsData } from "../../src/ui/sports-data-context";
+import { useSportsData } from "../../src/ui/sports-data-context";
+import { useLeague } from "../../src/ui/use-league";
 import { tabular, useColors, DIVIDER } from "../../src/ui/theme";
 import { usePolled } from "../../src/ui/use-polled";
 
@@ -22,16 +23,17 @@ const GOALIE_CATEGORIES = ["wins", "savePctg", "goalsAgainstAverage", "shutouts"
 
 export default function LeadersScreen() {
   const sports = useSportsData();
+  const league = useLeague();
   const colors = useColors();
   const router = useRouter();
   const [kind, setKind] = useState<Kind>("skaters");
   // Categories opened with "Show more". Kept while switching between Skaters and Goalies.
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set());
 
-  const leaders = usePolled(`leaders:${kind}`, async (o: FetchOptions) => {
-    if (kind === "skaters") return sports.getLeaders(LEAGUE, { limit: LEADERS_MAX }, o);
+  const leaders = usePolled(`${league}:leaders:${kind}`, async (o: FetchOptions) => {
+    if (kind === "skaters") return sports.getLeaders(league, { limit: LEADERS_MAX }, o);
     const results = await Promise.all(
-      GOALIE_CATEGORIES.map((category) => sports.getLeaders(LEAGUE, { category, limit: LEADERS_MAX }, o)),
+      GOALIE_CATEGORIES.map((category) => sports.getLeaders(league, { category, limit: LEADERS_MAX }, o)),
     );
     const combined = combineFetched(results);
     return { data: combined.data.flat(), meta: combined.meta };

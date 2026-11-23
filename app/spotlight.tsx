@@ -7,7 +7,7 @@ import { CrashScreen, Empty, ErrorView, OfflineBanner, UpdatedAt } from "../src/
 import { ListSkeleton } from "../src/ui/components/Skeleton";
 import { TeamLogo } from "../src/ui/components/TeamLogo";
 import { spotlightDetail } from "../src/ui/leaders";
-import { LEAGUE, useSportsData } from "../src/ui/sports-data-context";
+import { NHL, useSportsData } from "../src/ui/sports-data-context";
 import { useColors, DIVIDER } from "../src/ui/theme";
 import { usePolled } from "../src/ui/use-polled";
 
@@ -21,7 +21,7 @@ export default function SpotlightScreen() {
   const sports = useSportsData();
   const colors = useColors();
   const router = useRouter();
-  const spotlight = usePolled("spotlight", (o: FetchOptions) => sports.getSpotlight(LEAGUE, o));
+  const spotlight = usePolled("spotlight", (o: FetchOptions) => sports.getSpotlight(NHL, o));
 
   if (spotlight.loading) return <ListSkeleton />;
   if (!spotlight.data) {
