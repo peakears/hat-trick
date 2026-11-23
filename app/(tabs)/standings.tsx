@@ -5,17 +5,17 @@ import { Segmented } from "../../src/ui/components/Segmented";
 import { ErrorView, OfflineBanner, UpdatedAt } from "../../src/ui/components/States";
 import { ListSkeleton } from "../../src/ui/components/Skeleton";
 import { TeamLogo } from "../../src/ui/components/TeamLogo";
-import { isFavorite } from "../../src/ui/favorites";
-import { useSettings } from "../../src/ui/settings-context";
-import { LEAGUE, useSportsData } from "../../src/ui/sports-data-context";
+import { isFavorite } from "../../src/ui/team/favorites";
+import { useSettings } from "../../src/ui/settings/settings-context";
+import { LEAGUE, useSportsData } from "../../src/ui/data/sports-data-context";
 import {
   availableStandingsViews,
   effectiveStandingsView,
   STANDINGS_VIEW_LABELS,
   standingsSections,
-} from "../../src/ui/standings";
-import { tabular, useColors, DIVIDER } from "../../src/ui/theme";
-import { usePolled } from "../../src/ui/use-polled";
+} from "../../src/ui/standings/standings";
+import { tabular, useColors, DIVIDER } from "../../src/ui/theme/theme";
+import { usePolled } from "../../src/ui/data/use-polled";
 
 const NUM_WIDTH = 28;
 

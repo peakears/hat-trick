@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useRef, type ReactNode } from "react";
 import { Animated, StyleSheet, View, type DimensionValue, type StyleProp, type ViewStyle } from "react-native";
-import { useColors, DIVIDER } from "../theme";
-import { useReduceMotion } from "../use-reduce-motion";
+import { useColors, DIVIDER } from "../theme/theme";
+import { useReduceMotion } from "../theme/use-reduce-motion";
 
 /**
  * Loading placeholders: grey shapes in the layout of the screen that is loading, pulsing gently, so

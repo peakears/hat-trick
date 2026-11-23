@@ -2,11 +2,11 @@ import { useEffect, useState } from "react";
 import { Alert, FlatList, Linking, Platform, Pressable, Share, StyleSheet, Text, View } from "react-native";
 import type { LogEntry } from "../src/data";
 import { Empty } from "../src/ui/components/States";
-import { consoleLine, logForIssue, logReport } from "../src/ui/diagnostics";
-import { reportProblemUrl } from "../src/ui/links";
-import { useDiagnosticsLog } from "../src/ui/sports-data-context";
-import { useColors } from "../src/ui/theme";
-import { APP_VERSION } from "../src/ui/update-context";
+import { consoleLine, logForIssue, logReport } from "../src/ui/data/diagnostics";
+import { reportProblemUrl } from "../src/ui/common/links";
+import { useDiagnosticsLog } from "../src/ui/data/sports-data-context";
+import { useColors } from "../src/ui/theme/theme";
+import { APP_VERSION } from "../src/ui/updates/update-context";
 
 const INFO = { version: APP_VERSION, platform: Platform.OS, osVersion: Platform.Version };
 /** The system monospace font: "monospace" on Android, Menlo on iOS. */

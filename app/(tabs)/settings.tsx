@@ -11,15 +11,15 @@ import {
   TV_REGION_OPTIONS,
   useReminderToggle,
 } from "../../src/ui/components/SettingsRows";
-import { timeLabel } from "../../src/ui/format";
-import { installStatusText, isBusy } from "../../src/ui/install-update";
-import { RELEASES_URL, REPO_URL, reportProblemUrl } from "../../src/ui/links";
-import { liveTrackingAvailable } from "../../src/ui/live-tracker-native";
-import { REMINDER_LEADS, type ReminderLead } from "../../src/ui/settings";
-import { useSettings } from "../../src/ui/settings-context";
-import type { UpdateStatus } from "../../src/ui/updates";
-import { useColors, DIVIDER } from "../../src/ui/theme";
-import { APP_VERSION, useUpdate } from "../../src/ui/update-context";
+import { timeLabel } from "../../src/ui/common/format";
+import { installStatusText, isBusy } from "../../src/ui/updates/install-update";
+import { RELEASES_URL, REPO_URL, reportProblemUrl } from "../../src/ui/common/links";
+import { liveTrackingAvailable } from "../../src/ui/notifications/live-tracker-native";
+import { REMINDER_LEADS, type ReminderLead } from "../../src/ui/settings/settings";
+import { useSettings } from "../../src/ui/settings/settings-context";
+import type { UpdateStatus } from "../../src/ui/updates/updates";
+import { useColors, DIVIDER } from "../../src/ui/theme/theme";
+import { APP_VERSION, useUpdate } from "../../src/ui/updates/update-context";
 
 const LEAD_OPTIONS = REMINDER_LEADS.map((n) => ({ value: String(n), label: `${n} min` }));
 

@@ -1,13 +1,13 @@
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider, type ErrorBoundaryProps } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { CrashScreen } from "../src/ui/components/States";
-import { useLiveTracking } from "../src/ui/use-live-tracking";
-import { useReminderSync, useReminderTaps } from "../src/ui/use-reminders";
-import { SettingsProvider } from "../src/ui/settings-context";
-import { SpoilerProvider } from "../src/ui/spoiler-context";
-import { SportsDataProvider } from "../src/ui/sports-data-context";
-import { UpdateProvider } from "../src/ui/update-context";
-import { useColors, useScheme } from "../src/ui/theme";
+import { useLiveTracking } from "../src/ui/notifications/use-live-tracking";
+import { useReminderSync, useReminderTaps } from "../src/ui/notifications/use-reminders";
+import { SettingsProvider } from "../src/ui/settings/settings-context";
+import { SpoilerProvider } from "../src/ui/spoilers/spoiler-context";
+import { SportsDataProvider } from "../src/ui/data/sports-data-context";
+import { UpdateProvider } from "../src/ui/updates/update-context";
+import { useColors, useScheme } from "../src/ui/theme/theme";
 
 /** Catches a render error anywhere in the app, so a release build never shows a blank screen. */
 export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {

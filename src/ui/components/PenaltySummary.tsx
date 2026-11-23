@@ -10,8 +10,8 @@ import {
   penaltyPlayerLabel,
   powerPlayGoals,
   visiblePenalties,
-} from "../penalties";
-import { tabular, useColors, DIVIDER } from "../theme";
+} from "../game/penalties";
+import { tabular, useColors, DIVIDER } from "../theme/theme";
 
 /**
  * Penalty-by-penalty summary: time, team, player, infraction and who drew it, length, and the power-play goal it led

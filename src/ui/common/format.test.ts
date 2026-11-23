@@ -1,0 +1,231 @@
+import { describe, expect, it } from "vitest";
+import type { Game, GameStatus, Standings } from "../../domain";
+import {
+  addDays,
+  dateLabel,
+  dateToPickerValue,
+  gameStatusLabel,
+  groupGamesForScores,
+  localDate,
+  pickerValueToDate,
+  recordLabel,
+  scoresToday,
+  sortGamesForScores,
+  statValue,
+  teamRecord,
+  venueLabel,
+  winner,
+} from "./format";
+
+function game(status: GameStatus, extra: Partial<Game> = {}, scores: [number | null, number | null] = [3, 2]): Game {
+  const team = (abbrev: string) => ({ id: abbrev, league: "nhl", name: abbrev, abbrev });
+  return {
+    id: "1",
+    league: "nhl",
+    startTime: "2026-11-18T00:00:00Z",
+    status,
+    home: { team: team("TOR"), score: scores[0] },
+    away: { team: team("MTL"), score: scores[1] },
+    ...extra,
+  };
+}
+
+describe("dates", () => {
+  it("formats a local calendar date", () => {
+    expect(localDate(new Date(2026, 10, 17, 23, 59))).toBe("2026-11-17");
+    expect(localDate(new Date(2026, 0, 5, 0, 1))).toBe("2026-01-05");
+  });
+
+  it("adds days across month, year and DST boundaries", () => {
+    expect(addDays("2026-11-30", 1)).toBe("2026-12-01");
+    expect(addDays("2026-12-31", 1)).toBe("2027-01-01");
+    expect(addDays("2026-03-01", -1)).toBe("2026-02-28");
+    expect(addDays("2026-11-01", 1)).toBe("2026-11-02"); // US DST ends
+  });
+
+  it("keeps last night's games as Today until the morning rollover", () => {
+    expect(scoresToday(new Date(2026, 10, 17, 23, 30))).toBe("2026-11-17");
+    expect(scoresToday(new Date(2026, 10, 18, 0, 45))).toBe("2026-11-17"); // late game past midnight
+    expect(scoresToday(new Date(2026, 10, 18, 4, 59))).toBe("2026-11-17");
+    expect(scoresToday(new Date(2026, 10, 18, 5, 0))).toBe("2026-11-18");
+    expect(scoresToday(new Date(2026, 11, 1, 1, 0))).toBe("2026-11-30"); // across a month
+    expect(scoresToday(new Date(2027, 0, 1, 2, 0))).toBe("2026-12-31"); // and a year
+  });
+
+  it("labels nearby dates relative to today", () => {
+    expect(dateLabel("2026-11-17", "2026-11-17")).toBe("Today");
+    expect(dateLabel("2026-11-16", "2026-11-17")).toBe("Yesterday");
+    expect(dateLabel("2026-11-18", "2026-11-17")).toBe("Tomorrow");
+    expect(dateLabel("2026-11-20", "2026-11-17")).toMatch(/20/);
+  });
+});
+
+describe("date picker values", () => {
+  it("round-trips a date through the picker's local Date", () => {
+    for (const d of ["2026-11-19", "2026-03-08", "2026-11-01", "2027-01-01", "2028-02-29"]) {
+      expect(pickerValueToDate(dateToPickerValue(d))).toBe(d);
+    }
+  });
+
+  it("opens the picker at local noon on that date", () => {
+    const v = dateToPickerValue("2026-11-19");
+    expect([v.getFullYear(), v.getMonth(), v.getDate(), v.getHours()]).toEqual([2026, 10, 19, 12]);
+  });
+
+  it("reads the local calendar date the picker returns, whatever the time", () => {
+    expect(pickerValueToDate(new Date(2026, 10, 19, 0, 0))).toBe("2026-11-19");
+    expect(pickerValueToDate(new Date(2026, 10, 19, 23, 59))).toBe("2026-11-19");
+  });
+});
+
+describe("game status", () => {
+  it.each([
+    [game("live", { clock: { period: 2, label: "2nd", timeRemaining: "12:34" } }), "2nd 12:34"],
+    [
+      game("live", { clock: { period: 2, label: "2nd", intermission: true, intermissionRemaining: "03:05" } }),
+      "2nd INT 03:05",
+    ],
+    [game("live", { clock: { period: 1, label: "1st", intermission: true } }), "1st INT"],
+    [game("live"), "Live"],
+    [game("final"), "Final"],
+    [game("final", { endedIn: "overtime" }), "Final/OT"],
+    [game("final", { endedIn: "shootout" }), "Final/SO"],
+    [game("postponed"), "Postponed"],
+  ])("%#: %s", (g, expected) => {
+    expect(gameStatusLabel(g)).toBe(expected);
+  });
+
+  it("picks the winner of a final game only", () => {
+    expect(winner(game("final", {}, [3, 2]))).toBe("home");
+    expect(winner(game("final", {}, [1, 4]))).toBe("away");
+    expect(winner(game("live", {}, [3, 2]))).toBeUndefined();
+    expect(winner(game("scheduled", {}, [null, null]))).toBeUndefined();
+  });
+});
+
+describe("scores order", () => {
+  const at = (id: string, status: GameStatus, startTime: string) => game(status, { id, startTime });
+
+  it("puts live games first, then upcoming, then finished, then postponed", () => {
+    const games = [
+      at("final-early", "final", "2026-11-17T23:00:00Z"),
+      at("ppd", "postponed", "2026-11-17T22:00:00Z"),
+      at("later", "scheduled", "2026-11-18T03:00:00Z"),
+      at("live-late", "live", "2026-11-18T01:00:00Z"),
+      at("final-late", "final", "2026-11-18T00:00:00Z"),
+      at("live-early", "live", "2026-11-18T00:00:00Z"),
+      at("sooner", "scheduled", "2026-11-18T02:00:00Z"),
+    ];
+    expect(sortGamesForScores(games).map((g) => g.id)).toEqual([
+      "live-early",
+      "live-late",
+      "sooner",
+      "later",
+      "final-early",
+      "final-late",
+      "ppd",
+    ]);
+  });
+
+  it("breaks start-time ties by id and does not mutate the input", () => {
+    const games = [at("b", "live", "2026-11-18T00:00:00Z"), at("a", "live", "2026-11-18T00:00:00Z")];
+    expect(sortGamesForScores(games).map((g) => g.id)).toEqual(["a", "b"]);
+    expect(games.map((g) => g.id)).toEqual(["b", "a"]);
+  });
+});
+
+describe("venueLabel", () => {
+  it("joins the arena and city, or gives just the arena", () => {
+    expect(venueLabel({ name: "TD Garden", city: "Boston" })).toBe("TD Garden · Boston");
+    expect(venueLabel({ name: "TD Garden" })).toBe("TD Garden");
+    expect(venueLabel(undefined)).toBeUndefined();
+  });
+});
+
+describe("scores sections", () => {
+  const g = (id: string, status: GameStatus, away = "MTL", home = "TOR"): Game => {
+    const team = (abbrev: string) => ({ id: abbrev, league: "nhl", name: abbrev, abbrev });
+    return {
+      id,
+      league: "nhl",
+      startTime: "2026-11-18T00:00:00Z",
+      status,
+      home: { team: team(home), score: null },
+      away: { team: team(away), score: null },
+    };
+  };
+
+  it("groups by status in Scores order, with a title for each", () => {
+    const sections = groupGamesForScores([g("f", "final"), g("u", "scheduled"), g("l", "live"), g("p", "postponed")]);
+    expect(sections.map((s) => [s.title, s.data.map((x) => x.id)])).toEqual([
+      ["Live", ["l"]],
+      ["Upcoming", ["u"]],
+      ["Final", ["f"]],
+      ["Postponed", ["p"]],
+    ]);
+  });
+
+  it("leaves out sections with no games", () => {
+    expect(groupGamesForScores([g("a", "final"), g("b", "final")]).map((s) => s.title)).toEqual(["Final"]);
+    expect(groupGamesForScores([])).toEqual([]);
+  });
+
+  it("puts favourite teams' games in their own first section, in Scores order inside it", () => {
+    const sections = groupGamesForScores(
+      [g("x", "live", "BOS", "NYR"), g("fin", "final", "EDM", "CGY"), g("up", "scheduled", "TOR", "OTT")],
+      ["TOR", "CGY"],
+    );
+    expect(sections.map((s) => [s.title, s.data.map((x) => x.id)])).toEqual([
+      ["Your teams", ["up", "fin"]],
+      ["Live", ["x"]],
+    ]);
+    expect(sections[0].key).toBe("favorites");
+  });
+
+  it("keeps exactly the order sortGamesForScores gives", () => {
+    const games = [g("1", "final"), g("2", "live", "TOR", "BOS"), g("3", "scheduled"), g("4", "live")];
+    const flat = groupGamesForScores(games, ["TOR"]).flatMap((s) => s.data.map((x) => x.id));
+    expect(flat).toEqual(sortGamesForScores(games, ["TOR"]).map((x) => x.id));
+  });
+});
+
+describe("team records", () => {
+  const team = (abbrev: string) => ({ id: abbrev, league: "nhl", name: abbrev, abbrev });
+  const standings: Standings = {
+    league: "nhl",
+    updatedAt: "2026-11-19T12:00:00Z",
+    groups: [
+      { name: "Atlantic", rows: [{ team: team("TOR"), rank: 1, gamesPlayed: 21, wins: 13, losses: 7, otLosses: 1 }] },
+      { name: "Pacific", rows: [{ team: team("LAK"), rank: 1, gamesPlayed: 20, wins: 12, losses: 8, otLosses: 0 }] },
+    ],
+  };
+
+  it("formats W-L-OT, or W-L when the league has no OT losses", () => {
+    expect(recordLabel({ wins: 13, losses: 7, otLosses: 1 })).toBe("13-7-1");
+    expect(recordLabel({ wins: 12, losses: 8, otLosses: 0 })).toBe("12-8-0");
+    expect(recordLabel({ wins: 30, losses: 12 })).toBe("30-12");
+  });
+
+  it("finds a team's record in any standings group", () => {
+    expect(teamRecord(standings, team("TOR"))).toBe("13-7-1");
+    expect(teamRecord(standings, team("LAK"))).toBe("12-8-0");
+  });
+
+  it("returns undefined for a missing team or no standings", () => {
+    expect(teamRecord(standings, team("SEA"))).toBeUndefined();
+    expect(teamRecord(undefined, team("TOR"))).toBeUndefined();
+  });
+});
+
+describe("stat values", () => {
+  it.each([
+    [12, "12"],
+    [0.925, ".925"],
+    [1, "1"],
+    [2.314, "2.31"],
+    ["18:32", "18:32"],
+    [undefined, "-"],
+  ] as const)("%s -> %s", (value, expected) => {
+    expect(statValue(value)).toBe(expected);
+  });
+});
