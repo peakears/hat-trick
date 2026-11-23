@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Game, GameDetail, Goal } from "../domain";
 import {
+  createTapRouter,
   followUpdate,
   gamesToFollow,
   ongoingSummary,
@@ -8,6 +9,7 @@ import {
   scoreLine,
   TRACK_LATE_MS,
   TRACK_LEAD_MS,
+  TAP_REPEAT_MS,
 } from "./live-tracker";
 
 const NOW = Date.parse("2026-11-22T00:30:00Z");
@@ -228,5 +230,46 @@ describe("ongoingSummary", () => {
       title: "Following 2 games",
       body: "TOR 2–1 CHI · 2nd 12:34\nMTL 0–0 BOS · 1st 03:10",
     });
+  });
+});
+
+describe("createTapRouter", () => {
+  it("keeps a tap from before any screen attached, and opens it on attach", () => {
+    const router = createTapRouter();
+    const opened: string[] = [];
+    router.tap("g1", 0);
+    router.attach((id) => opened.push(id), 0);
+    expect(opened).toEqual(["g1"]);
+  });
+
+  it("opens a tap at once while a screen is attached, and stops after detach", () => {
+    const router = createTapRouter();
+    const opened: string[] = [];
+    const detach = router.attach((id) => opened.push(id), 0);
+    router.tap("g1", 0);
+    detach();
+    router.tap("g2", 10_000);
+    expect(opened).toEqual(["g1"]);
+    router.attach((id) => opened.push(id), 10_000);
+    expect(opened).toEqual(["g1", "g2"]);
+  });
+
+  it("opens one tap reported twice only once, but a later tap again", () => {
+    const router = createTapRouter();
+    const opened: string[] = [];
+    router.attach((id) => opened.push(id), 0);
+    router.tap("g1", 0);
+    router.tap("g1", TAP_REPEAT_MS - 1);
+    router.tap("g1", TAP_REPEAT_MS * 2);
+    expect(opened).toEqual(["g1", "g1"]);
+  });
+
+  it("counts repeats from when a kept tap opens, so a slow start does not open it twice", () => {
+    const router = createTapRouter();
+    const opened: string[] = [];
+    router.tap("g1", 0);
+    router.attach((id) => opened.push(id), 5_000);
+    router.tap("g1", 5_500); // the launch notification, reported again once the app is up
+    expect(opened).toEqual(["g1"]);
   });
 });

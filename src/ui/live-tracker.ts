@@ -156,3 +156,38 @@ export function ongoingSummary(games: { gameId: string; title: string; body: str
   if (games.length === 1) return games[0];
   return { title: `Following ${games.length} games`, body: games.map((g) => `${g.title} · ${g.body}`).join("\n") };
 }
+
+/** A second report of the same tap within this long is the same tap (the library can report one tap twice). */
+export const TAP_REPEAT_MS = 2_000;
+
+/**
+ * Routes notification taps to the screen that opens games. A tap can arrive before any screen exists (it launched
+ * or brought back the app), so it is kept until `attach` is called; the same game tapped twice within
+ * TAP_REPEAT_MS opens once.
+ */
+export function createTapRouter() {
+  let open: ((gameId: string) => void) | undefined;
+  let pending: string | undefined;
+  let last: { gameId: string; at: number } | undefined;
+  return {
+    tap(gameId: string, now: number): void {
+      if (last && last.gameId === gameId && now - last.at < TAP_REPEAT_MS) return;
+      last = { gameId, at: now };
+      if (open) open(gameId);
+      else pending = gameId;
+    },
+    /** Starts opening games with `handler`, first any tap kept from before. Returns the detach function. */
+    attach(handler: (gameId: string) => void, now: number): () => void {
+      open = handler;
+      if (pending !== undefined) {
+        const gameId = pending;
+        pending = undefined;
+        last = { gameId, at: now }; // the app may take a while to start: repeats count from the opening
+        handler(gameId);
+      }
+      return () => {
+        if (open === handler) open = undefined;
+      };
+    },
+  };
+}

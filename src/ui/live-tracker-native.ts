@@ -3,7 +3,7 @@
 // call here is a no-op and `liveTrackingAvailable()` is false, so the rest of the app works unchanged.
 import { Platform, TurboModuleRegistry } from "react-native";
 import type { Event, Notification } from "react-native-notify-kit";
-import type { Alert } from "./live-tracker";
+import { createTapRouter, type Alert } from "./live-tracker";
 
 type Kit = typeof import("react-native-notify-kit");
 
@@ -138,8 +138,14 @@ export function registerLiveService(handlers: LiveServiceHandlers): void {
   k.default.registerForegroundService(() => handlers.run());
   k.default.onBackgroundEvent(async (event) => {
     if (isStop(k, event)) handlers.onStop();
+    // A tap while the app is in the background comes here, not to the foreground listener.
+    const gameId = tappedGame(k, event);
+    if (gameId) taps.tap(gameId, Date.now());
   });
 }
+
+/** Taps from either handler, opened once a screen attaches (see onLiveNotificationTap). */
+const taps = createTapRouter();
 
 let stopHandler: (() => void) | undefined;
 
@@ -159,23 +165,28 @@ function tappedGame(k: Kit, event: Event): string | undefined {
 }
 
 /**
- * While the app is open: calls `open` with the game of a tapped notification (one that launched the app, and any
- * tapped while it runs), and handles Stop. Mounted from a hook, since listening needs the native module.
- * Returns the unsubscribe function.
+ * While the app is open: calls `open` with the game of a tapped notification (one that launched the app, one
+ * tapped while it was in the background, and any tapped while it is in front), and handles Stop. Mounted from a
+ * hook, since listening needs the native module. Returns the unsubscribe function.
  */
 export function onLiveNotificationTap(open: (gameId: string) => void): () => void {
   const k = load();
   if (!k) return () => {};
+  const detach = taps.attach(open, Date.now());
   k.default
     .getInitialNotification()
     .then((initial) => {
       const gameId = initial?.notification.data?.gameId;
-      if (typeof gameId === "string") open(gameId);
+      if (typeof gameId === "string") taps.tap(gameId, Date.now());
     })
     .catch(() => {});
-  return k.default.onForegroundEvent((event) => {
+  const unsubscribe = k.default.onForegroundEvent((event) => {
     if (isStop(k, event)) stopHandler?.();
     const gameId = tappedGame(k, event);
-    if (gameId) open(gameId);
+    if (gameId) taps.tap(gameId, Date.now());
   });
+  return () => {
+    unsubscribe();
+    detach();
+  };
 }
