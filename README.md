@@ -101,7 +101,6 @@ What each version added is on the [Releases page](https://github.com/peakears/ha
 
 Planned (each links to its issue):
 
-- [Play-by-play and penalty log](https://github.com/peakears/hat-trick/issues/28) on the game page
 - [Starting goalies](https://github.com/peakears/hat-trick/issues/30) on upcoming games
 - [French translation](https://github.com/peakears/hat-trick/issues/86), with French team, city and arena names from the NHL API
 - [Betting odds](https://github.com/peakears/hat-trick/issues/7), if a usable source exists (off by default)
