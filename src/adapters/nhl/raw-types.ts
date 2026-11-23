@@ -4,6 +4,7 @@
 // Verified against live responses on 2026-11-17 (season 20262027): /score,
 // /gamecenter/{id}/boxscore (live and final), /standings/now, and both
 // stats-leaders endpoints. /gamecenter/{id}/landing (three stars and penalties): 2026-11-20.
+// /gamecenter/{id}/play-by-play (final games): 2026-11-23.
 //
 // Core fields (plain schemas) throw on mismatch. Minor fields (`minor()`) are
 // dropped with a warning. See validate.ts for the policy.
@@ -490,6 +491,73 @@ export const RawSpotlightPlayerSchema = z.object({
 
 export const RawSpotlightSchema = lenientArray(RawSpotlightPlayerSchema, "spotlight");
 
+// ---------- Play-by-play (/gamecenter/{id}/play-by-play) ----------
+// Verified on 2026-11-23 against two final games (2026020333 LAK at BOS, 2026020338 TOR at CHI). The game fields
+// are the box score's (RawGameSchema). Live play-by-play is unverified.
+
+/** A player who dressed, so plays (which name players by id only) can be named. */
+const RawRosterSpotSchema = z.object({
+  teamId: z.number(),
+  playerId: z.number(),
+  firstName: LocalizedSchema,
+  lastName: LocalizedSchema,
+  sweaterNumber: num("rosterSpot.sweaterNumber"),
+});
+
+/**
+ * One play. `typeDescKey` seen: "goal", "shot-on-goal", "missed-shot", "blocked-shot", "penalty", "delayed-penalty",
+ * "hit", "faceoff", "giveaway", "takeaway", "stoppage", "period-start", "period-end", "game-end". `details` depends
+ * on the type: player ids in `scoringPlayerId`, `shootingPlayerId`, `committedByPlayerId` and the like.
+ */
+const RawPlaySchema = z.object({
+  eventId: z.number(),
+  periodDescriptor: RawPeriodDescriptorSchema,
+  /** Elapsed in the period, "03:22". */
+  timeInPeriod: z.string(),
+  typeDescKey: z.string(),
+  /** Order of the plays; `eventId` is not. */
+  sortOrder: z.number(),
+  /** Away goalie, away skaters, home skaters, home goalie: "1551" is 5 on 5, "1560" the home net empty. */
+  situationCode: str("play.situationCode"),
+  details: minor(
+    z.object({
+      eventOwnerTeamId: num("details.eventOwnerTeamId"),
+      scoringPlayerId: num("details.scoringPlayerId"),
+      scoringPlayerTotal: num("details.scoringPlayerTotal"),
+      assist1PlayerId: num("details.assist1PlayerId"),
+      assist1PlayerTotal: num("details.assist1PlayerTotal"),
+      assist2PlayerId: num("details.assist2PlayerId"),
+      assist2PlayerTotal: num("details.assist2PlayerTotal"),
+      shootingPlayerId: num("details.shootingPlayerId"),
+      goalieInNetId: num("details.goalieInNetId"),
+      blockingPlayerId: num("details.blockingPlayerId"),
+      hittingPlayerId: num("details.hittingPlayerId"),
+      hitteePlayerId: num("details.hitteePlayerId"),
+      winningPlayerId: num("details.winningPlayerId"),
+      losingPlayerId: num("details.losingPlayerId"),
+      committedByPlayerId: num("details.committedByPlayerId"),
+      drawnByPlayerId: num("details.drawnByPlayerId"),
+      playerId: num("details.playerId"),
+      /** "wrist", "snap", "tip-in", "backhand", "deflected", ... */
+      shotType: str("details.shotType"),
+      /** A miss: "wide-right", "high-and-wide", "hit-crossbar", ...; a stoppage: "icing", "offside", ... */
+      reason: str("details.reason"),
+      /** Penalties: the infraction ("tripping", "ps-hooking-on-breakaway") and minutes (0 for a penalty shot). */
+      descKey: str("details.descKey"),
+      duration: num("details.duration"),
+      /** After a goal. */
+      awayScore: num("details.awayScore"),
+      homeScore: num("details.homeScore"),
+    }),
+    "play.details",
+  ),
+});
+
+export const RawPlayByPlaySchema = RawGameSchema.extend({
+  plays: lenientArray(RawPlaySchema, "plays"),
+  rosterSpots: lenientArray(RawRosterSpotSchema, "rosterSpots"),
+});
+
 // ---------- Inferred types ----------
 
 export type Localized = z.output<typeof LocalizedSchema>;
@@ -520,3 +588,5 @@ export type RawPlayerStats = z.output<typeof RawPlayerStatsSchema>;
 export type RawPlayerSeason = z.output<typeof RawPlayerSeasonSchema>;
 export type RawPlayerGame = z.output<typeof RawPlayerGameSchema>;
 export type RawPlayerLanding = z.output<typeof RawPlayerLandingSchema>;
+export type RawPlay = z.output<typeof RawPlaySchema>;
+export type RawPlayByPlay = z.output<typeof RawPlayByPlaySchema>;

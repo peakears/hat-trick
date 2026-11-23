@@ -50,6 +50,7 @@ function ThemedStack() {
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="game/[id]/index" options={{ title: "Game" }} />
         <Stack.Screen name="game/[id]/box-score" options={{ title: "Box score" }} />
+        <Stack.Screen name="game/[id]/plays" options={{ title: "Play-by-play" }} />
         <Stack.Screen name="team/[id]" options={{ title: "Team" }} />
         <Stack.Screen name="player/[id]" options={{ title: "Player" }} />
         <Stack.Screen name="spotlight" options={{ title: "Player spotlight" }} />

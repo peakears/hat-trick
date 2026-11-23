@@ -9,6 +9,7 @@
 import type {
   Game,
   GameDetail,
+  GamePlays,
   LeaderBoard,
   LeaderQuery,
   LeagueAdapter,
@@ -23,7 +24,7 @@ import type {
 } from "../domain";
 import { adapterSupports } from "../domain";
 import type { AdapterRegistry } from "../registry";
-import { FRESHNESS, gameDetailFreshness, scoresFreshness, teamFreshness } from "./freshness";
+import { FRESHNESS, gameDetailFreshness, gameFreshness, scoresFreshness, teamFreshness } from "./freshness";
 import type { DiagnosticsLog, NewLogEntry } from "./diagnostics";
 import type { KeyValueStore } from "./store";
 import type { DataMeta, Fetched, FetchOptions } from "./types";
@@ -171,6 +172,23 @@ export class SportsData {
         key: `${league}:game:${gameId}`,
         load: (o) => adapter.getGameDetail!(gameId, o),
         freshFor: (detail, now) => gameDetailFreshness(detail, now),
+      },
+      options,
+    );
+  }
+
+  /**
+   * A game's plays, under a key of their own: the play-by-play is large, so it is only fetched while its screen is
+   * open, not with every poll of the game page. As fresh as the game itself.
+   */
+  async getPlays(league: LeagueId, gameId: string, options?: FetchOptions): Promise<Fetched<GamePlays>> {
+    const adapter = this.optional(league, "plays");
+    return this.get(
+      {
+        league,
+        key: `${league}:plays:${gameId}`,
+        load: (o) => adapter.getPlays!(gameId, o),
+        freshFor: (plays, now) => gameFreshness(plays.game, now),
       },
       options,
     );

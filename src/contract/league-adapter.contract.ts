@@ -30,6 +30,8 @@ export interface ContractInputs {
   scoreDates: string[];
   /** Game ids with recorded box score fixtures. */
   gameIds: string[];
+  /** Game ids with recorded play-by-play fixtures. */
+  playGameIds: string[];
   /** Leader queries with recorded fixtures. `{}` (the default boards) should be included. */
   leaderQueries: LeaderQuery[];
   /** Team ids with recorded team fixtures (season stats and schedule). */
@@ -259,6 +261,39 @@ export function runLeagueAdapterContract(options: ContractOptions): void {
       });
     });
 
+    describe.runIf(has("plays"))("getPlays", () => {
+      it.each(inputs.playGameIds)("returns the plays of %s in order", async (gameId) => {
+        const { game, plays } = await makeAdapter().getPlays!(gameId);
+        expectGame(game, league);
+        expect(game.id).toBe(gameId);
+        expect(plays.length).toBeGreaterThan(0);
+        const ids = plays.map((p) => p.id);
+        expect(new Set(ids).size, "each play once").toBe(ids.length);
+        const teams = [game.home.team.id, game.away.team.id];
+        for (const p of plays) {
+          expectNonEmptyString(p.text, "play text");
+          expectNonEmptyString(p.periodLabel, "period label");
+          expect(p.time).toMatch(/^\d{1,2}:\d{2}$/);
+          expect(["score", "penalty", "shot", "other"]).toContain(p.kind);
+          if (p.teamId !== undefined) expect(teams).toContain(p.teamId);
+        }
+        // In order: periods never go back, and within a period the clock never does.
+        const seconds = (t: string) => Number(t.split(":")[0]) * 60 + Number(t.split(":")[1]);
+        for (let i = 1; i < plays.length; i++) {
+          const [a, b] = [plays[i - 1], plays[i]];
+          expect(b.period, `play ${b.id} after ${a.id}`).toBeGreaterThanOrEqual(a.period);
+          if (b.period === a.period) expect(seconds(b.time)).toBeGreaterThanOrEqual(seconds(a.time));
+        }
+        // The last score's running total is the game's score.
+        const scores = plays.filter((p) => p.kind === "score");
+        if (game.status === "final" && scores.length > 0) {
+          const last = scores[scores.length - 1];
+          expect([last.awayScore, last.homeScore]).toEqual([game.away.score, game.home.score]);
+        }
+        expectJsonSafe({ game, plays });
+      });
+    });
+
     describe.runIf(has("team"))("getTeam", () => {
       it.each(inputs.teamIds)("returns season stats and nearby games for %s", async (teamId) => {
         const detail: TeamDetail = await makeAdapter().getTeam!(teamId);
@@ -340,6 +375,7 @@ export function runLeagueAdapterContract(options: ContractOptions): void {
         await expect(adapter.getStandings()).rejects.toThrow();
         await expect(adapter.getLeaders()).rejects.toThrow();
         if (has("gameDetail")) await expect(adapter.getGameDetail!(inputs.gameIds[0])).rejects.toThrow();
+        if (has("plays")) await expect(adapter.getPlays!(inputs.playGameIds[0])).rejects.toThrow();
         if (has("team")) await expect(adapter.getTeam!(inputs.teamIds[0])).rejects.toThrow();
         if (has("player")) await expect(adapter.getPlayer!(inputs.playerIds[0])).rejects.toThrow();
       });
