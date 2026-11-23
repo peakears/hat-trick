@@ -20,6 +20,7 @@ import {
   FRESHNESS,
   MemoryStore,
   SportsData,
+  UnsupportedFeatureError,
   gameDetailFreshness,
   gameFreshness,
   scoresFreshness,
@@ -446,5 +447,72 @@ describe("SportsData diagnostics log", () => {
     adapter.warnings = ["something"];
     const result = await data.getScores("test", "2026-11-17");
     expect(result.data).toHaveLength(1);
+  });
+});
+
+/** A league with only scores, standings and leaders, like a new league's first version. */
+class CoreOnlyAdapter implements LeagueAdapter {
+  readonly league = "core";
+  calls = 0;
+  getScores(): Promise<Game[]> {
+    this.calls++;
+    return Promise.resolve([]);
+  }
+  getStandings(): Promise<Standings> {
+    this.calls++;
+    return Promise.resolve({ league: "core", groups: [], updatedAt: new Date(NOW).toISOString() });
+  }
+  getLeaders(): Promise<LeaderBoard[]> {
+    this.calls++;
+    return Promise.resolve([]);
+  }
+}
+
+describe("SportsData with optional features", () => {
+  let core: CoreOnlyAdapter;
+  let store: MemoryStore;
+  let log: DiagnosticsLog;
+  let data: SportsData;
+
+  beforeEach(() => {
+    core = new CoreOnlyAdapter();
+    store = new MemoryStore();
+    log = new DiagnosticsLog(store, () => NOW);
+    const registry = new AdapterRegistry();
+    registry.register(new FakeAdapter());
+    registry.register(core);
+    data = new SportsData({ registry, store, now: () => NOW, log });
+  });
+
+  it("lists its leagues and says which features each has", () => {
+    expect(data.leagues()).toEqual(["test", "core"]);
+    for (const feature of ["specialEvents", "spotlight", "gameDetail", "team", "player"] as const) {
+      expect(data.supports("test", feature), feature).toBe(true);
+      expect(data.supports("core", feature), feature).toBe(false);
+    }
+  });
+
+  it("fails a call for a missing feature before any request, and logs nothing", async () => {
+    await expect(data.getGameDetail("core", "1")).rejects.toBeInstanceOf(UnsupportedFeatureError);
+    await expect(data.getTeam("core", "AAA")).rejects.toThrow("core has no team");
+    await expect(data.getPlayer("core", "1")).rejects.toBeInstanceOf(UnsupportedFeatureError);
+    await expect(data.getSpotlight("core")).rejects.toBeInstanceOf(UnsupportedFeatureError);
+    expect(core.calls).toBe(0);
+    expect(await log.list()).toEqual([]);
+  });
+
+  it("answers special events for a league without them with nothing, fresh for as long as real ones", async () => {
+    const result = await data.getSpecialEvents("core", "2026-11-16");
+    expect(result.data).toEqual({});
+    expect(result.meta.stale).toBe(false);
+    expect(Date.parse(result.meta.staleAt) - NOW).toBe(FRESHNESS.specialEvents);
+    expect(core.calls).toBe(0);
+  });
+
+  it("still loads scores, standings and leaders for it", async () => {
+    await data.getScores("core", "2026-11-17");
+    await data.getStandings("core");
+    await data.getLeaders("core");
+    expect(core.calls).toBe(3);
   });
 });

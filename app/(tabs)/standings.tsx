@@ -7,7 +7,8 @@ import { ListSkeleton } from "../../src/ui/components/Skeleton";
 import { TeamLogo } from "../../src/ui/components/TeamLogo";
 import { isFavorite } from "../../src/ui/favorites";
 import { useSettings } from "../../src/ui/settings-context";
-import { LEAGUE, useSportsData } from "../../src/ui/sports-data-context";
+import { useSportsData } from "../../src/ui/sports-data-context";
+import { useLeague } from "../../src/ui/use-league";
 import {
   availableStandingsViews,
   effectiveStandingsView,
@@ -31,10 +32,11 @@ const COLUMNS: { label: string; width: number; value: (r: StandingRow) => string
 
 export default function StandingsScreen() {
   const sports = useSportsData();
+  const league = useLeague();
   const colors = useColors();
   const router = useRouter();
   const { settings, update } = useSettings();
-  const standings = usePolled("standings", (o) => sports.getStandings(LEAGUE, o));
+  const standings = usePolled(`${league}:standings`, (o) => sports.getStandings(league, o));
 
   if (standings.loading) return <ListSkeleton />;
   if (!standings.data && standings.error) {

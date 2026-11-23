@@ -27,7 +27,7 @@ import {
 } from "../src/ui/onboarding";
 import { REMINDER_LEADS, type ReminderLead } from "../src/ui/settings";
 import { useSettings } from "../src/ui/settings-context";
-import { LEAGUE, useSportsData } from "../src/ui/sports-data-context";
+import { NHL, useSportsData } from "../src/ui/sports-data-context";
 import { useColors, DIVIDER } from "../src/ui/theme";
 import { usePolled } from "../src/ui/use-polled";
 
@@ -178,7 +178,7 @@ function TeamsStep() {
   const colors = useColors();
   const sports = useSportsData();
   const { settings } = useSettings();
-  const standings = usePolled("standings", (o) => sports.getStandings(LEAGUE, o));
+  const standings = usePolled("standings", (o) => sports.getStandings(NHL, o));
   const groups = teamsByDivision(standings.data);
   const count = settings.favoriteTeams.length;
 

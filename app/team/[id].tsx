@@ -13,7 +13,7 @@ import { TeamLogo } from "../../src/ui/components/TeamLogo";
 import { dateLabel, localDate, recordLabel } from "../../src/ui/format";
 import { pickNextGame, withoutNextGame, type NextGame } from "../../src/ui/next-game";
 import { useSpoilers } from "../../src/ui/spoiler-context";
-import { LEAGUE, useSportsData } from "../../src/ui/sports-data-context";
+import { NHL, useSportsData } from "../../src/ui/sports-data-context";
 import {
   findStandingRow,
   goalDifferentialLabel,
@@ -198,9 +198,9 @@ export default function TeamScreen() {
   const sports = useSportsData();
   const colors = useColors();
   // The standings (same cache entry as the Standings tab) hold everything shown here.
-  const standings = usePolled("standings", (o) => sports.getStandings(LEAGUE, o));
+  const standings = usePolled("standings", (o) => sports.getStandings(NHL, o));
   // Season stats and games are a separate request, so the header above never waits for them.
-  const detail = usePolled(`team:${id}`, (o) => sports.getTeam(LEAGUE, id, o));
+  const detail = usePolled(`team:${id}`, (o) => sports.getTeam(NHL, id, o));
 
   if (standings.loading) return <PageSkeleton avatar={96} />;
   if (!standings.data) {

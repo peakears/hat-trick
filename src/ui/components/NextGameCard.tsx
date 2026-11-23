@@ -6,7 +6,7 @@ import { channelsFor, summarizeChannels } from "../broadcasts";
 import { teamRecord, timeLabel } from "../format";
 import { countdownLabel, daysAwayLabel, nextGameHeading, nextGamePhase, type NextGamePhase } from "../next-game";
 import { useSpoilers } from "../spoiler-context";
-import { LEAGUE, useSportsData } from "../sports-data-context";
+import { NHL, useSportsData } from "../sports-data-context";
 import { teamGameLine } from "../team";
 import { tabular, useColors, DIVIDER } from "../theme";
 import { usePolled } from "../use-polled";
@@ -41,7 +41,7 @@ export function NextGameCard({ game, teamId, standings }: { game: Game; teamId: 
 
 function LiveNextGame({ game, teamId, standings }: { game: Game; teamId: string; standings?: Standings }) {
   const sports = useSportsData();
-  const detail = usePolled(`game:${game.id}`, (o) => sports.getGameDetail(LEAGUE, game.id, o));
+  const detail = usePolled(`game:${game.id}`, (o) => sports.getGameDetail(NHL, game.id, o));
   // Best effort: if the game's own request fails, the schedule's copy still shows.
   return <NextGameView game={detail.data?.game ?? game} teamId={teamId} standings={standings} />;
 }

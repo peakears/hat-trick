@@ -15,7 +15,7 @@ import { ThreeStars } from "../../../src/ui/components/ThreeStars";
 import { localDate, teamRecord } from "../../../src/ui/format";
 import { eventWeekStart, withSpecialEvents } from "../../../src/ui/special-events";
 import { useSpoilers } from "../../../src/ui/spoiler-context";
-import { LEAGUE, useSportsData } from "../../../src/ui/sports-data-context";
+import { NHL, useSportsData } from "../../../src/ui/sports-data-context";
 import { tabular, useColors } from "../../../src/ui/theme";
 import { usePolled } from "../../../src/ui/use-polled";
 
@@ -30,10 +30,10 @@ export default function GameScreen() {
   const colors = useColors();
   const spoilers = useSpoilers();
   const router = useRouter();
-  const detail = usePolled(`game:${id}`, (o) => sports.getGameDetail(LEAGUE, id, o));
+  const detail = usePolled(`game:${id}`, (o) => sports.getGameDetail(NHL, id, o));
   // Season records come from the standings (shared with the Standings tab's cache). Optional:
   // if standings fail to load, the records are just left out.
-  const standings = usePolled("standings", (o) => sports.getStandings(LEAGUE, o));
+  const standings = usePolled("standings", (o) => sports.getStandings(NHL, o));
 
   if (detail.loading) return <PageSkeleton />;
   if (!detail.data) {
@@ -174,7 +174,7 @@ function GameEvent({ game }: { game: Game }) {
   const sports = useSportsData();
   // The league's calendar day is the game's local date for nearly every viewer; the week lookup covers Monday to Sunday.
   const weekStart = eventWeekStart(localDate(new Date(game.startTime)));
-  const events = usePolled(`events:${weekStart}`, (o) => sports.getSpecialEvents(LEAGUE, weekStart, o));
+  const events = usePolled(`events:${weekStart}`, (o) => sports.getSpecialEvents(NHL, weekStart, o));
   const [withEvent] = withSpecialEvents([game], events.data);
   return <SpecialEventTag name={withEvent.specialEvent} style={styles.event} />;
 }
