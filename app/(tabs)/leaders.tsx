@@ -71,13 +71,13 @@ export default function LeadersScreen() {
           onPress={() => router.push("/spotlight")}
           style={({ pressed }) => [styles.spotlight, { backgroundColor: colors.card, opacity: pressed ? 0.6 : 1 }]}
           accessibilityRole="button"
-          accessibilityLabel="Player spotlight: players the NHL is featuring right now"
+          accessibilityLabel="Player spotlight: players the league is featuring right now"
         >
           <Ionicons name="star" size={18} color={colors.accent} />
           <View style={styles.spotlightText}>
             <Text style={[styles.spotlightTitle, { color: colors.text }]}>Player spotlight</Text>
             <Text style={[styles.spotlightDetail, { color: colors.muted }]}>
-              Players the NHL is featuring right now
+              Players the league is featuring right now
             </Text>
           </View>
           <Ionicons name="chevron-forward" size={18} color={colors.muted} />
