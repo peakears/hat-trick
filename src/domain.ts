@@ -92,7 +92,7 @@ export interface StatRow {
 }
 
 export interface StatTable {
-  title: string; // "Forwards", "Defense", "Goalies"
+  title: string; // "Forwards", "Defence", "Goalies"
   columns: StatColumn[];
   rows: StatRow[];
 }
@@ -187,7 +187,7 @@ export interface GameDetail {
 /** A team's season stats and nearby games, for its team page. */
 export interface TeamDetail {
   teamId: string;
-  /** Season stat tables in display order, best first ("Forwards", "Defense", "Goalies"). Empty before any games. */
+  /** Season stat tables in display order, best first ("Forwards", "Defence", "Goalies"). Empty before any games. */
   stats: StatTable[];
   /** Up to 5 games that have started or finished, newest first. Absent when the schedule could not be loaded. */
   recent?: Game[];

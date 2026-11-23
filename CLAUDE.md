@@ -35,6 +35,7 @@ adapters -> domain model -> on-device cache -> Expo app UI
 
 ## Rules
 
+- Text the user sees uses Canadian spelling (favourite, colour, Centre, Defence), including labels an adapter makes; code identifiers stay as they are (`favoriteTeams`).
 - Only an adapter may touch raw API shapes. Everything above it uses domain types. Team ids are three-letter abbreviations.
 - Validation: core fields (ids, teams, scores, game state, standings W/L) use plain zod and throw `NhlResponseError`. Minor fields use `minor()` and are dropped with an `onWarning` call. Lists (box score rows, goals, broadcasts) use `lenientArray()`: one bad item is dropped, not the whole response.
 - The NHL API (api-web.nhle.com) is unofficial and unreachable from Claude sessions. Anything new needs a recorded fixture first (see Recording a fixture).
@@ -68,7 +69,7 @@ curl -s https://api-web.nhle.com/v1/schedule/2026-11-17 -o schedule-2026-11-17.j
 
 Open work lives in GitHub issues, the source of truth; do not copy it here. Design notes an issue does not hold:
 
-- Betting info (#7): opt-in, behind the settings switch, only if a usable source exists (NHL partner odds, else a keyed odds API with the user's own key). Display only: no sportsbook links or affiliate codes (that would make the app commercial). Add a README note: odds are restricted in some places.
+- Betting info (#7): opt-in, behind a Settings switch (`showBetting` exists in `settings.ts` but has no row until then), only if a usable source exists (NHL partner odds, else a keyed odds API with the user's own key). Display only: no sportsbook links or affiliate codes (that would make the app commercial). Add a README note: odds are restricted in some places.
 - Alternate app icons (#9): colour variants from `generate.py` as `activity-alias` entries; needs a config plugin for `expo prebuild`.
 - Second league (#8): needs a league switcher (replacing the fixed `LEAGUE` constant) and an adapter that passes the contract. Golf needs new domain types. Good time to split `mappers.ts` and `settings.tsx` if they have grown.
 

@@ -770,7 +770,7 @@ describe("NHL adapter", () => {
       const detail = await fixtureAdapter().adapter.getGameDetail("2026020333");
       expect(detail.boxscore.home.map((t) => [t.title, t.rows.length])).toEqual([
         ["Forwards", 12],
-        ["Defense", 6],
+        ["Defence", 6],
         ["Goalies", 2],
       ]);
     });
@@ -845,7 +845,7 @@ describe("NHL adapter", () => {
 
     it("builds Forwards, Defense and Goalies tables, best first", async () => {
       const { stats } = await fixtureAdapter().adapter.getTeam("TOR");
-      expect(stats.map((t) => t.title)).toEqual(["Forwards", "Defense", "Goalies"]);
+      expect(stats.map((t) => t.title)).toEqual(["Forwards", "Defence", "Goalies"]);
       const [forwards, defense, goalies] = stats;
 
       const raw = loadFixture("club-stats-TOR-now.json");
@@ -1025,7 +1025,7 @@ describe("NHL adapter", () => {
         "Goals",
         "Assists",
         "Power-play goals",
-        "Faceoff %",
+        "Faceoff win %",
         "Penalty minutes",
       ]);
     });

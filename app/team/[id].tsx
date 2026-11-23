@@ -38,7 +38,7 @@ function recordParts(row: StandingRow): { label: string; value: number }[] {
     { label: "W", value: row.wins },
     { label: "L", value: row.losses },
   ];
-  return row.otLosses === undefined ? parts : [...parts, { label: "OT", value: row.otLosses }];
+  return row.otLosses === undefined ? parts : [...parts, { label: "OTL", value: row.otLosses }];
 }
 
 /** The smaller numbers under the record, skipping any the league does not have. */

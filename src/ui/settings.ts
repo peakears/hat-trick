@@ -23,7 +23,7 @@ export interface Settings {
   /** The colour of links, buttons and highlights. */
   accent: AccentId;
   showLogos: boolean;
-  /** Does nothing until betting info (issue #7) lands. */
+  /** Does nothing, and has no switch in Settings, unless betting info (issue #7) is built. */
   showBetting: boolean;
   /** Team ids (three-letter abbreviations) the user starred. Their games sort to the top of Scores. */
   favoriteTeams: string[];

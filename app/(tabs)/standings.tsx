@@ -24,7 +24,7 @@ const COLUMNS: { label: string; width: number; value: (r: StandingRow) => string
   { label: "GP", width: NUM_WIDTH, value: (r) => r.gamesPlayed },
   { label: "W", width: NUM_WIDTH, value: (r) => r.wins },
   { label: "L", width: NUM_WIDTH, value: (r) => r.losses },
-  { label: "OT", width: NUM_WIDTH, value: (r) => r.otLosses },
+  { label: "OTL", width: NUM_WIDTH, value: (r) => r.otLosses },
   { label: "PTS", width: NUM_WIDTH, value: (r) => r.points },
   { label: "STRK", width: 36, value: (r) => r.streak },
 ];

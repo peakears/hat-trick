@@ -52,12 +52,6 @@ export default function SettingsScreen() {
           detail="Team logos and player photos. Off shows abbreviations and initials instead."
           value={settings.showLogos}
           onChange={(showLogos) => update({ showLogos })}
-        />
-        <ToggleRow
-          label="Show betting info"
-          detail="Odds and lines, when available. Coming in a later version."
-          value={settings.showBetting}
-          onChange={(showBetting) => update({ showBetting })}
           last
         />
       </Section>

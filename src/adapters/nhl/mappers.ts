@@ -382,7 +382,7 @@ function statTable<T extends RawSkater | RawGoalie>(title: string, columns: Stat
 export function mapBoxscoreSide(stats?: RawSideStats): StatTable[] {
   return [
     statTable("Forwards", SKATER_COLUMNS, stats?.forwards),
-    statTable("Defense", SKATER_COLUMNS, stats?.defense),
+    statTable("Defence", SKATER_COLUMNS, stats?.defense),
     statTable("Goalies", GOALIE_COLUMNS, stats?.goalies),
   ];
 }
@@ -617,7 +617,7 @@ export function mapClubStats(raw: RawClubStats): StatTable[] {
       bySkaterScoring,
     ),
     seasonTable(
-      "Defense",
+      "Defence",
       SEASON_SKATER_COLUMNS,
       skaters.filter(isDefense),
       skaterExtra,
