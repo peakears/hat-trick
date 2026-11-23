@@ -35,6 +35,7 @@ adapters -> domain model -> on-device cache -> Expo app UI
 
 ## Rules
 
+- Text the user sees uses Canadian spelling (favourite, colour, Centre, Defence), including labels an adapter makes; code identifiers stay as they are (`favoriteTeams`).
 - Only an adapter may touch raw API shapes. Everything above it uses domain types. Team ids are three-letter abbreviations.
 - Validation: core fields (ids, teams, scores, game state, standings W/L) use plain zod and throw `NhlResponseError`. Minor fields use `minor()` and are dropped with an `onWarning` call. Lists (box score rows, goals, broadcasts) use `lenientArray()`: one bad item is dropped, not the whole response.
 - The NHL API (api-web.nhle.com) is unofficial and unreachable from Claude sessions. Anything new needs a recorded fixture first (see Recording a fixture).
