@@ -26,6 +26,8 @@ describe("parseSettings", () => {
       favoriteTeams: [],
       remindersEnabled: false,
       reminderLeadMinutes: 30,
+      liveScores: false,
+      goalAlerts: true,
       checkForUpdates: true,
       tvRegion: "auto",
       spoilerShield: false,
@@ -59,6 +61,8 @@ describe("parseSettings", () => {
       favoriteTeams: [],
       remindersEnabled: false,
       reminderLeadMinutes: 30,
+      liveScores: false,
+      goalAlerts: true,
       checkForUpdates: true,
       tvRegion: "auto",
       spoilerShield: false,
@@ -74,6 +78,8 @@ describe("parseSettings", () => {
       favoriteTeams: [],
       remindersEnabled: false,
       reminderLeadMinutes: 30,
+      liveScores: false,
+      goalAlerts: true,
       checkForUpdates: true,
       tvRegion: "auto",
       spoilerShield: false,
@@ -97,6 +103,10 @@ describe("parseSettings", () => {
     expect(parseSettings(JSON.stringify({ reminderLeadMinutes: 60 })).reminderLeadMinutes).toBe(60);
     expect(parseSettings(JSON.stringify({ reminderLeadMinutes: 7 })).reminderLeadMinutes).toBe(30);
     expect(parseSettings(JSON.stringify({ reminderLeadMinutes: "15" })).reminderLeadMinutes).toBe(30);
+    expect(parseSettings(JSON.stringify({ liveScores: "yes", goalAlerts: 0 }))).toMatchObject({
+      liveScores: false,
+      goalAlerts: true,
+    });
   });
 
   it("keeps stored favourite teams, drops duplicates, and defaults a bad value to none", () => {
@@ -144,6 +154,8 @@ describe("loadSettings / saveSettings", () => {
       favoriteTeams: ["TOR"],
       remindersEnabled: true,
       reminderLeadMinutes: 15,
+      liveScores: true,
+      goalAlerts: false,
       checkForUpdates: false,
       tvRegion: "CA",
       spoilerShield: true,

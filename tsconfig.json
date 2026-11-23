@@ -5,6 +5,6 @@
     // App code must run in React Native: no Node types, so Node-only APIs fail the typecheck.
     "types": []
   },
-  "include": ["src", "app"],
+  "include": ["src", "app", "index.ts"],
   "exclude": ["node_modules", "src/**/*.test.ts", "src/contract"]
 }
