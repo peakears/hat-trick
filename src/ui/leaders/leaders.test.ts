@@ -50,3 +50,11 @@ describe("leaderValue", () => {
     expect(leaderValue(2.31, undefined, statValue)).toBe("2.31");
   });
 });
+
+describe("leaderValue decimals", () => {
+  it("shows a board's values with its decimals, ahead of the general stat format", () => {
+    expect(leaderValue(37.2, undefined, statValue, 1)).toBe("37.2");
+    expect(leaderValue(30, undefined, statValue, 1)).toBe("30.0");
+    expect(leaderValue(0.5, "percent", statValue, 1)).toBe("50.0%");
+  });
+});

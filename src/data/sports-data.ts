@@ -13,6 +13,7 @@ import type {
   LeaderQuery,
   LeagueAdapter,
   LeagueFeature,
+  LeaderGroup,
   LeagueId,
   RequestOptions,
   Standings,
@@ -29,7 +30,7 @@ import type { KeyValueStore } from "./store";
 import type { DataMeta, Fetched, FetchOptions } from "./types";
 
 /** Bump when the shape of cached domain data changes, so old entries are ignored. */
-export const CACHE_VERSION = 14;
+export const CACHE_VERSION = 15;
 
 /** Storage keys are prefixed so the cache can share a store with app settings. */
 const PREFIX = "cache:";
@@ -200,6 +201,11 @@ export class SportsData {
       },
       options,
     );
+  }
+
+  /** How the Leaders tab groups `league`'s boards: the adapter's groups, else one group of the default boards. */
+  leaderGroups(league: LeagueId): readonly LeaderGroup[] {
+    return this.registry.get(league).leaderGroups ?? [{ id: "leaders", label: "Leaders" }];
   }
 
   /** The leagues the app has, in the order they were registered. */

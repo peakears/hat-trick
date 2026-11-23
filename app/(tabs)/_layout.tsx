@@ -4,6 +4,7 @@ import { Tabs } from "expo-router/js-tabs";
 import type { ComponentProps } from "react";
 import type { ColorValue } from "react-native";
 import { shouldShowOnboarding } from "../../src/ui/settings/onboarding";
+import { LeagueSwitcher } from "../../src/ui/components/LeagueSwitcher";
 import { useSettings } from "../../src/ui/settings/settings-context";
 
 type IconName = ComponentProps<typeof Ionicons>["name"];
@@ -15,6 +16,8 @@ const icon =
     <Ionicons name={name} color={color as string} size={size} />
   );
 
+const leagueSwitcher = () => <LeagueSwitcher />;
+
 export default function TabsLayout() {
   const { settings, loaded } = useSettings();
   // The splash screen stays up until settings are read, so render nothing until then: no tab mounts (or fetches)
@@ -23,9 +26,19 @@ export default function TabsLayout() {
   if (shouldShowOnboarding(loaded, settings.onboardingComplete)) return <Redirect href="/welcome" />;
   return (
     <Tabs>
-      <Tabs.Screen name="index" options={{ title: "Scores", tabBarIcon: icon("calendar-outline") }} />
-      <Tabs.Screen name="standings" options={{ title: "Standings", tabBarIcon: icon("list-outline") }} />
-      <Tabs.Screen name="leaders" options={{ title: "Leaders", tabBarIcon: icon("trophy-outline") }} />
+      {/* The league tabs share one picker in the header; Settings is for every league. */}
+      <Tabs.Screen
+        name="index"
+        options={{ title: "Scores", tabBarIcon: icon("calendar-outline"), headerRight: leagueSwitcher }}
+      />
+      <Tabs.Screen
+        name="standings"
+        options={{ title: "Standings", tabBarIcon: icon("list-outline"), headerRight: leagueSwitcher }}
+      />
+      <Tabs.Screen
+        name="leaders"
+        options={{ title: "Leaders", tabBarIcon: icon("trophy-outline"), headerRight: leagueSwitcher }}
+      />
       <Tabs.Screen name="settings" options={{ title: "Settings", tabBarIcon: icon("settings-outline") }} />
     </Tabs>
   );

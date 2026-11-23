@@ -484,6 +484,10 @@ describe("SportsData with optional features", () => {
     data = new SportsData({ registry, store, now: () => NOW, log });
   });
 
+  it("gives a league without leader groups one group of the default boards", () => {
+    expect(data.leaderGroups("core")).toEqual([{ id: "leaders", label: "Leaders" }]);
+  });
+
   it("lists its leagues and says which features each has", () => {
     expect(data.leagues()).toEqual(["test", "core"]);
     for (const feature of ["specialEvents", "spotlight", "gameDetail", "team", "player"] as const) {

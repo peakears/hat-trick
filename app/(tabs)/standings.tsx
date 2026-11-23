@@ -5,7 +5,8 @@ import { Segmented } from "../../src/ui/components/Segmented";
 import { ErrorView, OfflineBanner, UpdatedAt } from "../../src/ui/components/States";
 import { ListSkeleton } from "../../src/ui/components/Skeleton";
 import { TeamLogo } from "../../src/ui/components/TeamLogo";
-import { isFavorite } from "../../src/ui/team/favorites";
+import { favoritesFor, isFavorite } from "../../src/ui/team/favorites";
+import { statValue } from "../../src/ui/common/format";
 import { useSettings } from "../../src/ui/settings/settings-context";
 import { useSportsData } from "../../src/ui/data/sports-data-context";
 import { useLeague } from "../../src/ui/data/use-league";
@@ -27,6 +28,13 @@ const COLUMNS: { label: string; width: number; value: (r: StandingRow) => string
   { label: "L", width: NUM_WIDTH, value: (r) => r.losses },
   { label: "OTL", width: NUM_WIDTH, value: (r) => r.otLosses },
   { label: "PTS", width: NUM_WIDTH, value: (r) => r.points },
+  // Basketball: win percentage (".647") and games behind the conference leader ("-" for the leader).
+  { label: "PCT", width: 40, value: (r) => (r.winPercent === undefined ? undefined : statValue(r.winPercent)) },
+  {
+    label: "GB",
+    width: 32,
+    value: (r) => (r.gamesBehind === undefined ? undefined : r.gamesBehind === 0 ? "-" : String(r.gamesBehind)),
+  },
   { label: "STRK", width: 36, value: (r) => r.streak },
 ];
 
@@ -37,6 +45,9 @@ export default function StandingsScreen() {
   const router = useRouter();
   const { settings, update } = useSettings();
   const standings = usePolled(`${league}:standings`, (o) => sports.getStandings(league, o));
+  const favorites = favoritesFor(league, settings.favoriteTeams);
+  // Only leagues with a team page open one.
+  const opensTeam = sports.supports(league, "team");
 
   if (standings.loading) return <ListSkeleton />;
   if (!standings.data && standings.error) {
@@ -91,9 +102,12 @@ export default function StandingsScreen() {
           const lastIn = section.playoffLine === index + 1 && index + 1 < section.data.length;
           return (
             <Pressable
-              onPress={() => router.push({ pathname: "/team/[id]", params: { id: item.team.id } })}
-              accessibilityRole="button"
-              accessibilityLabel={`${item.team.name}${lastIn ? ", last wild card spot" : ""}, open team page`}
+              onPress={
+                opensTeam ? () => router.push({ pathname: "/team/[id]", params: { id: item.team.id } }) : undefined
+              }
+              disabled={!opensTeam}
+              accessibilityRole={opensTeam ? "button" : undefined}
+              accessibilityLabel={`${item.team.name}${lastIn ? ", last wild card spot" : ""}${opensTeam ? ", open team page" : ""}`}
               style={[
                 styles.row,
                 styles.teamRow,
@@ -101,7 +115,7 @@ export default function StandingsScreen() {
                   backgroundColor: colors.card,
                   borderBottomColor: lastIn ? colors.muted : colors.border,
                   // A favourite team gets an accent bar on the left edge.
-                  borderLeftColor: isFavorite(settings.favoriteTeams, item.team.id) ? colors.accent : "transparent",
+                  borderLeftColor: isFavorite(favorites, item.team.id) ? colors.accent : "transparent",
                 },
                 lastIn && styles.playoffLine,
               ]}
