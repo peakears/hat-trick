@@ -80,6 +80,7 @@ async function runLoop(): Promise<void> {
         const update = followUpdate(previous, detail.data, {
           hidden: settings.spoilerShield,
           goalAlerts: settings.goalAlerts,
+          now,
         });
         followed.set(gameId, update.state);
         for (const alert of update.alerts) {

@@ -54,6 +54,8 @@ export interface FollowOptions {
   hidden: boolean;
   /** Post a notification for each goal (and the final). */
   goalAlerts: boolean;
+  /** The time of this check; a game still scheduled TRACK_LATE_MS after its start is given up on. */
+  now?: number;
 }
 
 const abbrevs = (game: Game) => `${game.away.team.abbrev} at ${game.home.team.abbrev}`;
@@ -104,7 +106,11 @@ export function followUpdate(
     homeScore: game.home.score ?? 0,
     goalCount: goals?.length ?? previous?.goalCount,
   };
-  const done = game.status === "final" || game.status === "postponed";
+  const givenUp =
+    game.status === "scheduled" &&
+    options.now !== undefined &&
+    options.now - Date.parse(game.startTime) > TRACK_LATE_MS;
+  const done = game.status === "final" || game.status === "postponed" || givenUp;
   const alerts: Alert[] = [];
   const announce = previous !== undefined && options.goalAlerts && !options.hidden;
 
@@ -116,8 +122,9 @@ export function followUpdate(
         if (goals[i].periodLabel === "SO") continue; // shootout attempts are not goals
         alerts.push(goalAlert(game, goals[i], numbers[i], scoreAfter));
       }
-    } else {
-      // No goal list to read from: announce from the score.
+    } else if (!goals || previous.goalCount === undefined) {
+      // No goal list to compare with: announce from the score. With a list, a goal the score already shows but the
+      // list does not yet (they come from different requests) waits for the list, or it would be announced twice.
       const sides: ["away" | "home", number, number][] = [
         ["away", previous.awayScore, state.awayScore],
         ["home", previous.homeScore, state.homeScore],

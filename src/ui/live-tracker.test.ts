@@ -134,6 +134,28 @@ describe("followUpdate", () => {
     ]);
   });
 
+  it("waits for the goal list when the score is ahead of it, so a goal is announced once", () => {
+    const before = followUpdate(undefined, detail(game({ away: 1 }), [goal("TOR", "a")]), on);
+    const lagging = followUpdate(before.state, detail(game({ away: 2 }), [goal("TOR", "a")]), on);
+    expect(lagging.alerts).toEqual([]);
+    const caughtUp = followUpdate(
+      lagging.state,
+      detail(game({ away: 2 }), [goal("TOR", "a"), goal("TOR", "b", { time: "11:00" })]),
+      on,
+    );
+    expect(caughtUp.alerts.map((a) => a.title)).toEqual(["Goal: TOR"]);
+    expect(caughtUp.alerts[0].body).toMatch(/^P\. b · /);
+  });
+
+  it("gives up on a followed game still scheduled long after its start", () => {
+    const late = game({ status: "scheduled", away: null, home: null });
+    const start = Date.parse(late.startTime);
+    expect(followUpdate(undefined, detail(late), { ...on, now: start + TRACK_LATE_MS - 1 }).done).toBe(false);
+    const update = followUpdate(undefined, detail(late), { ...on, now: start + TRACK_LATE_MS + 1 });
+    expect(update.done).toBe(true);
+    expect(update.ongoing).toBeNull();
+  });
+
   it("does not announce a goal taken back after review", () => {
     const before = followUpdate(undefined, detail(game({ away: 2 }), [goal("TOR", "a"), goal("TOR", "b")]), on);
     const update = followUpdate(before.state, detail(game({ away: 1 }), [goal("TOR", "a")]), on);
