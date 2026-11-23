@@ -1,27 +1,44 @@
 // The only react-native-notify-kit code: the live score foreground service and its notifications (#114). Rules live
 // in live-tracker.ts, the polling loop in live-tracker-run.ts. Android only; in Expo Go (no native module) every
 // call here is a no-op and `liveTrackingAvailable()` is false, so the rest of the app works unchanged.
-import Constants, { ExecutionEnvironment } from "expo-constants";
-import { Platform } from "react-native";
+import { Platform, TurboModuleRegistry } from "react-native";
 import type { Event, Notification } from "react-native-notify-kit";
 import type { Alert } from "./live-tracker";
 
 type Kit = typeof import("react-native-notify-kit");
 
-let kit: Kit | null | undefined;
+/** The library's native module. Missing in Expo Go, which ships only its own native modules. */
+const NATIVE_MODULE = "NotifeeApiModule";
 
-/** The library, or null where it cannot run (iOS, Expo Go, or the native module missing). Loaded once, lazily. */
-function load(): Kit | null {
-  if (kit !== undefined) return kit;
-  kit = null;
-  if (Platform.OS !== "android" || Constants.executionEnvironment === ExecutionEnvironment.StoreClient) return kit;
+let lib: Kit | null | undefined;
+let nativeReady = false;
+
+/**
+ * The library's JS, on Android. Importing it never touches native code (the library looks its native module up on
+ * first use), so this is safe at startup and in Expo Go; only registration that stays in JS may use it alone.
+ */
+function library(): Kit | null {
+  if (lib !== undefined) return lib;
+  lib = null;
+  if (Platform.OS !== "android") return lib;
   try {
-    // A require, not an import: in Expo Go the native module is missing and importing it would fail at startup.
-    kit = require("react-native-notify-kit") as Kit;
+    lib = require("react-native-notify-kit") as Kit;
   } catch {
-    kit = null;
+    lib = null;
   }
-  return kit;
+  return lib;
+}
+
+/**
+ * The library, or null where it cannot run (iOS, Expo Go). `TurboModuleRegistry.get` returns null for a missing
+ * module where the library's own lookup throws, so this is the check. Only a positive answer is kept: called too
+ * early at startup the module may not be installed yet, and a later call must still find it.
+ */
+function load(): Kit | null {
+  const k = library();
+  if (!k) return null;
+  if (!nativeReady) nativeReady = TurboModuleRegistry.get(NATIVE_MODULE) != null;
+  return nativeReady ? k : null;
 }
 
 export function liveTrackingAvailable(): boolean {
@@ -114,17 +131,24 @@ export interface LiveServiceHandlers {
  * (index.ts), as Android may start the JS for a notification event with no screen open.
  */
 export function registerLiveService(handlers: LiveServiceHandlers): void {
-  const k = load();
+  // Both calls only store a function in JS: native code must not run here (index.ts, before the app mounts).
+  const k = library();
   if (!k) return;
+  stopHandler = handlers.onStop;
   k.default.registerForegroundService(() => handlers.run());
-  const onEvent = (event: Event) => {
-    const stop =
-      (event.type === k.EventType.ACTION_PRESS && event.detail.pressAction?.id === STOP_ACTION) ||
-      event.detail.foregroundServiceRunLimit !== undefined;
-    if (stop) handlers.onStop();
-  };
-  k.default.onBackgroundEvent(async (event) => onEvent(event));
-  k.default.onForegroundEvent(onEvent);
+  k.default.onBackgroundEvent(async (event) => {
+    if (isStop(k, event)) handlers.onStop();
+  });
+}
+
+let stopHandler: (() => void) | undefined;
+
+/** The Stop button, or Android ending the service (the dataSync time limit). */
+function isStop(k: Kit, event: Event): boolean {
+  return (
+    (event.type === k.EventType.ACTION_PRESS && event.detail.pressAction?.id === STOP_ACTION) ||
+    event.detail.foregroundServiceRunLimit !== undefined
+  );
 }
 
 /** The game to open for a tapped live score, goal or final notification; undefined for others. */
@@ -135,7 +159,8 @@ function tappedGame(k: Kit, event: Event): string | undefined {
 }
 
 /**
- * Calls `open` with the game of a tapped notification: one that launched the app, and any tapped while it runs.
+ * While the app is open: calls `open` with the game of a tapped notification (one that launched the app, and any
+ * tapped while it runs), and handles Stop. Mounted from a hook, since listening needs the native module.
  * Returns the unsubscribe function.
  */
 export function onLiveNotificationTap(open: (gameId: string) => void): () => void {
@@ -149,6 +174,7 @@ export function onLiveNotificationTap(open: (gameId: string) => void): () => voi
     })
     .catch(() => {});
   return k.default.onForegroundEvent((event) => {
+    if (isStop(k, event)) stopHandler?.();
     const gameId = tappedGame(k, event);
     if (gameId) open(gameId);
   });
