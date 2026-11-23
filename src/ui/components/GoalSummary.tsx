@@ -1,4 +1,5 @@
-import { StyleSheet, Text, View } from "react-native";
+import Ionicons from "@expo/vector-icons/Ionicons";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import type { Goal } from "../../domain";
 import {
   assistsLabel,
@@ -11,10 +12,13 @@ import {
   seasonGoalLabel,
 } from "../goals";
 import { tabular, useColors, DIVIDER } from "../theme";
+import { goalVideoLabel, isOpenableVideoUrl } from "../videos";
+import { openVideo } from "../videos-native";
 
 /**
  * Goal-by-goal summary: time, team, scorer with their goal of the game ("(2)") and tags ("PP", "Hat trick"), which
- * goal of the season it was ("9th goal"), assists, and the score after the goal.
+ * goal of the season it was ("9th goal"), assists, the score after the goal, and a play button when the league has
+ * the goal's video (opened in a browser tab).
  */
 export function GoalSummary({ goals }: { goals: Goal[] }) {
   const colors = useColors();
@@ -49,6 +53,17 @@ export function GoalSummary({ goals }: { goals: Goal[] }) {
                   </Text>
                 </View>
                 {score && <Text style={[styles.score, tabular, { color: colors.text }]}>{score}</Text>}
+                {isOpenableVideoUrl(goal.videoUrl) && (
+                  <Pressable
+                    onPress={() => goal.videoUrl && openVideo(goal.videoUrl, colors.card)}
+                    hitSlop={8}
+                    accessibilityRole="link"
+                    accessibilityLabel={goalVideoLabel(goal)}
+                    style={styles.play}
+                  >
+                    <Ionicons name="play-circle-outline" size={24} color={colors.accent} />
+                  </Pressable>
+                )}
               </View>
             );
           })}
@@ -83,4 +98,5 @@ const styles = StyleSheet.create({
   season: { fontSize: 12, fontWeight: "600", marginTop: 1 },
   assists: { fontSize: 12, marginTop: 1 },
   score: { fontSize: 13, fontWeight: "600", marginLeft: 8 },
+  play: { marginLeft: 10 },
 });

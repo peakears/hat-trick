@@ -116,6 +116,15 @@ export interface Goal {
   /** Score right after this goal. */
   homeScore?: number;
   awayScore?: number;
+  /** A web page with the goal's video, opened in the browser. Absent when the league has none. */
+  videoUrl?: string;
+}
+
+/** A video of a whole game, on the league's website. */
+export interface GameVideo {
+  kind: "recap" | "condensed";
+  /** A web page that plays the video, opened in the browser. */
+  url: string;
 }
 
 /** One stat as value and label: "1" + "G", "29" + "saves", ".912" + "SV%". */
@@ -169,6 +178,8 @@ export interface GameDetail {
   threeStars?: GameStar[];
   /** In the order taken. Absent when the league has no penalty list for this game (yet); empty when there were none. */
   penalties?: Penalty[];
+  /** Recap first. Absent or empty until the league posts them (after the game) or when they could not be loaded. */
+  videos?: GameVideo[];
 }
 
 // ---------- Team page ----------

@@ -6,10 +6,10 @@ Base URL `https://api-web.nhle.com/v1`: unofficial, no key, unreachable from Cla
 
 ## Which endpoint has what
 
-- `/score/{date}`: the day's games and, per game, the goals in the order scored (scorer's `goalsToDate`, the season total including that goal). No special events.
+- `/score/{date}`: the day's games and, per game, the goals in the order scored (scorer's `goalsToDate`, the season total including that goal; `highlightClipSharingUrl`, the goal's nhl.com video page) and, once a game is over, `threeMinRecap` and `condensedGame` (nhl.com paths, `/video/<slug>`; also in the schedules). No special events.
 - `/gamecenter/{id}/boxscore`: the game and player stats. No goals and no special event, and no team records (the game page gets those from the standings).
 - `/gamecenter/{id}/landing`: the three stars (`summary.threeStars`, final games only), the penalties (`summary.penalties`, grouped by period, no player ids, `teamAbbrev` a localized object) and `specialEvent`. Read only for final games, so live landings are unverified.
-- `getGameDetail` = box score + `/score/{gameDate}` for the goals (best effort) + the landing for final games (best effort), joined by player id for the stars' saves and TOI. `gameDetailFreshness` re-checks a final game every 2 min for 6 h after puck drop until the stars arrive.
+- `getGameDetail` = box score + `/score/{gameDate}` for the goals and videos (best effort) + the landing for final games (best effort), joined by player id for the stars' saves and TOI. `gameDetailFreshness` re-checks a final game every 2 min for 6 h after puck drop until the stars and the recap arrive.
 - `/standings/now`: league, conference, division and wild card order (`leagueSequence`, `conferenceSequence`, `divisionSequence`, `wildcardSequence`; a wild card 0 means the team holds a division spot), plus `wildCardIndicator`.
 - `/skater-stats-leaders/current`, `/goalie-stats-leaders/current`: `categories` and `limit` query params; the API returns only `limit` players, and the test fixture server trims to it the same way. Faceoff % is a 0-1 fraction.
 - `/player-spotlight`: a bare array in the league's `sortId` order, with team codes but no team names.
