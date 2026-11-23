@@ -3,8 +3,8 @@ import { Redirect } from "expo-router";
 import { Tabs } from "expo-router/js-tabs";
 import type { ComponentProps } from "react";
 import type { ColorValue } from "react-native";
-import { shouldShowOnboarding } from "../../src/ui/onboarding";
-import { useSettings } from "../../src/ui/settings-context";
+import { shouldShowOnboarding } from "../../src/ui/settings/onboarding";
+import { useSettings } from "../../src/ui/settings/settings-context";
 
 type IconName = ComponentProps<typeof Ionicons>["name"];
 

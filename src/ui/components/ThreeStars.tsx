@@ -2,8 +2,8 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { useRouter } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import type { GameStar } from "../../domain";
-import { starAccessibilityLabel, starIconCount, starPlayerLine, starStatLine } from "../stars";
-import { tabular, useColors, DIVIDER } from "../theme";
+import { starAccessibilityLabel, starIconCount, starPlayerLine, starStatLine } from "../game/stars";
+import { tabular, useColors, DIVIDER } from "../theme/theme";
 import { PlayerHeadshot } from "./PlayerHeadshot";
 
 /** The game's three stars: photo, name, team and a short stat line under it for each, first star first. Each opens the player page. */

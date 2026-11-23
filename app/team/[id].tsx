@@ -10,10 +10,10 @@ import { CrashScreen, Empty, ErrorView, OfflineBanner, UpdatedAt } from "../../s
 import { ListSkeleton, PageSkeleton } from "../../src/ui/components/Skeleton";
 import { SpecialEventTag } from "../../src/ui/components/SpecialEventTag";
 import { TeamLogo } from "../../src/ui/components/TeamLogo";
-import { dateLabel, localDate, recordLabel } from "../../src/ui/format";
-import { pickNextGame, withoutNextGame, type NextGame } from "../../src/ui/next-game";
-import { useSpoilers } from "../../src/ui/spoiler-context";
-import { LEAGUE, useSportsData } from "../../src/ui/sports-data-context";
+import { dateLabel, localDate, recordLabel } from "../../src/ui/common/format";
+import { pickNextGame, withoutNextGame, type NextGame } from "../../src/ui/team/next-game";
+import { useSpoilers } from "../../src/ui/spoilers/spoiler-context";
+import { LEAGUE, useSportsData } from "../../src/ui/data/sports-data-context";
 import {
   findStandingRow,
   goalDifferentialLabel,
@@ -22,10 +22,10 @@ import {
   teamGameLine,
   teamGameSpoken,
   visibleGames,
-} from "../../src/ui/team";
-import { tabular, useColors, DIVIDER } from "../../src/ui/theme";
-import { usePolled } from "../../src/ui/use-polled";
-import { useScoresToday } from "../../src/ui/use-today";
+} from "../../src/ui/team/team";
+import { tabular, useColors, DIVIDER } from "../../src/ui/theme/theme";
+import { usePolled } from "../../src/ui/data/use-polled";
+import { useScoresToday } from "../../src/ui/scores/use-today";
 
 /** A team page that fails to render keeps the header, so Back still returns to where you came from. */
 export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {

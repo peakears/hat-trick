@@ -1,12 +1,12 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useMemo } from "react";
 import { Linking, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { installStatusText, isBusy } from "../install-update";
-import { RELEASES_URL } from "../links";
-import { parseReleaseNotes } from "../release-notes";
-import { useColors, DIVIDER } from "../theme";
-import { useUpdate } from "../update-context";
-import { isReleasePageUrl } from "../updates";
+import { installStatusText, isBusy } from "../updates/install-update";
+import { RELEASES_URL } from "../common/links";
+import { parseReleaseNotes } from "../updates/release-notes";
+import { useColors, DIVIDER } from "../theme/theme";
+import { useUpdate } from "../updates/update-context";
+import { isReleasePageUrl } from "../updates/updates";
 
 /**
  * "What's new" for the release on offer: its notes as plain sections, an Update button and a link to

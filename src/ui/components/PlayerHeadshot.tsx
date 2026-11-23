@@ -2,9 +2,9 @@ import { Image } from "expo-image";
 import { useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import type { Player } from "../../domain";
-import { useSettings } from "../settings-context";
-import { initials } from "../stars";
-import { useColors } from "../theme";
+import { useSettings } from "../settings/settings-context";
+import { initials } from "../game/stars";
+import { useColors } from "../theme/theme";
 
 /**
  * A player photo loaded from the league API at runtime (never bundled, like team logos). Falls back to

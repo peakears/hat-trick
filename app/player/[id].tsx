@@ -8,7 +8,7 @@ import { StatGrid } from "../../src/ui/components/StatGrid";
 import { CrashScreen, ErrorView, OfflineBanner, UpdatedAt } from "../../src/ui/components/States";
 import { PageSkeleton } from "../../src/ui/components/Skeleton";
 import { TeamLogo } from "../../src/ui/components/TeamLogo";
-import { localDate } from "../../src/ui/format";
+import { localDate } from "../../src/ui/common/format";
 import {
   bioRows,
   filterSeasons,
@@ -16,10 +16,10 @@ import {
   hasOtherLeagues,
   playerSubtitle,
   seasonLineLabel,
-} from "../../src/ui/player";
-import { LEAGUE, useSportsData } from "../../src/ui/sports-data-context";
-import { tabular, useColors, DIVIDER } from "../../src/ui/theme";
-import { usePolled } from "../../src/ui/use-polled";
+} from "../../src/ui/player/player";
+import { LEAGUE, useSportsData } from "../../src/ui/data/sports-data-context";
+import { tabular, useColors, DIVIDER } from "../../src/ui/theme/theme";
+import { usePolled } from "../../src/ui/data/use-polled";
 
 /** A player page that fails to render keeps the header, so Back still returns to where you came from. */
 export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {

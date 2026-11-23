@@ -1,9 +1,9 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import type { GameVideo } from "../../domain";
-import { useColors, DIVIDER } from "../theme";
-import { playableVideos, VIDEO_LABELS } from "../videos";
-import { openVideo } from "../videos-native";
+import { useColors, DIVIDER } from "../theme/theme";
+import { playableVideos, VIDEO_LABELS } from "../game/videos";
+import { openVideo } from "../game/videos-native";
 
 /**
  * A finished game's recap and condensed game, opened on the league's website in a browser tab. The rows name no

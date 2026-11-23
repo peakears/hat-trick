@@ -1,7 +1,7 @@
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import type { StatColumn } from "../../domain";
-import { statValue } from "../format";
-import { tabular, useColors, DIVIDER } from "../theme";
+import { statValue } from "../common/format";
+import { tabular, useColors, DIVIDER } from "../theme/theme";
 
 const NAME_WIDTH = 150;
 const COLUMN_WIDTH = 48;

@@ -1,8 +1,8 @@
 import { useEffect, useRef } from "react";
 import { Animated, StyleSheet, View, type StyleProp, type TextStyle, type ViewStyle } from "react-native";
-import { FLASH_MS, shouldFlash } from "../score-flash";
-import { useColors } from "../theme";
-import { useReduceMotion } from "../use-reduce-motion";
+import { FLASH_MS, shouldFlash } from "../scores/score-flash";
+import { useColors } from "../theme/theme";
+import { useReduceMotion } from "../theme/use-reduce-motion";
 
 /**
  * A score that pops and glows in the accent colour when it goes up during a live game. `live`

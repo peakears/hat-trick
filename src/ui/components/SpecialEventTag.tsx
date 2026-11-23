@@ -1,5 +1,5 @@
 import { StyleSheet, Text } from "react-native";
-import { useColors } from "../theme";
+import { useColors } from "../theme/theme";
 
 /** A small text tag naming a game's special event: "Winter Classic", "Original 6 Series". */
 export function SpecialEventTag({ name, style }: { name: string | undefined; style?: object }) {

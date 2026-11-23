@@ -7,15 +7,15 @@ import { Empty, ErrorView, OfflineBanner, UpdatedAt } from "../../src/ui/compone
 import { ScoresSkeleton } from "../../src/ui/components/Skeleton";
 import { ShieldBanner } from "../../src/ui/components/ShieldBanner";
 import { UpdateBanner } from "../../src/ui/components/UpdateBanner";
-import { addDays, dateLabel, groupGamesForScores } from "../../src/ui/format";
-import { useSettings } from "../../src/ui/settings-context";
-import { LEAGUE, useSportsData } from "../../src/ui/sports-data-context";
-import { useColors, DIVIDER } from "../../src/ui/theme";
-import { useDebounced } from "../../src/ui/use-debounced";
-import { eventWeekStart, withSpecialEvents } from "../../src/ui/special-events";
-import { usePolled } from "../../src/ui/use-polled";
-import { useDaySwipe } from "../../src/ui/use-swipe";
-import { useScoresToday } from "../../src/ui/use-today";
+import { addDays, dateLabel, groupGamesForScores } from "../../src/ui/common/format";
+import { useSettings } from "../../src/ui/settings/settings-context";
+import { LEAGUE, useSportsData } from "../../src/ui/data/sports-data-context";
+import { useColors, DIVIDER } from "../../src/ui/theme/theme";
+import { useDebounced } from "../../src/ui/common/use-debounced";
+import { eventWeekStart, withSpecialEvents } from "../../src/ui/scores/special-events";
+import { usePolled } from "../../src/ui/data/use-polled";
+import { useDaySwipe } from "../../src/ui/scores/use-swipe";
+import { useScoresToday } from "../../src/ui/scores/use-today";
 
 /** How long the date must stay put before its scores are loaded. */
 const DAY_SETTLE_MS = 250;

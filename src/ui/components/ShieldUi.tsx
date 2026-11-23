@@ -1,5 +1,5 @@
 import { Pressable, StyleSheet, Text } from "react-native";
-import { useColors } from "../theme";
+import { useColors } from "../theme/theme";
 
 /** A small text button that reveals something the spoiler shield is hiding. */
 export function RevealButton({ label, onPress, hint }: { label: string; onPress: () => void; hint?: string }) {

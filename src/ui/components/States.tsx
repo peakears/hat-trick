@@ -1,7 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import type { DataMeta } from "../../data";
-import { timeLabel } from "../format";
-import { useColors } from "../theme";
+import { timeLabel } from "../common/format";
+import { useColors } from "../theme/theme";
 
 export function ErrorView({ title, error, onRetry }: { title: string; error: Error; onRetry: () => void }) {
   const colors = useColors();

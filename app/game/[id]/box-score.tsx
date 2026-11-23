@@ -6,10 +6,10 @@ import { Segmented } from "../../../src/ui/components/Segmented";
 import { CrashScreen, Empty, ErrorView, OfflineBanner, UpdatedAt } from "../../../src/ui/components/States";
 import { ListSkeleton } from "../../../src/ui/components/Skeleton";
 import { StatTableView } from "../../../src/ui/components/StatTableView";
-import { useSpoilers } from "../../../src/ui/spoiler-context";
-import { LEAGUE, useSportsData } from "../../../src/ui/sports-data-context";
-import { useColors } from "../../../src/ui/theme";
-import { usePolled } from "../../../src/ui/use-polled";
+import { useSpoilers } from "../../../src/ui/spoilers/spoiler-context";
+import { LEAGUE, useSportsData } from "../../../src/ui/data/sports-data-context";
+import { useColors } from "../../../src/ui/theme/theme";
+import { usePolled } from "../../../src/ui/data/use-polled";
 
 /** A box score that fails to render keeps the header, so Back still returns to the game. */
 export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
