@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Play } from "../../domain";
-import { isKeyPlay, playPeriods, playScoreLabel, playSpoken } from "./plays";
+import { cardPlays, isKeyPlay, playPeriodLabels, playPeriods, playScoreLabel, playSpoken, shownPeriod } from "./plays";
 
 const play = (id: string, periodLabel: string, kind: Play["kind"], extra: Partial<Play> = {}): Play => ({
   id,
@@ -63,5 +63,41 @@ describe("play labels", () => {
   it("reads a play out with its period, time, team, tag and score", () => {
     expect(playSpoken({ ...plays[1], tag: "Power play" })).toBe("1st, 05:00, TOR. Play 2, power play, 1–0");
     expect(playSpoken(plays[0])).toBe("1st, 05:00. Play 1");
+  });
+});
+
+describe("the game page's card", () => {
+  const many = [
+    ...Array.from({ length: 7 }, (_, i) => play(`a${i}`, "1st", "other")),
+    play("b0", "2nd", "shot"),
+    play("b1", "2nd", "score"),
+  ];
+
+  it("has a tab for each period played, in order", () => {
+    expect(playPeriodLabels(many)).toEqual(["1st", "2nd"]);
+    expect(playPeriodLabels([])).toEqual([]);
+  });
+
+  it("follows the current period while live, starts at the first once over, and keeps a pick", () => {
+    const labels = ["1st", "2nd", "3rd"];
+    expect(shownPeriod(labels, undefined, true)).toBe("3rd");
+    expect(shownPeriod(labels, undefined, false)).toBe("1st");
+    expect(shownPeriod(labels, "2nd", true)).toBe("2nd");
+    // A pick that is not there (yet) falls back.
+    expect(shownPeriod(labels, "OT", true)).toBe("3rd");
+    expect(shownPeriod([], undefined, true)).toBeUndefined();
+  });
+
+  it("shows a live period's latest plays first, and a finished one's in order", () => {
+    expect(cardPlays(many, "1st", true)).toEqual({
+      shown: ["a6", "a5", "a4", "a3", "a2"].map((id) => expect.objectContaining({ id })),
+      more: 2,
+    });
+    expect(cardPlays(many, "1st", false).shown.map((p) => p.id)).toEqual(["a0", "a1", "a2", "a3", "a4"]);
+    expect(cardPlays(many, "2nd", true)).toEqual({
+      shown: [expect.objectContaining({ id: "b1" }), expect.objectContaining({ id: "b0" })],
+      more: 0,
+    });
+    expect(cardPlays(many, undefined, true)).toEqual({ shown: [], more: 0 });
   });
 });

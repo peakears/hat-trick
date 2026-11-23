@@ -31,7 +31,7 @@ adapters -> domain model -> on-device cache -> Expo app UI
 - **One `usePolled` per source that can fail on its own.** The team page loads `standings` and `team:{id}` separately, and Scores loads the scores and the week's special events separately, so one failure never hides the other's data.
 - **Share cache entries instead of fetching again.** The team page and the game page read the Standings tab's `standings` entry; the game page, box score and the team page's next game card (while live) share `game:{id}`; Scores and the game page share `events:{monday}`. Use the same key and the data costs no request.
 - **A loading screen shows the shape of what is coming.** Screens show a `Skeleton` layout (`ScoresSkeleton`, `PageSkeleton`, `ListSkeleton`) while their first data loads, never a spinner; a new screen picks the closest one or adds a layout there.
-- **Keep slow-changing data out of fast polls.** A live game re-polls every 20 s; data that never changes during a game (special events) gets its own key with a long TTL rather than riding along with the poll. Big data gets its own key too: the play-by-play (`plays:{id}`, about 125 KB) is loaded only while its screen is open, not with the game page's polls.
+- **Keep slow-changing data out of fast polls.** A live game re-polls every 20 s; data that never changes during a game (special events) gets its own key with a long TTL rather than riding along with the poll. Big data gets its own key too: the play-by-play (`plays:{id}`, about 125 KB) is loaded by the game page's card and its own page, which share it, and never rides along with `game:{id}`, so a failure or a slow load there leaves the rest of the game page alone.
 
 ## Rules
 

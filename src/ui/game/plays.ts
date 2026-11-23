@@ -51,3 +51,40 @@ export function playSpoken(play: Play): string {
     .filter(Boolean)
     .join(", ");
 }
+
+// ---------- The game page's play-by-play card ----------
+
+/** How many of a period's plays the card shows; "See all plays" opens the rest. */
+export const CARD_PLAYS = 5;
+
+/** The periods played so far, in order: the card's and the full page's tabs. */
+export function playPeriodLabels(plays: readonly Play[]): string[] {
+  const labels: string[] = [];
+  for (const p of plays) if (!labels.includes(p.periodLabel)) labels.push(p.periodLabel);
+  return labels;
+}
+
+/**
+ * The period a tab bar shows: the one picked, while it is still there; otherwise the current one while the game is
+ * live (so the card follows the game into the next period), or the first once it is over.
+ */
+export function shownPeriod(labels: readonly string[], picked: string | undefined, live: boolean): string | undefined {
+  if (picked !== undefined && labels.includes(picked)) return picked;
+  return live ? labels[labels.length - 1] : labels[0];
+}
+
+/**
+ * The card's plays for one period: the latest few, newest first, while the game is live; the first few, in order,
+ * once it is over (a finished period reads like a story). `more` is how many the full page has besides.
+ */
+export function cardPlays(
+  plays: readonly Play[],
+  period: string | undefined,
+  live: boolean,
+  limit = CARD_PLAYS,
+): { shown: Play[]; more: number } {
+  const inPeriod = plays.filter((p) => p.periodLabel === period);
+  const ordered = live ? [...inPeriod].reverse() : inPeriod;
+  const shown = ordered.slice(0, limit);
+  return { shown, more: inPeriod.length - shown.length };
+}

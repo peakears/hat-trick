@@ -8,6 +8,7 @@ import { PageSkeleton } from "../../../src/ui/components/Skeleton";
 import { TeamLogo } from "../../../src/ui/components/TeamLogo";
 import { FlashScore } from "../../../src/ui/components/FlashScore";
 import { GoalSummary } from "../../../src/ui/components/GoalSummary";
+import { PlayByPlayCard } from "../../../src/ui/components/PlayByPlayCard";
 import { PenaltySummary } from "../../../src/ui/components/PenaltySummary";
 import { GameInfoLines } from "../../../src/ui/components/GameInfoLines";
 import { GameVideos } from "../../../src/ui/components/GameVideos";
@@ -141,6 +142,11 @@ export default function GameScreen() {
 
         {!hidden && threeStars && <ThreeStars stars={threeStars} />}
 
+        {/* Plays give the score away, so the shield hides the card. Only for a league with a play-by-play. */}
+        {!hidden && (live || game.status === "final") && sports.supports(NHL, "plays") && (
+          <PlayByPlayCard game={game} />
+        )}
+
         {!hidden && goals && <GoalSummary goals={goals} />}
 
         {!hidden && penalties && (
@@ -150,29 +156,15 @@ export default function GameScreen() {
         {game.status === "scheduled" ? (
           <Empty message="Box score starts at puck drop." />
         ) : (
-          <>
-            <Pressable
-              onPress={() => router.push({ pathname: "/game/[id]/box-score", params: { id: game.id } })}
-              accessibilityRole="button"
-              accessibilityLabel="Open box score"
-              style={[styles.boxScoreRow, { backgroundColor: colors.card }]}
-            >
-              <Text style={[styles.boxScoreLabel, { color: colors.text }]}>Box score</Text>
-              <Text style={[styles.boxScoreHint, { color: colors.muted }]}>Player stats ›</Text>
-            </Pressable>
-            {/* Only for a league with a play-by-play. */}
-            {sports.supports(NHL, "plays") && (
-              <Pressable
-                onPress={() => router.push({ pathname: "/game/[id]/plays", params: { id: game.id } })}
-                accessibilityRole="button"
-                accessibilityLabel="Open play-by-play"
-                style={[styles.boxScoreRow, styles.playsRow, { backgroundColor: colors.card }]}
-              >
-                <Text style={[styles.boxScoreLabel, { color: colors.text }]}>Play-by-play</Text>
-                <Text style={[styles.boxScoreHint, { color: colors.muted }]}>Every shot, hit and penalty ›</Text>
-              </Pressable>
-            )}
-          </>
+          <Pressable
+            onPress={() => router.push({ pathname: "/game/[id]/box-score", params: { id: game.id } })}
+            accessibilityRole="button"
+            accessibilityLabel="Open box score"
+            style={[styles.boxScoreRow, { backgroundColor: colors.card }]}
+          >
+            <Text style={[styles.boxScoreLabel, { color: colors.text }]}>Box score</Text>
+            <Text style={[styles.boxScoreHint, { color: colors.muted }]}>Player stats ›</Text>
+          </Pressable>
         )}
         <UpdatedAt meta={detail.meta} />
       </ScrollView>
@@ -205,8 +197,6 @@ const styles = StyleSheet.create({
     padding: 14,
     borderRadius: 12,
   },
-  // The play-by-play row sits right under the box score row, so the two read as a pair.
-  playsRow: { marginTop: -4 },
   boxScoreLabel: { fontSize: 15, fontWeight: "700" },
   boxScoreHint: { fontSize: 13 },
   summaryCard: { margin: 12, marginBottom: 0, padding: 16, borderRadius: 12 },
