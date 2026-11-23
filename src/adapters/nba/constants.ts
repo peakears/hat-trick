@@ -1,10 +1,11 @@
-// ESPN's unofficial, keyless site API. Three hosts: the scoreboard on site/v2, standings on apis/v2 (site/v2
-// standings is an empty stub), leaders on the "common" stats API. Shapes: raw-types.ts; notes: CLAUDE.md.
+// ESPN's unofficial, keyless site API, on two hosts: the scoreboard, game summaries and team pages on site/v2,
+// standings on apis/v2 (site/v2 standings is an empty stub), leaders and players on the "common" v3 API. Shapes: raw-types.ts; notes: CLAUDE.md.
 export const LEAGUE = "nba" as const;
 
 export const SITE_URL = "https://site.api.espn.com/apis/site/v2/sports/basketball/nba";
 export const STANDINGS_URL = "https://site.api.espn.com/apis/v2/sports/basketball/nba/standings";
 export const LEADERS_URL = "https://site.web.api.espn.com/apis/common/v3/sports/basketball/nba/statistics/byathlete";
+export const ATHLETES_URL = "https://site.web.api.espn.com/apis/common/v3/sports/basketball/nba/athletes";
 
 export const DEFAULT_TIMEOUT_MS = 10_000;
 
@@ -37,3 +38,35 @@ export const TEAM_STAT_COLUMNS = [
   { key: "threePointFieldGoalPct", label: "3P%", group: "offensive", name: "threePointFieldGoalPct" },
   { key: "freeThrowPct", label: "FT%", group: "offensive", name: "freeThrowPct" },
 ] as const;
+
+/** The player page's season-by-season table and career line: from the "averages" category, by ESPN's stat name. */
+export const PLAYER_SEASON_COLUMNS = [
+  { key: "gamesPlayed", label: "GP" },
+  { key: "avgMinutes", label: "MIN" },
+  { key: "avgPoints", label: "PTS" },
+  { key: "avgRebounds", label: "REB" },
+  { key: "avgAssists", label: "AST" },
+  { key: "avgSteals", label: "STL" },
+  { key: "avgBlocks", label: "BLK" },
+  { key: "fieldGoalPct", label: "FG%" },
+  { key: "threePointFieldGoalPct", label: "3P%" },
+  { key: "freeThrowPct", label: "FT%" },
+] as const;
+
+/** The career line's headline numbers, a subset of PLAYER_SEASON_COLUMNS. */
+export const PLAYER_CAREER_KEYS = ["gamesPlayed", "avgPoints", "avgRebounds", "avgAssists"] as const;
+
+/** The player page's last games table, from the game log, by ESPN's stat name. */
+export const PLAYER_GAME_COLUMNS = [
+  { key: "minutes", label: "MIN" },
+  { key: "points", label: "PTS" },
+  { key: "totalRebounds", label: "REB" },
+  { key: "assists", label: "AST" },
+  { key: "fieldGoalsMade-fieldGoalsAttempted", label: "FG" },
+  { key: "threePointFieldGoalsMade-threePointFieldGoalsAttempted", label: "3PT" },
+  { key: "steals", label: "STL" },
+  { key: "blocks", label: "BLK" },
+] as const;
+
+/** Games in the player page's last games table, as for the NHL. */
+export const PLAYER_LAST_GAMES = 5;

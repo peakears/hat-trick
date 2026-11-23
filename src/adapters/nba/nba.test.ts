@@ -4,7 +4,7 @@ import { runLeagueAdapterContract } from "../../contract/league-adapter.contract
 import type { AdapterWarning, Game } from "../../domain";
 import { NbaAdapter, NbaApiError, NbaResponseError } from ".";
 import { LEADER_CATEGORIES } from "./constants";
-import { periodLabel } from "./mappers";
+import { birthDate, draft, periodLabel, positionName } from "./mappers";
 
 // Recorded from ESPN on 2026-11-22 (about 10:20 pm ET); the game summaries and the team's files on 2026-11-23 (just
 // after midnight ET). All but the scoreboards and standings are trimmed of fields the adapter does not read, to keep
@@ -17,6 +17,14 @@ const FIXTURES: [RegExp, string][] = [
   [/\/summary\?event=401909314$/, "summary-401909314-pre.json"], // DET at ORL, scheduled
   [/\/teams\/DEN\/athletes\/statistics$/, "team-DEN-athletes-statistics.json"],
   [/\/teams\/DEN\/schedule$/, "team-DEN-schedule.json"], // the 2026-27 regular season, 15 games played
+  // Players, recorded 2026-11-23: Jamal Murray (ten seasons, playoffs) and Alpha Diallo (rookie, undrafted).
+  [/\/athletes\/3936299\?region=us&lang=en$/, "athlete-3936299.json"],
+  [/\/athletes\/3936299\/stats\?region=us&lang=en$/, "athlete-3936299-stats.json"],
+  [/\/athletes\/3936299\/stats\?region=us&lang=en&seasontype=3$/, "athlete-3936299-stats-playoffs.json"],
+  [/\/athletes\/3936299\/gamelog\?region=us&lang=en$/, "athlete-3936299-gamelog.json"],
+  [/\/athletes\/4065813\?region=us&lang=en$/, "athlete-4065813.json"],
+  [/\/athletes\/4065813\/stats\?region=us&lang=en(&seasontype=3)?$/, "athlete-4065813-stats.json"],
+  [/\/athletes\/4065813\/gamelog\?region=us&lang=en$/, "athlete-4065813-gamelog.json"],
   ...LEADER_CATEGORIES.map(({ category }): [RegExp, string] => [
     new RegExp(`/byathlete\\?.*sort=${category.replace(".", "\\.")}:desc`),
     `leaders-${category}.json`,
@@ -67,10 +75,10 @@ runLeagueAdapterContract({
   inputs: {
     scoreDates: ["2026-11-22", "2026-11-24"],
     leaderQueries: [{}, { category: "offensive.avgPoints", limit: 3 }, { category: "defensive.avgBlocks" }],
-    // Not built yet: player pages, special events and spotlight.
+    // Not built yet: special events and spotlight.
     gameIds: ["401910032", "401909314"],
     teamIds: ["DEN"],
-    playerIds: [],
+    playerIds: ["3936299", "4065813"],
     specialEventDates: [],
   },
 });
@@ -91,13 +99,17 @@ describe("NBA adapter", () => {
     await adapter.getGameDetail("401910032");
     await adapter.getGameDetail("401909314");
     await adapter.getTeam("DEN");
+    await adapter.getPlayer("3936299");
+    await adapter.getPlayer("4065813");
     expect(warnings).toEqual([]);
   });
 
-  it("has game and team pages, and none of the other optional features yet", () => {
+  it("has game, team and player pages, and none of the other optional features yet", () => {
     const adapter = new NbaAdapter() as unknown as Record<string, unknown>;
-    for (const method of ["getGameDetail", "getTeam"]) expect(adapter[method], method).toBeTypeOf("function");
-    for (const method of ["getSpecialEvents", "getSpotlight", "getPlayer"]) {
+    for (const method of ["getGameDetail", "getTeam", "getPlayer"]) {
+      expect(adapter[method], method).toBeTypeOf("function");
+    }
+    for (const method of ["getSpecialEvents", "getSpotlight"]) {
       expect(adapter[method], method).toBeUndefined();
     }
   });
@@ -442,6 +454,151 @@ describe("NBA adapter", () => {
       expect(team.recent).toBeUndefined();
       expect(team.upcoming).toBeUndefined();
       expect(warnings.map((w) => w.message)).toEqual(["team games left out: NBA API returned 503"]);
+    });
+  });
+
+  describe("player page", () => {
+    it("maps the bio: number, position, team, birth date and place, size in both systems, draft", async () => {
+      const d = await fixtureAdapter().adapter.getPlayer("3936299");
+      expect(d.player).toMatchObject({ id: "3936299", name: "Jamal Murray", teamId: "DEN", position: "G" });
+      expect(d.positionName).toBe("Guard");
+      expect(d.sweaterNumber).toBe(27);
+      expect(d.team).toMatchObject({ id: "DEN", name: "Denver Nuggets" });
+      expect(d.active).toBe(true);
+      expect(d.goalie).toBe(false);
+      expect(d.bio).toEqual({
+        birthDate: "1997-02-23",
+        birthPlace: "Kitchener, ON",
+        heightIn: 76,
+        heightCm: 193,
+        weightLb: 215,
+        weightKg: 98,
+        draft: { year: 2016, round: 1, overallPick: 7, teamId: "DEN" },
+      });
+    });
+
+    it("has this season's averages, the career and every season, regular season and playoffs", async () => {
+      const d = await fixtureAdapter().adapter.getPlayer("3936299");
+      expect(d.seasonLabel).toBe("2026-27");
+      expect(d.season).toEqual([
+        { value: "24.9", label: "PTS" },
+        { value: "5.0", label: "REB" },
+        { value: "5.8", label: "AST" },
+        { value: "50.2", label: "FG%" },
+      ]);
+      expect(d.career.regularSeason).toEqual([
+        { value: "625", label: "GP" },
+        { value: "19.0", label: "PTS" },
+        { value: "3.9", label: "REB" },
+        { value: "5.0", label: "AST" },
+      ]);
+      expect(d.career.playoffs.map((i) => i.label)).toEqual(["GP", "PTS", "REB", "AST"]);
+      expect(d.career.playoffs[0].value).toBe("85");
+
+      const regular = d.seasons.rows.filter((r) => !r.playoffs);
+      expect(regular).toHaveLength(10);
+      expect(regular[0]).toMatchObject({ season: "2026-27", team: "Nuggets", league: "NBA", inLeague: true });
+      expect(regular[0].values).toMatchObject({ gamesPlayed: "14", avgPoints: "24.9" });
+      expect(regular.at(-1)?.season).toBe("2016-17"); // newest first
+      expect(d.seasons.rows.filter((r) => r.playoffs).length).toBeGreaterThan(0);
+      expect(d.seasons.columns.map((c) => c.label)).toEqual([
+        "GP",
+        "MIN",
+        "PTS",
+        "REB",
+        "AST",
+        "STL",
+        "BLK",
+        "FG%",
+        "3P%",
+        "FT%",
+      ]);
+    });
+
+    it("lists the last five games, newest first, on the league's date", async () => {
+      const d = await fixtureAdapter().adapter.getPlayer("3936299");
+      expect(d.lastGames.columns.map((c) => c.label)).toEqual(["MIN", "PTS", "REB", "AST", "FG", "3PT", "STL", "BLK"]);
+      expect(d.lastGames.games).toHaveLength(5);
+      // 7 pm ET on Nov 22 is midnight UTC on Nov 23: the game is on the 22nd.
+      expect(d.lastGames.games[0]).toEqual({
+        gameId: "401910032",
+        date: "2026-11-22",
+        teamId: "DEN",
+        opponentId: "CHI",
+        home: false,
+        values: {
+          minutes: "45",
+          points: "45",
+          totalRebounds: "5",
+          assists: "7",
+          "fieldGoalsMade-fieldGoalsAttempted": "13-22",
+          "threePointFieldGoalsMade-threePointFieldGoalsAttempted": "6-11",
+          steals: "3",
+          blocks: "2",
+        },
+      });
+      const dates = d.lastGames.games.map((g) => g.date);
+      expect(dates).toEqual([...dates].sort().reverse());
+    });
+
+    it("maps a rookie: undrafted, no playoffs, and asks for no playoff stats", async () => {
+      const { adapter, urls } = fixtureAdapter();
+      const d = await adapter.getPlayer("4065813");
+      expect(d.player.name).toBe("Alpha Diallo");
+      expect(d.positionName).toBe("Forward");
+      expect(d.bio.draft).toBeUndefined();
+      expect(d.career.playoffs).toEqual([]);
+      expect(d.seasons.rows.every((r) => !r.playoffs)).toBe(true);
+      expect(urls.some((u) => u.includes("seasontype=3"))).toBe(false);
+    });
+
+    // ESPN answers a playoffs request for a player without any with the regular season (recorded for Diallo).
+    it("ignores a playoffs answer that holds the regular season", async () => {
+      const { adapter } = fixtureAdapter((url, body) => {
+        if (url.includes("4065813/stats")) {
+          body.filters.find((f: any) => f.name === "seasontype").options.push({ value: "3" });
+        }
+      });
+      const d = await adapter.getPlayer("4065813");
+      expect(d.career.playoffs).toEqual([]);
+      expect(d.seasons.rows.filter((r) => r.playoffs)).toEqual([]);
+      expect(d.seasons.rows.filter((r) => !r.playoffs)).toHaveLength(1);
+    });
+
+    it("names positions in Canadian spelling and sentence case", () => {
+      expect(positionName("Center")).toBe("Centre");
+      expect(positionName("Point Guard")).toBe("Point guard");
+      expect(positionName("Forward-Center")).toBe("Forward-centre");
+    });
+
+    it("reads month-first birth dates and the draft line, and nothing else", () => {
+      expect(birthDate("2/23/1997")).toBe("1997-02-23");
+      expect(birthDate("23/2/1997")).toBeUndefined();
+      expect(birthDate(undefined)).toBeUndefined();
+      expect(draft("2014: Rd 2, Pk 41 (DEN)")).toEqual({ year: 2014, round: 2, overallPick: 41, teamId: "DEN" });
+      expect(draft("Undrafted")).toBeUndefined();
+    });
+
+    it("still shows the bio when the stats and game log fail, with a warning each", async () => {
+      const warnings: AdapterWarning[] = [];
+      const adapter = new NbaAdapter({
+        fetch: async (input) => {
+          const url = String(input);
+          if (/\/(stats|gamelog)\?/.test(url)) return new Response("down", { status: 503 });
+          return new Response(JSON.stringify(fixtureFor(url)));
+        },
+        onWarning: (w) => warnings.push(w),
+      });
+      const d = await adapter.getPlayer("3936299");
+      expect(d.bio.birthDate).toBe("1997-02-23");
+      expect(d.season).toHaveLength(4); // from the athlete itself
+      expect(d.seasons.rows).toEqual([]);
+      expect(d.career).toEqual({ regularSeason: [], playoffs: [] });
+      expect(d.lastGames.games).toEqual([]);
+      expect(warnings.map((w) => w.message).sort()).toEqual([
+        "last games left out: NBA API returned 503",
+        "season stats left out: NBA API returned 503",
+      ]);
     });
   });
 

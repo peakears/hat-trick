@@ -1,6 +1,7 @@
 import { useRouter } from "expo-router";
 import type { StatTable } from "../../domain";
 import { StatGrid } from "./StatGrid";
+import { playerRoute } from "../common/routes";
 
 /**
  * A table of players (box score, team season stats). Each name opens that player's page, unless
@@ -16,9 +17,7 @@ export function StatTableView({ table, linkPlayers = true }: { table: StatTable;
         key: row.player.id,
         label: row.player.name,
         values: row.values,
-        onPress: linkPlayers
-          ? () => router.push({ pathname: "/player/[id]", params: { id: row.player.id } })
-          : undefined,
+        onPress: linkPlayers ? () => router.push(playerRoute(row.player)) : undefined,
         accessibilityLabel: `${row.player.name}, open player page`,
       }))}
     />

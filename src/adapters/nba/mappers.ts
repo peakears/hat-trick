@@ -8,6 +8,11 @@ import type {
   GameStatus,
   LeaderBoard,
   LeaderEntry,
+  PlayerBio,
+  PlayerDetail,
+  PlayerGameLine,
+  PlayerSeasonLine,
+  StatItem,
   RecordSplit,
   StandingRow,
   Standings,
@@ -18,9 +23,20 @@ import type {
   Team,
   TeamDetail,
 } from "../../domain";
-import { LEAGUE, TEAM_GAMES_SHOWN, TEAM_STAT_COLUMNS } from "./constants";
+import {
+  LEAGUE,
+  PLAYER_CAREER_KEYS,
+  PLAYER_GAME_COLUMNS,
+  PLAYER_LAST_GAMES,
+  PLAYER_SEASON_COLUMNS,
+  TEAM_GAMES_SHOWN,
+  TEAM_STAT_COLUMNS,
+} from "./constants";
 import type {
+  RawAthlete,
+  RawAthleteStats,
   RawBoxscoreTeam,
+  RawGamelog,
   RawEvent,
   RawLeaders,
   RawScoreboard,
@@ -415,5 +431,176 @@ export function mapTeamSchedule(
       .slice(-TEAM_GAMES_SHOWN)
       .reverse(),
     upcoming: games.filter((g) => g.status === "scheduled").slice(0, TEAM_GAMES_SHOWN),
+  });
+}
+
+// ---------- Player page ----------
+
+/** ESPN's position name in Canadian spelling and sentence case: "Center" as "Centre", "Point Guard" as "Point guard". */
+export function positionName(name: string): string {
+  const text = name.replace(/Center/g, "Centre");
+  return text.charAt(0) + text.slice(1).toLowerCase();
+}
+
+/** "2/23/1997" (month first, as sent for region=us) as "1997-02-23"; undefined for anything else. */
+export function birthDate(display: string | undefined): string | undefined {
+  const m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(display ?? "");
+  if (!m) return undefined;
+  const [month, day] = [Number(m[1]), Number(m[2])];
+  if (month < 1 || month > 12 || day < 1 || day > 31) return undefined;
+  return `${m[3]}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
+/** Height and weight as the domain has them, both systems: `6' 4"` is 76 in (193 cm), "215 lbs" is 215 lb (98 kg). */
+function size(height: string | undefined, weight: string | undefined): Partial<PlayerBio> {
+  const bio: Partial<PlayerBio> = {};
+  const h = /^(\d+)' (\d+)"$/.exec(height ?? "");
+  if (h) {
+    bio.heightIn = Number(h[1]) * 12 + Number(h[2]);
+    bio.heightCm = Math.round(bio.heightIn * 2.54);
+  }
+  const w = /^(\d+) lbs$/.exec(weight ?? "");
+  if (w) {
+    bio.weightLb = Number(w[1]);
+    bio.weightKg = Math.round(bio.weightLb * 0.45359237);
+  }
+  return bio;
+}
+
+/** "2016: Rd 1, Pk 7 (DEN)" (the pick counted overall); undefined for anything else. */
+export function draft(display: string | undefined): PlayerBio["draft"] {
+  const m = /^(\d{4}): Rd (\d+), Pk (\d+) \(([A-Z]+)\)$/.exec(display ?? "");
+  return m ? { year: Number(m[1]), round: Number(m[2]), overallPick: Number(m[3]), teamId: m[4] } : undefined;
+}
+
+/** The season type a stats response holds: "2" regular season, "3" playoffs. */
+function seasonType(raw: RawAthleteStats | undefined): string | undefined {
+  return raw?.filters?.find((f) => f.name === "seasontype")?.value;
+}
+
+/** Whether the player has playoff stats to ask for (the regular season response lists the types they have). */
+export function hasPlayoffStats(regular: RawAthleteStats): boolean {
+  return !!regular.filters?.find((f) => f.name === "seasontype")?.options?.some((o) => o.value === "3");
+}
+
+/** Values by key from a line of strings in the order of `names`, for the given columns. */
+function pickStats(names: string[], stats: string[] | undefined, keys: readonly string[]): Record<string, string> {
+  const values: Record<string, string> = {};
+  for (const key of keys) {
+    const v = stats?.[names.indexOf(key)];
+    if (names.includes(key) && v !== undefined && v !== "") values[key] = v;
+  }
+  return values;
+}
+
+const SEASON_KEYS = PLAYER_SEASON_COLUMNS.map((c) => c.key);
+
+/** Season lines, newest first (ESPN lists them oldest first), and the career line, from one season type. */
+function seasonLines(
+  raw: RawAthleteStats | undefined,
+  playoffs: boolean,
+): { rows: PlayerSeasonLine[]; career: StatItem[] } {
+  const averages = raw?.categories.find((c) => c.name === "averages");
+  if (!raw || !averages) return { rows: [], career: [] };
+  const rows = [...(averages.statistics ?? [])].reverse().map((line): PlayerSeasonLine => ({
+    season: line.season.displayName,
+    team: raw.teams?.[line.teamSlug]?.shortDisplayName ?? line.teamSlug,
+    league: "NBA",
+    inLeague: true,
+    playoffs,
+    values: pickStats(averages.names, line.stats, SEASON_KEYS),
+  }));
+  const totals = pickStats(averages.names, averages.totals, PLAYER_CAREER_KEYS);
+  const career = PLAYER_CAREER_KEYS.flatMap((key) => {
+    const value = totals[key];
+    const label = PLAYER_SEASON_COLUMNS.find((c) => c.key === key)!.label;
+    return value === undefined ? [] : [{ value, label }];
+  });
+  return { rows, career };
+}
+
+/** The league's calendar date (US Eastern) of a game starting at `time`: NBA games start between noon and 11 pm ET. */
+function gameDay(time: string): string {
+  return new Date(Date.parse(time) - 6 * 3_600_000).toISOString().slice(0, 10);
+}
+
+/** The latest games outside the preseason, newest first. */
+function lastGames(raw: RawGamelog | undefined, teamId: string | undefined): PlayerGameLine[] {
+  if (!raw) return [];
+  const keys = PLAYER_GAME_COLUMNS.map((c) => c.key);
+  const lines: (PlayerGameLine & { time: number })[] = [];
+  for (const type of raw.seasonTypes ?? []) {
+    if (/preseason/i.test(type.displayName)) continue;
+    for (const category of type.categories) {
+      for (const g of category.events ?? []) {
+        const event = raw.events[g.eventId];
+        if (!event) continue;
+        const time = Date.parse(event.gameDate);
+        if (!Number.isFinite(time)) continue;
+        lines.push({
+          gameId: g.eventId,
+          date: gameDay(event.gameDate),
+          teamId: event.team?.abbreviation ?? teamId ?? "",
+          opponentId: event.opponent.abbreviation,
+          home: event.atVs !== "@",
+          values: pickStats(raw.names, g.stats, keys),
+          time,
+        });
+      }
+    }
+  }
+  return lines
+    .sort((a, b) => b.time - a.time)
+    .slice(0, PLAYER_LAST_GAMES)
+    .map(({ time: _time, ...line }) => line);
+}
+
+/**
+ * The player page from the athlete (bio, team, this season's headline averages) plus, each optional (an extra that
+ * failed, or no playoffs), the regular season and playoff stats and the game log.
+ */
+export function mapPlayer(
+  raw: RawAthlete,
+  extras: { regular?: RawAthleteStats; playoffs?: RawAthleteStats; gamelog?: RawGamelog },
+): PlayerDetail {
+  const a = raw.athlete;
+  const team = a.team ? logoTeam(a.team) : undefined;
+  const jersey = Number(a.jersey);
+  const regular = seasonLines(seasonType(extras.regular) === "2" ? extras.regular : undefined, false);
+  // ESPN answers a playoffs request for a player without any with the regular season: keep it only if it says so.
+  const playoffs = seasonLines(seasonType(extras.playoffs) === "3" ? extras.playoffs : undefined, true);
+  return compact({
+    player: {
+      id: a.id,
+      league: LEAGUE,
+      name: a.displayName,
+      teamId: team?.id,
+      position: a.position?.abbreviation,
+      headshotUrl: a.headshot?.href,
+    },
+    positionName: a.position ? positionName(a.position.name) : undefined,
+    sweaterNumber: a.jersey !== undefined && a.jersey !== "" && Number.isInteger(jersey) ? jersey : undefined,
+    team,
+    active: a.active ?? team !== undefined,
+    goalie: false,
+    bio: {
+      birthDate: birthDate(a.displayDOB),
+      birthPlace: a.displayBirthPlace,
+      ...size(a.displayHeight, a.displayWeight),
+      draft: draft(a.displayDraft),
+    },
+    // "2026-27 regular season stats": the season the headline numbers are for.
+    seasonLabel: /^(\d{4}-\d{2}) /.exec(a.statsSummary?.displayName ?? "")?.[1],
+    season: (a.statsSummary?.statistics ?? []).map((s) => ({ value: s.displayValue, label: s.abbreviation })),
+    career: { regularSeason: regular.career, playoffs: playoffs.career },
+    lastGames: {
+      columns: PLAYER_GAME_COLUMNS.map(({ key, label }) => ({ key, label })),
+      games: lastGames(extras.gamelog, team?.id),
+    },
+    seasons: {
+      columns: PLAYER_SEASON_COLUMNS.map(({ key, label }) => ({ key, label })),
+      // Newest season first, its regular season before its playoffs (the sort keeps that order within a season).
+      rows: [...regular.rows, ...playoffs.rows].sort((x, y) => y.season.localeCompare(x.season)),
+    },
   });
 }

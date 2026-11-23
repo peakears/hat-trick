@@ -14,6 +14,7 @@ import { useSportsData } from "../../src/ui/data/sports-data-context";
 import { useLeague } from "../../src/ui/data/use-league";
 import { tabular, useColors, DIVIDER } from "../../src/ui/theme/theme";
 import { usePolled } from "../../src/ui/data/use-polled";
+import { playerRoute } from "../../src/ui/common/routes";
 
 export default function LeadersScreen() {
   const sports = useSportsData();
@@ -123,11 +124,7 @@ export default function LeadersScreen() {
           }
           renderItem={({ item, section }) => (
             <Pressable
-              onPress={
-                opensPlayer
-                  ? () => router.push({ pathname: "/player/[id]", params: { id: item.player.id } })
-                  : undefined
-              }
+              onPress={opensPlayer ? () => router.push(playerRoute(item.player)) : undefined}
               disabled={!opensPlayer}
               accessibilityRole={opensPlayer ? "button" : undefined}
               accessibilityLabel={`${item.rank}. ${item.player.name}, ${item.team.abbrev}, ${leaderValue(item.value, section.format, statValue, section.decimals)}${opensPlayer ? ". Open player page" : ""}`}

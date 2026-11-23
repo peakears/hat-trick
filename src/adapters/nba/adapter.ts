@@ -6,14 +6,35 @@ import type {
   LeaderBoard,
   LeaderQuery,
   LeagueAdapter,
+  PlayerDetail,
   RequestOptions,
   Standings,
   TeamDetail,
 } from "../../domain";
 import { NbaClient, type NbaClientOptions } from "./client";
-import { DEFAULT_LEADER_LIMIT, LEADER_CATEGORIES, LEADERS_URL, LEAGUE, SITE_URL, STANDINGS_URL } from "./constants";
-import { mapLeaderBoard, mapScoreboard, mapStandings, mapSummary, mapTeamSchedule, mapTeamStats } from "./mappers";
 import {
+  ATHLETES_URL,
+  DEFAULT_LEADER_LIMIT,
+  LEADER_CATEGORIES,
+  LEADERS_URL,
+  LEAGUE,
+  SITE_URL,
+  STANDINGS_URL,
+} from "./constants";
+import {
+  hasPlayoffStats,
+  mapLeaderBoard,
+  mapPlayer,
+  mapScoreboard,
+  mapStandings,
+  mapSummary,
+  mapTeamSchedule,
+  mapTeamStats,
+} from "./mappers";
+import {
+  RawAthleteSchema,
+  RawAthleteStatsSchema,
+  RawGamelogSchema,
   RawLeadersSchema,
   RawScoreboardSchema,
   RawStandingsSchema,
@@ -31,9 +52,8 @@ export interface NbaAdapterOptions extends NbaClientOptions {
 }
 
 /**
- * The NBA from ESPN's keyless site API: scores, standings, leaders, and game and team pages. The other optional
- * features (player pages, special events, spotlight) are left out until they are built, so the app hides what leads
- * there.
+ * The NBA from ESPN's keyless site API: scores, standings, leaders, and game, team and player pages. The other
+ * optional features (special events, spotlight) are left out until they are built, so the app hides what leads there.
  */
 export class NbaAdapter implements LeagueAdapter {
   readonly league = LEAGUE;
@@ -100,6 +120,48 @@ export class NbaAdapter implements LeagueAdapter {
     return { teamId, stats: mapTeamStats(stats), ...schedule };
   }
 
+  /**
+   * The athlete (bio, team, this season's averages) decides whether the page loads. Season-by-season stats, the
+   * playoffs and the game log are extras: each is left out, with a warning, if it fails.
+   */
+  async getPlayer(playerId: string, options?: RequestOptions): Promise<PlayerDetail> {
+    const base = `${ATHLETES_URL}/${encodeURIComponent(playerId)}`;
+    // region=us: dates come month first (see raw-types.ts).
+    const query = "region=us&lang=en";
+    const [athlete, regular, gamelog] = await Promise.all([
+      this.fetch(`${base}?${query}`, RawAthleteSchema, options),
+      this.extra(`${base}/stats?${query}`, RawAthleteStatsSchema, "season stats", options),
+      this.extra(`${base}/gamelog?${query}`, RawGamelogSchema, "last games", options),
+    ]);
+    // Asked for only when the regular season lists playoffs: most players' answer would be the regular season again.
+    const playoffs =
+      regular && hasPlayoffStats(regular)
+        ? await this.extra(`${base}/stats?${query}&seasontype=3`, RawAthleteStatsSchema, "playoff stats", options)
+        : undefined;
+    return mapPlayer(athlete, { regular, playoffs, gamelog });
+  }
+
+  /** A best-effort request: undefined, with a warning, if it fails. */
+  private async extra<T extends z.ZodType>(
+    url: string,
+    schema: T,
+    what: string,
+    options?: RequestOptions,
+  ): Promise<z.output<T> | undefined> {
+    try {
+      return await this.fetch(url, schema, options);
+    } catch (err) {
+      this.extraFailed(url, what, err, options);
+      return undefined;
+    }
+  }
+
+  /** A best-effort extra failed: the page shows without it, and the failure is passed on as a warning. */
+  private extraFailed(url: string, what: string, err: unknown, options?: RequestOptions): void {
+    const reason = err instanceof Error ? err.message : String(err);
+    (options?.onWarning ?? this.onWarning)({ url, message: `${what} left out: ${reason}` });
+  }
+
   private async getTeamSchedule(
     team: string,
     teamId: string,
@@ -109,9 +171,7 @@ export class NbaAdapter implements LeagueAdapter {
     try {
       return mapTeamSchedule(await this.fetch(url, RawTeamScheduleSchema, options), teamId);
     } catch (err) {
-      // A best-effort extra failed: the page shows without it, and the failure is passed on as a warning.
-      const reason = err instanceof Error ? err.message : String(err);
-      (options?.onWarning ?? this.onWarning)({ url, message: `team games left out: ${reason}` });
+      this.extraFailed(url, "team games", err, options);
       return {};
     }
   }

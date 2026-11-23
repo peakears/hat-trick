@@ -250,3 +250,110 @@ export const RawTeamScheduleSchema = z.object({
   ),
 });
 export type RawTeamSchedule = z.output<typeof RawTeamScheduleSchema>;
+
+// ---------- Player page: common/v3/.../athletes/<id>[/stats|/gamelog]?region=us&lang=en ----------
+// Verified on 2026-11-23 against Jamal Murray (3936299: ten seasons, playoffs) and Alpha Diallo (4065813: a rookie,
+// undrafted, no playoffs). `region=us` matters: it makes `displayDOB` month first ("2/23/1997"); without it the
+// order follows ESPN's guess at the reader's locale.
+
+export const RawAthleteSchema = z.object({
+  athlete: z.object({
+    id: z.string().min(1),
+    displayName: z.string().min(1),
+    /** "27"; absent for a player without a number. */
+    jersey: minor(z.string(), "athlete.jersey"),
+    /** `name` is ESPN's ("Guard", "Center"); `abbreviation` is the code shown in tables ("G"). */
+    position: minor(z.object({ name: z.string(), abbreviation: z.string() }), "athlete.position"),
+    team: minor(RawLogoTeamSchema, "athlete.team"),
+    headshot: minor(z.object({ href: z.string() }), "athlete.headshot"),
+    active: minor(z.boolean(), "athlete.active"),
+    /** "2/23/1997", month first (see above). */
+    displayDOB: minor(z.string(), "athlete.displayDOB"),
+    /** "Kitchener, ON", "Sombor, Serbia", "New York, NY". */
+    displayBirthPlace: minor(z.string(), "athlete.displayBirthPlace"),
+    /** `6' 4"` */
+    displayHeight: minor(z.string(), "athlete.displayHeight"),
+    /** "215 lbs" */
+    displayWeight: minor(z.string(), "athlete.displayWeight"),
+    /** "2016: Rd 1, Pk 7 (DEN)", the pick counted overall; absent for an undrafted player. */
+    displayDraft: minor(z.string(), "athlete.displayDraft"),
+    /** This regular season's headline averages (PTS, REB, AST, FG%), each with its `displayValue`. */
+    statsSummary: minor(
+      z.object({
+        /** "2026-27 regular season stats" */
+        displayName: minor(z.string(), "statsSummary.displayName"),
+        statistics: lenientArray(
+          z.object({ abbreviation: z.string(), displayValue: z.string() }),
+          "statsSummary.statistics",
+        ),
+      }),
+      "athlete.statsSummary",
+    ),
+  }),
+});
+export type RawAthlete = z.output<typeof RawAthleteSchema>;
+
+/**
+ * Season-by-season stats for one season type (`seasontype=2` regular season, `3` playoffs). Each category
+ * ("averages", "totals") has the columns' `names` and one line per season and team, with `stats` in that order, and
+ * the career line in `totals`. A player with no playoff games gets the **regular season** for `seasontype=3`: the
+ * `seasontype` filter's `value` says which type was sent, and its `options` which types the player has.
+ */
+export const RawAthleteStatsSchema = z.object({
+  filters: lenientArray(
+    z.object({
+      name: z.string(),
+      value: z.string(),
+      options: lenientArray(z.object({ value: z.string() }), "filter.options"),
+    }),
+    "filters",
+  ),
+  /** By slug ("denver-nuggets"), as each season line names its team. */
+  teams: minor(z.record(z.string(), z.object({ shortDisplayName: z.string() })), "teams"),
+  categories: z.array(
+    z.object({
+      name: z.string(),
+      names: z.array(z.string()),
+      statistics: lenientArray(
+        z.object({
+          teamSlug: z.string(),
+          season: z.object({ displayName: z.string() }),
+          stats: z.array(z.string()),
+        }),
+        "category.statistics",
+      ),
+      totals: minor(z.array(z.string()), "category.totals"),
+    }),
+  ),
+});
+export type RawAthleteStats = z.output<typeof RawAthleteStatsSchema>;
+
+/**
+ * Every game this season, by event id in `events` (opponent, home or away, date), with each game's stats in
+ * `seasonTypes[].categories[].events[]` in the order of the top-level `names`. Preseason games are a season type of
+ * their own.
+ */
+export const RawGamelogSchema = z.object({
+  names: z.array(z.string()),
+  events: z.record(
+    z.string(),
+    z.object({
+      id: z.string(),
+      atVs: z.string(),
+      /** "2026-11-23T00:00:00.000+00:00" */
+      gameDate: z.string(),
+      opponent: z.object({ abbreviation: z.string().min(1) }),
+      team: minor(z.object({ abbreviation: z.string() }), "event.team"),
+    }),
+  ),
+  seasonTypes: lenientArray(
+    z.object({
+      displayName: z.string(),
+      categories: z.array(
+        z.object({ events: lenientArray(z.object({ eventId: z.string(), stats: z.array(z.string()) }), "events") }),
+      ),
+    }),
+    "seasonTypes",
+  ),
+});
+export type RawGamelog = z.output<typeof RawGamelogSchema>;

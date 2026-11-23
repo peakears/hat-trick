@@ -4,13 +4,6 @@ import type { PlayerBio, PlayerDetail, PlayerGameLine, PlayerSeasonLine } from "
  * Text for the player page. Pure (no React Native imports), so it is unit tested.
  */
 
-const POSITIONS: Record<string, string> = { C: "Centre", L: "Left wing", R: "Right wing", D: "Defence", G: "Goalie" };
-
-/** "Centre"; an unknown code is shown as sent. */
-export function positionLabel(code: string | undefined): string | undefined {
-  return code === undefined ? undefined : (POSITIONS[code] ?? code);
-}
-
 /** Whole years between a YYYY-MM-DD birth date and `today` (YYYY-MM-DD, local). */
 export function ageOn(birthDate: string, today: string): number | undefined {
   const b = /^(\d{4})-(\d{2})-(\d{2})$/.exec(birthDate);
@@ -90,7 +83,8 @@ export function playerSubtitle(detail: PlayerDetail): string {
   const parts = [
     detail.team?.abbrev,
     detail.sweaterNumber !== undefined ? `#${detail.sweaterNumber}` : undefined,
-    positionLabel(detail.player.position),
+    // The adapter names the position; the code stands in for a cached entry from before it did.
+    detail.positionName ?? detail.player.position,
   ].filter(Boolean);
   if (!detail.active) parts.push("Inactive");
   return parts.join(" · ");

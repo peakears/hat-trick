@@ -237,6 +237,8 @@ export interface PlayerSeasonLine {
 export interface PlayerDetail {
   /** Full name, current team, position and photo. */
   player: Player;
+  /** The position in words, as the league names it in Canadian spelling: "Defence", "Point guard". Absent when unknown. */
+  positionName?: string;
   sweaterNumber?: number;
   /** The current team, when the player has one. */
   team?: Team;
