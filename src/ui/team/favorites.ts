@@ -11,7 +11,12 @@ import type { Game, LeagueId } from "../../domain";
  * carry their league, this is the one place to change.
  */
 export function favoritesFor(league: LeagueId, favorites: readonly string[]): readonly string[] {
-  return league === "nhl" ? favorites : [];
+  return hasFavorites(league) ? favorites : [];
+}
+
+/** Whether teams in `league` can be favourites (the team page's star). The NHL only, for now: see favoritesFor. */
+export function hasFavorites(league: LeagueId): boolean {
+  return league === "nhl";
 }
 
 export function isFavorite(favorites: readonly string[], teamId: string): boolean {

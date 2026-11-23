@@ -4,6 +4,7 @@ import type { Game, GameSide } from "../../domain";
 import { useSportsData } from "../data/sports-data-context";
 import { favoritesFor, isFavorite } from "../team/favorites";
 import { winner } from "../common/format";
+import { gameRoute } from "../common/routes";
 import { channelsFor, channelsLabel, showsChannelsOnCard } from "../game/broadcasts";
 import { useSettings } from "../settings/settings-context";
 import { useSpoilers } from "../spoilers/spoiler-context";
@@ -80,7 +81,7 @@ export function GameCard({ game }: { game: Game }) {
     // Not <Link asChild>: its Slot merges styles by spreading them, which drops a style function
     // like the one below (pressed state), so the card would lose all of its styling.
     <Pressable
-      onPress={opens ? () => router.push({ pathname: "/game/[id]", params: { id: game.id } }) : undefined}
+      onPress={opens ? () => router.push(gameRoute(game)) : undefined}
       disabled={!opens}
       style={({ pressed }) => [
         styles.card,

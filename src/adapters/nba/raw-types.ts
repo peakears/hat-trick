@@ -117,3 +117,136 @@ export const RawLeadersSchema = z.object({
   athletes: lenientArray(RawLeaderAthleteSchema, "athletes"),
 });
 export type RawLeaders = z.output<typeof RawLeadersSchema>;
+
+// ---------- Game summary: /summary?event=<id> ----------
+// Verified on 2026-11-23 against a final game in overtime (401910032) and a scheduled one (401909314). The
+// fixtures keep only `header`, `boxscore` and `gameInfo` (plays, news and odds are most of the response).
+
+const RawLogoTeamSchema = z.object({
+  abbreviation: z.string().min(1),
+  displayName: z.string().min(1),
+  /** Trimmed to the first (default) logo in the fixtures. */
+  logos: lenientArray(z.object({ href: z.string() }), "team.logos"),
+});
+
+/**
+ * The header's status. A final game's has only `type` (no period or clock: the mapper counts `linescores`); a
+ * live game's period and clock are unverified, so both are minor.
+ */
+const RawSummaryStatusSchema = z.object({
+  displayClock: minor(z.string(), "status.displayClock"),
+  period: minor(z.number(), "status.period"),
+  type: RawStatusSchema.shape.type,
+});
+
+const RawSummaryCompetitorSchema = z.object({
+  homeAway: z.enum(["home", "away"]),
+  team: RawLogoTeamSchema,
+  /** A string ("145"); absent before tip-off. */
+  score: minor(z.string(), "competitor.score"),
+  /** One entry per period played, so its length is the number of periods (5+ is overtime). */
+  linescores: lenientArray(z.object({ displayValue: minor(z.string(), "linescore") }), "competitor.linescores"),
+  /** `type: "total"` is the season record. */
+  record: lenientArray(RawRecordSchema, "competitor.record"),
+});
+
+/**
+ * One team's players: one statistics group, whose `keys` name each column and `labels` head it ("MIN", "PTS",
+ * "FG"); each athlete's `stats` are strings in that order ("8-19"), empty for a player who did not play.
+ */
+const RawBoxscoreTeamSchema = z.object({
+  team: z.object({ abbreviation: z.string().min(1) }),
+  statistics: z.array(
+    z.object({
+      keys: z.array(z.string()),
+      labels: z.array(z.string()),
+      athletes: lenientArray(
+        z.object({
+          athlete: z.object({
+            id: z.string().min(1),
+            displayName: z.string().min(1),
+            headshot: minor(z.object({ href: z.string() }), "athlete.headshot"),
+            position: minor(z.object({ abbreviation: z.string() }), "athlete.position"),
+          }),
+          starter: minor(z.boolean(), "athlete.starter"),
+          didNotPlay: minor(z.boolean(), "athlete.didNotPlay"),
+          stats: z.array(z.string()),
+        }),
+        "boxscore.athletes",
+      ),
+    }),
+  ),
+});
+
+export const RawSummarySchema = z.object({
+  header: z.object({
+    id: z.string().min(1),
+    competitions: z
+      .array(
+        z.object({
+          /** "2026-11-23T00:00Z", as in the scoreboard. */
+          date: z.string().min(1),
+          status: RawSummaryStatusSchema,
+          competitors: z.array(RawSummaryCompetitorSchema).length(2),
+        }),
+      )
+      .min(1),
+  }),
+  /** `players` is absent before tip-off. */
+  boxscore: minor(z.object({ players: lenientArray(RawBoxscoreTeamSchema, "boxscore.players") }), "boxscore"),
+  gameInfo: minor(z.object({ venue: minor(RawVenueSchema, "gameInfo.venue") }), "gameInfo"),
+});
+export type RawSummary = z.output<typeof RawSummarySchema>;
+export type RawBoxscoreTeam = z.output<typeof RawBoxscoreTeamSchema>;
+
+// ---------- Team page: /teams/<abbrev>/athletes/statistics and /teams/<abbrev>/schedule ----------
+// Verified on 2026-11-23 against the Nuggets (DEN), 15 games into the season.
+
+/** A stat by `name` ("avgPoints", "fieldGoalPct"); `displayValue` is as ESPN shows it ("24.9"). */
+const RawNamedStatSchema = z.object({ name: z.string(), displayValue: minor(z.string(), "stat.displayValue") });
+
+const RawTeamAthleteSchema = z.object({
+  athlete: z.object({
+    id: z.string().min(1),
+    displayName: z.string().min(1),
+    headshot: minor(z.object({ href: z.string() }), "athlete.headshot"),
+    position: minor(z.object({ abbreviation: z.string() }), "athlete.position"),
+  }),
+  /** Groups "general", "offensive", "defensive", each a list of stats by name. */
+  statistics: z.array(z.object({ name: z.string(), stats: lenientArray(RawNamedStatSchema, "athlete.stats") })),
+});
+
+/** `results[0].leaders` is every player on the roster who has played, by points per game. */
+export const RawTeamStatsSchema = z.object({
+  results: z.array(z.object({ leaders: lenientArray(RawTeamAthleteSchema, "results.leaders") })),
+});
+export type RawTeamStats = z.output<typeof RawTeamStatsSchema>;
+export type RawTeamAthlete = z.output<typeof RawTeamAthleteSchema>;
+
+const RawScheduleCompetitorSchema = z.object({
+  homeAway: z.enum(["home", "away"]),
+  team: RawLogoTeamSchema,
+  /** Absent before tip-off. */
+  score: minor(z.object({ value: z.number() }), "competitor.score"),
+});
+
+/** The whole regular season, played and to come. Unlike the scoreboard, the status is on the competition. */
+export const RawTeamScheduleSchema = z.object({
+  events: lenientArray(
+    z.object({
+      id: z.string().min(1),
+      date: z.string().min(1),
+      competitions: z
+        .array(
+          z.object({
+            status: RawStatusSchema,
+            competitors: z.array(RawScheduleCompetitorSchema).length(2),
+            venue: minor(RawVenueSchema, "competition.venue"),
+          }),
+        )
+        .min(1),
+    }),
+    "events",
+  ),
+});
+export type RawTeamSchedule = z.output<typeof RawTeamScheduleSchema>;

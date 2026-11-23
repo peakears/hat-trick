@@ -15,7 +15,9 @@ import { ThreeStars } from "../../../src/ui/components/ThreeStars";
 import { localDate, teamRecord } from "../../../src/ui/common/format";
 import { eventWeekStart, withSpecialEvents } from "../../../src/ui/scores/special-events";
 import { useSpoilers } from "../../../src/ui/spoilers/spoiler-context";
-import { NHL, useSportsData } from "../../../src/ui/data/sports-data-context";
+import { useSportsData } from "../../../src/ui/data/sports-data-context";
+import { usePageLeague } from "../../../src/ui/data/use-page-league";
+import { boxScoreRoute, teamRoute } from "../../../src/ui/common/routes";
 import { tabular, useColors } from "../../../src/ui/theme/theme";
 import { usePolled } from "../../../src/ui/data/use-polled";
 
@@ -30,10 +32,13 @@ export default function GameScreen() {
   const colors = useColors();
   const spoilers = useSpoilers();
   const router = useRouter();
-  const detail = usePolled(`game:${id}`, (o) => sports.getGameDetail(NHL, id, o));
+  const league = usePageLeague();
+  const detail = usePolled(`${league}:game:${id}`, (o) => sports.getGameDetail(league, id, o));
   // Season records come from the standings (shared with the Standings tab's cache). Optional:
   // if standings fail to load, the records are just left out.
-  const standings = usePolled("standings", (o) => sports.getStandings(NHL, o));
+  const standings = usePolled(`${league}:standings`, (o) => sports.getStandings(league, o));
+  // Only leagues with a team page link to one.
+  const opensTeam = sports.supports(league, "team");
 
   if (detail.loading) return <PageSkeleton />;
   if (!detail.data) {
@@ -57,9 +62,10 @@ export default function GameScreen() {
     return (
       <View style={styles.team}>
         <Pressable
-          onPress={() => router.push({ pathname: "/team/[id]", params: { id: s.team.id } })}
-          accessibilityRole="button"
-          accessibilityLabel={`${s.team.name}, open team page`}
+          onPress={opensTeam ? () => router.push(teamRoute(s.team)) : undefined}
+          disabled={!opensTeam}
+          accessibilityRole={opensTeam ? "button" : undefined}
+          accessibilityLabel={opensTeam ? `${s.team.name}, open team page` : s.team.name}
           style={styles.teamLink}
         >
           <TeamLogo team={s.team} size={56} />
@@ -148,10 +154,10 @@ export default function GameScreen() {
         )}
 
         {game.status === "scheduled" ? (
-          <Empty message="Box score starts at puck drop." />
+          <Empty message="Box score starts when the game does." />
         ) : (
           <Pressable
-            onPress={() => router.push({ pathname: "/game/[id]/box-score", params: { id: game.id } })}
+            onPress={() => router.push(boxScoreRoute(game))}
             accessibilityRole="button"
             accessibilityLabel="Open box score"
             style={[styles.boxScoreRow, { backgroundColor: colors.card }]}
@@ -174,7 +180,10 @@ function GameEvent({ game }: { game: Game }) {
   const sports = useSportsData();
   // The league's calendar day is the game's local date for nearly every viewer; the week lookup covers Monday to Sunday.
   const weekStart = eventWeekStart(localDate(new Date(game.startTime)));
-  const events = usePolled(`events:${weekStart}`, (o) => sports.getSpecialEvents(NHL, weekStart, o));
+  // Leagues without special events answer empty with no request.
+  const events = usePolled(`${game.league}:events:${weekStart}`, (o) =>
+    sports.getSpecialEvents(game.league, weekStart, o),
+  );
   const [withEvent] = withSpecialEvents([game], events.data);
   return <SpecialEventTag name={withEvent.specialEvent} style={styles.event} />;
 }

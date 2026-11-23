@@ -23,6 +23,16 @@ export function goalDifferentialLabel(n: number): string {
   return n > 0 ? `+${n}` : `${n}`;
 }
 
+/** A share of games won, 0-1, as basketball standings show it: ".625", "1.000". */
+export function winPercentLabel(share: number): string {
+  return share >= 1 ? "1.000" : share.toFixed(3).replace(/^0/, "");
+}
+
+/** Games behind the leader: "-" for the leader, "1.5" otherwise. */
+export function gamesBehindLabel(gamesBehind: number): string {
+  return gamesBehind === 0 ? "-" : String(gamesBehind);
+}
+
 /** Where the team stands in its division: "1st in Pacific" ("4th" when the league names no division). */
 export function rankLine(row: StandingRow): string {
   return `${ordinal(row.rank)}${row.divisionName ? ` in ${row.divisionName}` : ""}`;

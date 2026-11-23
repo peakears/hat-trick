@@ -20,3 +20,20 @@ export const LEADER_CATEGORIES = [
 
 /** Players per board when the query sets no limit. */
 export const DEFAULT_LEADER_LIMIT = 20;
+
+/** Games in each of the team page's lists (recent and upcoming), as for the NHL. */
+export const TEAM_GAMES_SHOWN = 5;
+
+/** The team page's season stats table: per-game averages and shooting, by ESPN's group and stat name. */
+export const TEAM_STAT_COLUMNS = [
+  { key: "gamesPlayed", label: "GP", group: "general", name: "gamesPlayed" },
+  { key: "avgMinutes", label: "MIN", group: "general", name: "avgMinutes" },
+  { key: "avgPoints", label: "PTS", group: "offensive", name: "avgPoints" },
+  { key: "avgRebounds", label: "REB", group: "general", name: "avgRebounds" },
+  { key: "avgAssists", label: "AST", group: "offensive", name: "avgAssists" },
+  { key: "avgSteals", label: "STL", group: "defensive", name: "avgSteals" },
+  { key: "avgBlocks", label: "BLK", group: "defensive", name: "avgBlocks" },
+  { key: "fieldGoalPct", label: "FG%", group: "offensive", name: "fieldGoalPct" },
+  { key: "threePointFieldGoalPct", label: "3P%", group: "offensive", name: "threePointFieldGoalPct" },
+  { key: "freeThrowPct", label: "FT%", group: "offensive", name: "freeThrowPct" },
+] as const;

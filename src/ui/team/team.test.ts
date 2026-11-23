@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { Game, GameStatus, StandingRow, Standings } from "../../domain";
 import {
   findStandingRow,
+  gamesBehindLabel,
   goalDifferentialLabel,
   ordinal,
   rankLine,
@@ -9,6 +10,7 @@ import {
   teamGameLine,
   teamGameSpoken,
   visibleGames,
+  winPercentLabel,
 } from "./team";
 
 function row(id: string, extra: Partial<StandingRow> = {}): StandingRow {
@@ -152,5 +154,22 @@ describe("compact team games", () => {
       expect(line.liveScore).toBeUndefined();
       expect(teamGameSpoken(line)).toBe("at Toronto Maple Leafs");
     }
+  });
+});
+
+describe("winPercentLabel", () => {
+  it("shows a share of games won as basketball standings do", () => {
+    expect(winPercentLabel(0.625)).toBe(".625");
+    expect(winPercentLabel(0.5)).toBe(".500");
+    expect(winPercentLabel(0)).toBe(".000");
+    expect(winPercentLabel(1)).toBe("1.000");
+  });
+});
+
+describe("gamesBehindLabel", () => {
+  it("shows a dash for the leader and the games otherwise", () => {
+    expect(gamesBehindLabel(0)).toBe("-");
+    expect(gamesBehindLabel(1.5)).toBe("1.5");
+    expect(gamesBehindLabel(7)).toBe("7");
   });
 });

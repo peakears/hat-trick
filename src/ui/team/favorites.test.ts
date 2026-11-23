@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Game, GameStatus } from "../../domain";
-import { favoritesFor, involvesFavorite, isFavorite, toggleFavorite } from "./favorites";
+import { favoritesFor, hasFavorites, involvesFavorite, isFavorite, toggleFavorite } from "./favorites";
 import { sortGamesForScores } from "../common/format";
 
 function game(id: string, status: GameStatus, startTime: string, away: string, home: string): Game {
@@ -64,5 +64,12 @@ describe("favoritesFor", () => {
   it("applies favourites to the NHL only, as other leagues reuse abbreviations", () => {
     expect(favoritesFor("nhl", ["BOS", "TOR"])).toEqual(["BOS", "TOR"]);
     expect(favoritesFor("nba", ["BOS", "TOR"])).toEqual([]);
+  });
+});
+
+describe("hasFavorites", () => {
+  it("is the NHL only, as favourites are bare team ids picked from NHL teams", () => {
+    expect(hasFavorites("nhl")).toBe(true);
+    expect(hasFavorites("nba")).toBe(false);
   });
 });

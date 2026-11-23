@@ -7,6 +7,7 @@ import { ListSkeleton } from "../../src/ui/components/Skeleton";
 import { TeamLogo } from "../../src/ui/components/TeamLogo";
 import { favoritesFor, isFavorite } from "../../src/ui/team/favorites";
 import { statValue } from "../../src/ui/common/format";
+import { teamRoute } from "../../src/ui/common/routes";
 import { useSettings } from "../../src/ui/settings/settings-context";
 import { useSportsData } from "../../src/ui/data/sports-data-context";
 import { useLeague } from "../../src/ui/data/use-league";
@@ -102,9 +103,7 @@ export default function StandingsScreen() {
           const lastIn = section.playoffLine === index + 1 && index + 1 < section.data.length;
           return (
             <Pressable
-              onPress={
-                opensTeam ? () => router.push({ pathname: "/team/[id]", params: { id: item.team.id } }) : undefined
-              }
+              onPress={opensTeam ? () => router.push(teamRoute(item.team)) : undefined}
               disabled={!opensTeam}
               accessibilityRole={opensTeam ? "button" : undefined}
               accessibilityLabel={`${item.team.name}${lastIn ? ", last wild card spot" : ""}${opensTeam ? ", open team page" : ""}`}

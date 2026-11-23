@@ -6,7 +6,8 @@ import { channelsFor, summarizeChannels } from "../game/broadcasts";
 import { teamRecord, timeLabel } from "../common/format";
 import { countdownLabel, daysAwayLabel, nextGameHeading, nextGamePhase, type NextGamePhase } from "../team/next-game";
 import { useSpoilers } from "../spoilers/spoiler-context";
-import { NHL, useSportsData } from "../data/sports-data-context";
+import { useSportsData } from "../data/sports-data-context";
+import { gameRoute } from "../common/routes";
 import { teamGameLine } from "../team/team";
 import { tabular, useColors, DIVIDER } from "../theme/theme";
 import { usePolled } from "../data/use-polled";
@@ -41,7 +42,7 @@ export function NextGameCard({ game, teamId, standings }: { game: Game; teamId: 
 
 function LiveNextGame({ game, teamId, standings }: { game: Game; teamId: string; standings?: Standings }) {
   const sports = useSportsData();
-  const detail = usePolled(`game:${game.id}`, (o) => sports.getGameDetail(NHL, game.id, o));
+  const detail = usePolled(`${game.league}:game:${game.id}`, (o) => sports.getGameDetail(game.league, game.id, o));
   // Best effort: if the game's own request fails, the schedule's copy still shows.
   return <NextGameView game={detail.data?.game ?? game} teamId={teamId} standings={standings} />;
 }
@@ -72,7 +73,7 @@ function NextGameView({ game, teamId, standings }: { game: Game; teamId: string;
   const { shown, more } = summarizeChannels(channelsFor(game, region));
   const tv = shown.map((c) => c.network).join(", ") + (more > 0 ? ` +${more}` : "");
   const record = teamRecord(standings, line.opponent);
-  const open = () => router.push({ pathname: "/game/[id]", params: { id: game.id } });
+  const open = () => router.push(gameRoute(game));
 
   const opponent = `${line.home ? "vs" : "@"} ${line.opponent.name}`;
   const spoken = [
@@ -164,7 +165,7 @@ function NextGameView({ game, teamId, standings }: { game: Game; teamId: string;
 
       {phase === "gameDay" && (
         <View style={[styles.countdown, { backgroundColor: colors.background }]}>
-          <Text style={[styles.countdownLabel, { color: colors.muted }]}>Puck drop in</Text>
+          <Text style={[styles.countdownLabel, { color: colors.muted }]}>Starts in</Text>
           <Text style={[styles.countdownValue, tabular, { color: colors.text }]}>
             {countdownLabel(game.startTime, now)}
           </Text>

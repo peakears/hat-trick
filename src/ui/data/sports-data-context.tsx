@@ -7,7 +7,7 @@ import { AdapterRegistry } from "../../registry";
 import { AsyncStorageStore } from "./async-storage-store";
 
 /**
- * The NHL, for the parts of the app only it has so far: game, team, player and spotlight pages, first-run setup,
+ * The NHL, for the parts of the app only it has so far: player and spotlight pages, first-run setup,
  * favourites, reminders and live scores. The tabs show the picked league (useLeague in use-league.ts).
  */
 export const NHL: LeagueId = "nhl";
