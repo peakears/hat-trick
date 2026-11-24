@@ -19,9 +19,7 @@ import { REMINDER_LEADS, type ReminderLead } from "../../src/ui/settings/setting
 import { useSettings } from "../../src/ui/settings/settings-context";
 import type { UpdateStatus } from "../../src/ui/updates/updates";
 import { useColors, DIVIDER } from "../../src/ui/theme/theme";
-import { favoritesFor } from "../../src/ui/team/favorites";
 import { FavoriteTeamsList } from "../../src/ui/components/FavoriteTeamsList";
-import { NHL } from "../../src/ui/data/sports-data-context";
 import { APP_VERSION, useUpdate } from "../../src/ui/updates/update-context";
 
 const LEAD_OPTIONS = REMINDER_LEADS.map((n) => ({ value: String(n), label: `${n} min` }));
@@ -119,9 +117,9 @@ export default function SettingsScreen() {
           detail={
             !liveAvailable
               ? "Available in the installed Android app (not in Expo Go)."
-              : favoritesFor(NHL, settings.favoriteTeams).length === 0
-                ? "Follows your favourite teams' games in a notification, even with the app closed (NHL for now). Star a team first."
-                : "Follows your favourite teams' games in a notification, even with the app closed (NHL for now). Starts when you open the app, or a reminder, near game time."
+              : settings.favoriteTeams.length === 0
+                ? "Follows your favourite teams' games in a notification, even with the app closed. Star a team first."
+                : "Follows your favourite teams' games in a notification, even with the app closed. Starts when you open the app, or a reminder, near game time."
           }
           value={liveAvailable && settings.liveScores}
           onChange={setLiveScores}
@@ -134,7 +132,7 @@ export default function SettingsScreen() {
             detail={
               settings.spoilerShield
                 ? "Off while the spoiler shield is on."
-                : "A notification for each goal, with the scorer, and the final score."
+                : "Each goal, with the scorer, in hockey; a change of lead late in the game and overtime in basketball; and the final score."
             }
             value={settings.goalAlerts}
             onChange={(goalAlerts) => update({ goalAlerts })}

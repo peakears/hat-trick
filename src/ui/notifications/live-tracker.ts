@@ -1,7 +1,8 @@
 // Pure rules for following favourite teams' live games in notifications (#114): which games to follow, what the
 // ongoing score notification says, which goals to announce, and when to stop. The service that runs them is
 // live-tracker-run.ts; the only notification code is live-tracker-native.ts. Tested in live-tracker.test.ts.
-import type { Game, GameDetail, Goal } from "../../domain";
+import type { Game, GameDetail, Goal, LeagueId, LiveAlertRule } from "../../domain";
+import { favoritesFor } from "../team/favorites";
 import { gameStatusLabel } from "../common/format";
 import { goalTags, scorerGameGoalNumbers, scorerLabel, seasonGoalLabel } from "../game/goals";
 
@@ -12,10 +13,24 @@ export const TRACK_LEAD_MS = 15 * 60_000;
 /** A game still "scheduled" this long after its start time is not waited for (delayed, or the data is stale). */
 export const TRACK_LATE_MS = 3 * 60 * 60_000;
 
-/** The games worth following now: a favourite team's, live or starting within TRACK_LEAD_MS. */
+/** A followed game's key, which its notifications carry so a tap opens it: "nba:401910043". */
+export function followKey(game: { league: LeagueId; id: string }): string {
+  return `${game.league}:${game.id}`;
+}
+
+/** The game a tapped notification names. A bare id is from before notifications carried a league: the NHL's. */
+export function parseFollowKey(key: string): { league: LeagueId; id: string } {
+  const at = key.indexOf(":");
+  return at < 0 ? { league: "nhl", id: key } : { league: key.slice(0, at), id: key.slice(at + 1) };
+}
+
+/**
+ * The games worth following now: a favourite team's, live or starting within TRACK_LEAD_MS. `favorites` are
+ * `league:team` keys, matched in each game's own league.
+ */
 export function gamesToFollow(games: readonly Game[], favorites: readonly string[], now: number): Game[] {
-  const fav = new Set(favorites);
   return games.filter((g) => {
+    const fav = new Set(favoritesFor(g.league, favorites));
     if (!fav.has(g.home.team.id) && !fav.has(g.away.team.id)) return false;
     if (g.status === "live") return true;
     if (g.status !== "scheduled") return false;
@@ -31,6 +46,10 @@ export interface FollowState {
   homeScore: number;
   /** Goals in the goal list at the last check; undefined while the list could not be loaded. */
   goalCount?: number;
+  /** The period at the last check (lateLeadChanges: overtime is announced as it starts). */
+  period?: number;
+  /** The team last seen ahead, -1 away or 1 home, kept through a tie (lateLeadChanges: a change of lead). */
+  leader?: -1 | 1;
 }
 
 export interface Alert {
@@ -56,6 +75,8 @@ export interface FollowOptions {
   goalAlerts: boolean;
   /** The time of this check; a game still scheduled TRACK_LATE_MS after its start is given up on. */
   now?: number;
+  /** The league's rule for what to announce (SportsData.liveAlerts); each score if not given. */
+  rule?: LiveAlertRule;
 }
 
 const abbrevs = (game: Game) => `${game.away.team.abbrev} at ${game.home.team.abbrev}`;
@@ -83,7 +104,7 @@ function goalAlert(game: Game, goal: Goal, gameGoal: number, scoreAfter: string)
     scoreAfter,
   ].filter(Boolean);
   return {
-    id: `goal:${game.id}:${goal.period}:${goal.time}:${goal.scorer.id}`,
+    id: `goal:${game.league}:${game.id}:${goal.period}:${goal.time}:${goal.scorer.id}`,
     title: `Goal: ${goal.teamId}`,
     body: parts.join(" · "),
   };
@@ -100,11 +121,17 @@ export function followUpdate(
   options: FollowOptions,
 ): FollowUpdate {
   const { game, goals } = detail;
+  const rule = options.rule ?? { kind: "eachScore" };
+  const awayScore = game.away.score ?? 0;
+  const homeScore = game.home.score ?? 0;
+  const ahead = awayScore === homeScore ? undefined : awayScore > homeScore ? -1 : 1;
   const state: FollowState = {
     gameId: game.id,
-    awayScore: game.away.score ?? 0,
-    homeScore: game.home.score ?? 0,
+    awayScore,
+    homeScore,
     goalCount: goals?.length ?? previous?.goalCount,
+    period: game.clock?.period ?? previous?.period,
+    leader: ahead ?? previous?.leader,
   };
   const givenUp =
     game.status === "scheduled" &&
@@ -116,7 +143,9 @@ export function followUpdate(
 
   if (announce && game.status !== "postponed") {
     const scoreAfter = scoreLine(game);
-    if (goals && previous.goalCount !== undefined && goals.length > previous.goalCount) {
+    if (rule.kind === "lateLeadChanges") {
+      alerts.push(...lateMoments(game, previous, state, rule.regulationPeriods));
+    } else if (goals && previous.goalCount !== undefined && goals.length > previous.goalCount) {
       const numbers = scorerGameGoalNumbers(goals);
       for (let i = previous.goalCount; i < goals.length; i++) {
         if (goals[i].periodLabel === "SO") continue; // shootout attempts are not goals
@@ -132,16 +161,52 @@ export function followUpdate(
       for (const [side, before, after] of sides) {
         for (let n = before + 1; n <= after; n++) {
           const abbrev = game[side].team.abbrev;
-          alerts.push({ id: `goal:${game.id}:${side}:${n}`, title: `Goal: ${abbrev}`, body: scoreAfter });
+          alerts.push({
+            id: `goal:${game.league}:${game.id}:${side}:${n}`,
+            title: `Goal: ${abbrev}`,
+            body: scoreAfter,
+          });
         }
       }
     }
     if (game.status === "final") {
-      alerts.push({ id: `final:${game.id}`, title: `Final: ${scoreLine(game)}`, body: gameStatusLabel(game) });
+      alerts.push({
+        id: `final:${game.league}:${game.id}`,
+        title: `Final: ${scoreLine(game)}`,
+        body: gameStatusLabel(game),
+      });
     }
   }
 
   return { state, ongoing: done ? null : ongoingText(game, options.hidden), alerts, done };
+}
+
+/**
+ * lateLeadChanges: from the last regulation period on, a change of lead (from one team to the other, through a tie
+ * or not) and the start of each overtime. Earlier lead changes and every basket are left to the ongoing notification.
+ */
+function lateMoments(game: Game, previous: FollowState, state: FollowState, regulationPeriods: number): Alert[] {
+  if (game.status !== "live") return [];
+  const period = game.clock?.period ?? 0;
+  const status = gameStatusLabel(game);
+  const alerts: Alert[] = [];
+  if (period > regulationPeriods && (previous.period ?? 0) < period) {
+    alerts.push({
+      id: `overtime:${game.league}:${game.id}:${period}`,
+      title: `${game.clock?.label ?? "Overtime"}: ${scoreLine(game)}`,
+      body: period === regulationPeriods + 1 ? "Tied at the end of regulation" : "Still tied",
+    });
+  }
+  const changed = previous.leader !== undefined && state.leader !== undefined && state.leader !== previous.leader;
+  if (period >= regulationPeriods && changed) {
+    const leading = state.leader === -1 ? game.away.team.abbrev : game.home.team.abbrev;
+    alerts.push({
+      id: `lead:${game.league}:${game.id}:${state.awayScore}-${state.homeScore}`,
+      title: `Lead change: ${leading}`,
+      body: `${scoreLine(game)} · ${status}`,
+    });
+  }
+  return alerts;
 }
 
 /**

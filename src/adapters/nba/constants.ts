@@ -95,3 +95,6 @@ export const CONFERENCE_BANDS: StandingsBand[] = [
   { label: "Play-in", through: 10 },
   { label: "Out" },
 ];
+
+/** Quarters in regulation: a live game's strip lists all of them from tip-off, and late lead changes count from the last. */
+export const QUARTERS = 4;
