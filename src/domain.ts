@@ -267,6 +267,8 @@ export interface PlayerSeasonLine {
 export interface PlayerDetail {
   /** Full name, current team, position and photo. */
   player: Player;
+  /** The position in words, as the league names it in Canadian spelling: "Defence", "Point guard". Absent when unknown. */
+  positionName?: string;
   sweaterNumber?: number;
   /** The current team, when the player has one. */
   team?: Team;
@@ -304,6 +306,10 @@ export interface StandingRow {
   losses: number;
   otLosses?: number; // hockey only
   points?: number;
+  /** Share of games won, 0-1 (basketball standings sort by it). */
+  winPercent?: number;
+  /** Games behind the conference leader; 0 for the leader. */
+  gamesBehind?: number;
   streak?: string; // "W3"
   goalsFor?: number;
   goalsAgainst?: number;
@@ -350,6 +356,8 @@ export interface LeaderBoard {
   label: string;
   /** "percent": values are 0-1 fractions, shown as "64.0%". Absent: show values as they are. */
   format?: "percent";
+  /** Show values with this many decimals (1 for per-game averages). Absent: as the app shows any stat value. */
+  decimals?: number;
   entries: LeaderEntry[];
 }
 
@@ -366,6 +374,14 @@ export interface SpotlightEntry {
 export type SpecialEvents = Record<string, string>;
 
 // ---------- Adapter contract ----------
+
+/** Leader boards shown together under one choice on the Leaders tab (the NHL's Skaters and Goalies). */
+export interface LeaderGroup {
+  id: string;
+  label: string;
+  /** The categories to ask for, one board each; absent: the adapter's default boards (`getLeaders()`). */
+  categories?: string[];
+}
 
 export interface LeaderQuery {
   category?: string;
@@ -411,6 +427,8 @@ export function adapterSupports(adapter: LeagueAdapter, feature: LeagueFeature):
  */
 export interface LeagueAdapter {
   readonly league: LeagueId;
+  /** The league's full name, shown in the league menu ("National Hockey League"). */
+  readonly name: string;
 
   /** All games on a league calendar date, YYYY-MM-DD. */
   getScores(date: string, options?: RequestOptions): Promise<Game[]>;
@@ -418,6 +436,9 @@ export interface LeagueAdapter {
   getStandings(options?: RequestOptions): Promise<Standings>;
 
   getLeaders(query?: LeaderQuery, options?: RequestOptions): Promise<LeaderBoard[]>;
+
+  /** How the Leaders tab groups boards. Absent: one group, the default boards, with no choice to make. */
+  readonly leaderGroups?: readonly LeaderGroup[];
 
   /**
    * Special event names for the games in the week starting on `date` (YYYY-MM-DD), by game id. Empty when there are

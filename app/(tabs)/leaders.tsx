@@ -14,30 +14,33 @@ import { useSportsData } from "../../src/ui/data/sports-data-context";
 import { useLeague } from "../../src/ui/data/use-league";
 import { tabular, useColors, DIVIDER } from "../../src/ui/theme/theme";
 import { usePolled } from "../../src/ui/data/use-polled";
-
-type Kind = "skaters" | "goalies";
-
-// The adapter's default query returns the skater boards; goalie boards are asked for by category.
-// TODO: when a second league arrives, ask the adapter for its leader categories instead.
-const GOALIE_CATEGORIES = ["wins", "savePctg", "goalsAgainstAverage", "shutouts"];
+import { playerRoute } from "../../src/ui/common/routes";
 
 export default function LeadersScreen() {
   const sports = useSportsData();
   const league = useLeague();
   const colors = useColors();
   const router = useRouter();
-  const [kind, setKind] = useState<Kind>("skaters");
-  // Categories opened with "Show more". Kept while switching between Skaters and Goalies.
+  // The league's groups of boards (the NHL's Skaters and Goalies; one group needs no picker).
+  const groups = sports.leaderGroups(league);
+  const [picked, setPicked] = useState<string>(groups[0].id);
+  const group = groups.find((g) => g.id === picked) ?? groups[0];
+  const kind = group.id;
+  // Categories opened with "Show more". Kept while switching between groups.
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set());
 
   const leaders = usePolled(`${league}:leaders:${kind}`, async (o: FetchOptions) => {
-    if (kind === "skaters") return sports.getLeaders(league, { limit: LEADERS_MAX }, o);
+    const { categories } = group;
+    if (!categories) return sports.getLeaders(league, { limit: LEADERS_MAX }, o);
     const results = await Promise.all(
-      GOALIE_CATEGORIES.map((category) => sports.getLeaders(league, { category, limit: LEADERS_MAX }, o)),
+      categories.map((category) => sports.getLeaders(league, { category, limit: LEADERS_MAX }, o)),
     );
     const combined = combineFetched(results);
     return { data: combined.data.flat(), meta: combined.meta };
   });
+
+  // Only leagues with a player page open one.
+  const opensPlayer = sports.supports(league, "player");
 
   const toggle = (key: string) =>
     setExpanded((prev) => {
@@ -51,32 +54,39 @@ export default function LeadersScreen() {
     const key = leaderSectionKey(kind, b.category);
     const isExpanded = expanded.has(key);
     const { shown, hasMore } = visibleLeaders(b.entries, isExpanded);
-    return { title: b.label, key, format: b.format, data: shown, hasMore, expanded: isExpanded };
+    return {
+      title: b.label,
+      key,
+      format: b.format,
+      decimals: b.decimals,
+      data: shown,
+      hasMore,
+      expanded: isExpanded,
+    };
   });
 
   return (
     <View style={styles.screen}>
-      <Pressable
-        onPress={() => router.push("/spotlight")}
-        style={({ pressed }) => [styles.spotlight, { backgroundColor: colors.card, opacity: pressed ? 0.6 : 1 }]}
-        accessibilityRole="button"
-        accessibilityLabel="Player spotlight: players the NHL is featuring right now"
-      >
-        <Ionicons name="star" size={18} color={colors.accent} />
-        <View style={styles.spotlightText}>
-          <Text style={[styles.spotlightTitle, { color: colors.text }]}>Player spotlight</Text>
-          <Text style={[styles.spotlightDetail, { color: colors.muted }]}>Players the NHL is featuring right now</Text>
-        </View>
-        <Ionicons name="chevron-forward" size={18} color={colors.muted} />
-      </Pressable>
-      <Segmented
-        options={[
-          { value: "skaters", label: "Skaters" },
-          { value: "goalies", label: "Goalies" },
-        ]}
-        value={kind}
-        onChange={setKind}
-      />
+      {sports.supports(league, "spotlight") && (
+        <Pressable
+          onPress={() => router.push("/spotlight")}
+          style={({ pressed }) => [styles.spotlight, { backgroundColor: colors.card, opacity: pressed ? 0.6 : 1 }]}
+          accessibilityRole="button"
+          accessibilityLabel="Player spotlight: players the league is featuring right now"
+        >
+          <Ionicons name="star" size={18} color={colors.accent} />
+          <View style={styles.spotlightText}>
+            <Text style={[styles.spotlightTitle, { color: colors.text }]}>Player spotlight</Text>
+            <Text style={[styles.spotlightDetail, { color: colors.muted }]}>
+              Players the league is featuring right now
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={colors.muted} />
+        </Pressable>
+      )}
+      {groups.length > 1 && (
+        <Segmented options={groups.map((g) => ({ value: g.id, label: g.label }))} value={kind} onChange={setPicked} />
+      )}
       <OfflineBanner meta={leaders.meta} />
       {leaders.loading ? (
         <ListSkeleton />
@@ -114,9 +124,10 @@ export default function LeadersScreen() {
           }
           renderItem={({ item, section }) => (
             <Pressable
-              onPress={() => router.push({ pathname: "/player/[id]", params: { id: item.player.id } })}
-              accessibilityRole="button"
-              accessibilityLabel={`${item.rank}. ${item.player.name}, ${item.team.abbrev}, ${leaderValue(item.value, section.format, statValue)}. Open player page`}
+              onPress={opensPlayer ? () => router.push(playerRoute(item.player)) : undefined}
+              disabled={!opensPlayer}
+              accessibilityRole={opensPlayer ? "button" : undefined}
+              accessibilityLabel={`${item.rank}. ${item.player.name}, ${item.team.abbrev}, ${leaderValue(item.value, section.format, statValue, section.decimals)}${opensPlayer ? ". Open player page" : ""}`}
               style={[styles.row, { backgroundColor: colors.card, borderBottomColor: colors.border }]}
             >
               <Text style={[styles.rank, tabular, { color: colors.muted }]}>{item.rank}</Text>
@@ -128,7 +139,7 @@ export default function LeadersScreen() {
                 <Text style={{ color: colors.muted, fontSize: 12 }}>{item.team.abbrev}</Text>
               </View>
               <Text style={[styles.value, tabular, { color: colors.text }]}>
-                {leaderValue(item.value, section.format, statValue)}
+                {leaderValue(item.value, section.format, statValue, section.decimals)}
               </Text>
             </Pressable>
           )}

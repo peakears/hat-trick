@@ -1,8 +1,10 @@
 import { useRouter } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import type { Game, GameSide } from "../../domain";
-import { isFavorite } from "../team/favorites";
+import { useSportsData } from "../data/sports-data-context";
+import { favoritesFor, isFavorite } from "../team/favorites";
 import { winner } from "../common/format";
+import { gameRoute } from "../common/routes";
 import { channelsFor, channelsLabel, showsChannelsOnCard } from "../game/broadcasts";
 import { useSettings } from "../settings/settings-context";
 import { useSpoilers } from "../spoilers/spoiler-context";
@@ -19,6 +21,10 @@ export function GameCard({ game }: { game: Game }) {
   const colors = useColors();
   const router = useRouter();
   const { settings } = useSettings();
+  const sports = useSportsData();
+  const favorites = favoritesFor(game.league, settings.favoriteTeams);
+  // Only leagues with a game page open one.
+  const opens = sports.supports(game.league, "gameDetail");
   const spoilers = useSpoilers();
   const hidden = spoilers.isHidden(game);
   const statusLabel = spoilers.statusLabel(game);
@@ -27,7 +33,7 @@ export function GameCard({ game }: { game: Game }) {
   const live = game.status === "live";
   // The colour alone says "favourite", so say it in words for screen readers too.
   const favoriteNames = [game.away, game.home]
-    .filter((side) => isFavorite(settings.favoriteTeams, side.team.id))
+    .filter((side) => isFavorite(favorites, side.team.id))
     .map((side) => side.team.name);
   const favoriteNote = favoriteNames.length > 0 ? `. Favourite: ${favoriteNames.join(", ")}` : "";
   const region = useTvRegion();
@@ -36,7 +42,7 @@ export function GameCard({ game }: { game: Game }) {
 
   const row = (side: GameSide, which: "home" | "away") => {
     const dim = won !== undefined && won !== which;
-    const favorite = isFavorite(settings.favoriteTeams, side.team.id);
+    const favorite = isFavorite(favorites, side.team.id);
     return (
       <View style={styles.teamRow}>
         <TeamLogo team={side.team} size={28} />
@@ -75,12 +81,13 @@ export function GameCard({ game }: { game: Game }) {
     // Not <Link asChild>: its Slot merges styles by spreading them, which drops a style function
     // like the one below (pressed state), so the card would lose all of its styling.
     <Pressable
-      onPress={() => router.push({ pathname: "/game/[id]", params: { id: game.id } })}
+      onPress={opens ? () => router.push(gameRoute(game)) : undefined}
+      disabled={!opens}
       style={({ pressed }) => [
         styles.card,
         { backgroundColor: colors.card, borderColor: colors.cardBorder, opacity: pressed ? 0.7 : 1 },
       ]}
-      accessibilityRole="button"
+      accessibilityRole={opens ? "button" : undefined}
       accessibilityLabel={`${game.specialEvent ? `${game.specialEvent}. ` : ""}${game.away.team.name} at ${game.home.team.name}, ${statusLabel}${hidden ? ". Score hidden" : ""}${favoriteNote}${channels.length > 0 ? `. On TV: ${channelsLabel(channels)}` : ""}`}
     >
       <View style={styles.main}>

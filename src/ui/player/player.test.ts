@@ -10,7 +10,6 @@ import {
   hasOtherLeagues,
   heightLabel,
   playerSubtitle,
-  positionLabel,
   seasonLineLabel,
   shortDate,
   weightLabel,
@@ -18,6 +17,7 @@ import {
 
 const doughty: PlayerDetail = {
   player: { id: "8474563", league: "nhl", name: "Drew Doughty", teamId: "LAK", position: "D" },
+  positionName: "Defence",
   sweaterNumber: 8,
   team: { id: "LAK", league: "nhl", name: "Los Angeles Kings", abbrev: "LAK" },
   active: true,
@@ -46,7 +46,7 @@ describe("player bio", () => {
     expect(ageOn("bad", "2026-12-08")).toBeUndefined();
   });
 
-  it("formats height, weight, handedness, draft and position", () => {
+  it("formats height, weight, handedness and draft", () => {
     expect(heightLabel(doughty.bio)).toBe("6′1″ (185 cm)");
     expect(heightLabel({ heightCm: 185 })).toBe("185 cm");
     expect(heightLabel({})).toBeUndefined();
@@ -56,8 +56,6 @@ describe("player bio", () => {
     expect(handednessLabel(undefined)).toBeUndefined();
     expect(draftLabel(doughty.bio)).toBe("2008, round 1, #2 overall by LAK");
     expect(draftLabel({})).toBe("Undrafted");
-    expect(positionLabel("D")).toBe("Defence");
-    expect(positionLabel("X")).toBe("X");
   });
 
   it("lists the bio rows, leaving out what is unknown", () => {
@@ -77,6 +75,8 @@ describe("player bio", () => {
 
   it("sums up team, number and position", () => {
     expect(playerSubtitle(doughty)).toBe("LAK · #8 · Defence");
+    // A cached entry from before adapters named positions shows the code.
+    expect(playerSubtitle({ ...doughty, positionName: undefined })).toBe("LAK · #8 · D");
     expect(playerSubtitle({ ...doughty, team: undefined, sweaterNumber: undefined, active: false })).toBe(
       "Defence · Inactive",
     );

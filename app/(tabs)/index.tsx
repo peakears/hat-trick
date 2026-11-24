@@ -11,6 +11,7 @@ import { addDays, dateLabel, groupGamesForScores } from "../../src/ui/common/for
 import { useSettings } from "../../src/ui/settings/settings-context";
 import { useSportsData } from "../../src/ui/data/sports-data-context";
 import { useLeague } from "../../src/ui/data/use-league";
+import { favoritesFor } from "../../src/ui/team/favorites";
 import { useColors, DIVIDER } from "../../src/ui/theme/theme";
 import { useDebounced } from "../../src/ui/common/use-debounced";
 import { eventWeekStart, withSpecialEvents } from "../../src/ui/scores/special-events";
@@ -45,9 +46,9 @@ export default function ScoresScreen() {
   const sections = useMemo(
     () =>
       scores.data
-        ? groupGamesForScores(withSpecialEvents(scores.data, events.data), settings.favoriteTeams)
+        ? groupGamesForScores(withSpecialEvents(scores.data, events.data), favoritesFor(league, settings.favoriteTeams))
         : undefined,
-    [scores.data, events.data, settings.favoriteTeams],
+    [scores.data, events.data, settings.favoriteTeams, league],
   );
   const games = useMemo(() => sections?.flatMap((s) => s.data), [sections]);
 

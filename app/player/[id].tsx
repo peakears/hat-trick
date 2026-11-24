@@ -17,7 +17,9 @@ import {
   playerSubtitle,
   seasonLineLabel,
 } from "../../src/ui/player/player";
-import { NHL, useSportsData } from "../../src/ui/data/sports-data-context";
+import { useSportsData } from "../../src/ui/data/sports-data-context";
+import { usePageLeague } from "../../src/ui/data/use-page-league";
+import { gameRoute, teamRoute } from "../../src/ui/common/routes";
 import { tabular, useColors, DIVIDER } from "../../src/ui/theme/theme";
 import { usePolled } from "../../src/ui/data/use-polled";
 
@@ -56,7 +58,8 @@ export default function PlayerScreen() {
   const sports = useSportsData();
   const colors = useColors();
   const router = useRouter();
-  const detail = usePolled(`player:${id}`, (o) => sports.getPlayer(NHL, id, o));
+  const league = usePageLeague();
+  const detail = usePolled(`${league}:player:${id}`, (o) => sports.getPlayer(league, id, o));
   const [playoffs, setPlayoffs] = useState(false);
   const [allLeagues, setAllLeagues] = useState(false);
 
@@ -95,7 +98,7 @@ export default function PlayerScreen() {
             <Text style={[styles.subtitle, { color: colors.muted }]}>{playerSubtitle(d)}</Text>
             {team && (
               <Pressable
-                onPress={() => router.push({ pathname: "/team/[id]", params: { id: team.id } })}
+                onPress={() => router.push(teamRoute(team))}
                 accessibilityRole="button"
                 accessibilityLabel={`${team.name}, open team page`}
                 style={styles.teamLink}
@@ -129,7 +132,7 @@ export default function PlayerScreen() {
                 key: g.gameId,
                 label: gameLineLabel(g),
                 values: g.values,
-                onPress: () => router.push({ pathname: "/game/[id]", params: { id: g.gameId } }),
+                onPress: () => router.push(gameRoute({ id: g.gameId, league })),
                 accessibilityLabel: `${gameLineLabel(g)}, open game`,
               }))}
             />

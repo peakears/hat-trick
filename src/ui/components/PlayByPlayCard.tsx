@@ -3,7 +3,8 @@ import { useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import type { Game } from "../../domain";
 import { cardPlays, playPeriodLabels, shownPeriod } from "../game/plays";
-import { NHL, useSportsData } from "../data/sports-data-context";
+import { useSportsData } from "../data/sports-data-context";
+import { playsRoute } from "../common/routes";
 import { usePolled } from "../data/use-polled";
 import { useColors, DIVIDER } from "../theme/theme";
 import { PlayRow } from "./PlayRow";
@@ -20,11 +21,11 @@ export function PlayByPlayCard({ game }: { game: Game }) {
   const sports = useSportsData();
   const colors = useColors();
   const router = useRouter();
-  const plays = usePolled(`plays:${game.id}`, (o) => sports.getPlays(NHL, game.id, o));
+  const plays = usePolled(`${game.league}:plays:${game.id}`, (o) => sports.getPlays(game.league, game.id, o));
   const [picked, setPicked] = useState<string>();
   const live = game.status === "live";
 
-  const open = () => router.push({ pathname: "/game/[id]/plays", params: { id: game.id } });
+  const open = () => router.push(playsRoute(game));
 
   let body;
   if (!plays.data) {

@@ -47,6 +47,7 @@ function game(status: GameStatus, startTime: string, id = "1"): Game {
 /** A scriptable adapter that counts calls. */
 class FakeAdapter implements LeagueAdapter {
   readonly league = "test";
+  readonly name = "Test League";
   calls = 0;
   games: Game[] = [game("live", "2026-11-17T22:00:00Z")];
   fail: Error | null = null;
@@ -459,6 +460,7 @@ describe("SportsData diagnostics log", () => {
 /** A league with only scores, standings and leaders, like a new league's first version. */
 class CoreOnlyAdapter implements LeagueAdapter {
   readonly league = "core";
+  readonly name = "Core League";
   calls = 0;
   getScores(): Promise<Game[]> {
     this.calls++;
@@ -490,8 +492,13 @@ describe("SportsData with optional features", () => {
     data = new SportsData({ registry, store, now: () => NOW, log });
   });
 
+  it("gives a league without leader groups one group of the default boards", () => {
+    expect(data.leaderGroups("core")).toEqual([{ id: "leaders", label: "Leaders" }]);
+  });
+
   it("lists its leagues and says which features each has", () => {
     expect(data.leagues()).toEqual(["test", "core"]);
+    expect(data.leagueName("core")).toBe("Core League");
     for (const feature of ["specialEvents", "spotlight", "gameDetail", "plays", "team", "player"] as const) {
       expect(data.supports("test", feature), feature).toBe(true);
       expect(data.supports("core", feature), feature).toBe(false);

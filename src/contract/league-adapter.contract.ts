@@ -36,8 +36,10 @@ export interface ContractInputs {
   leaderQueries: LeaderQuery[];
   /** Team ids with recorded team fixtures (season stats and schedule). */
   teamIds: string[];
-  /** Player ids with recorded player fixtures. Should include a skater and a goalie. */
+  /** Player ids with recorded player fixtures. With `goalies`, they include a skater and a goalie. */
   playerIds: string[];
+  /** The league has goalies (hockey), so the player pages are checked for both kinds of player. */
+  goalies?: boolean;
   /** Week start dates (YYYY-MM-DD) with recorded special event fixtures. */
   specialEventDates: string[];
 }
@@ -160,8 +162,9 @@ export function runLeagueAdapterContract(options: ContractOptions): void {
   const has = (feature: LeagueFeature) => adapterSupports(makeAdapter(), feature);
 
   describe(`LeagueAdapter contract: ${name}`, () => {
-    it("reports its league id", () => {
+    it("reports its league id and name", () => {
       expect(makeAdapter().league).toBe(league);
+      expectNonEmptyString(makeAdapter().name, "name");
     });
 
     describe("getScores", () => {
@@ -359,7 +362,7 @@ export function runLeagueAdapterContract(options: ContractOptions): void {
         expectJsonSafe(detail);
       });
 
-      it("covers a skater and a goalie", async () => {
+      it.runIf(inputs.goalies)("covers a skater and a goalie", async () => {
         const goalies = await Promise.all(
           inputs.playerIds.map(async (id) => (await makeAdapter().getPlayer!(id)).goalie),
         );

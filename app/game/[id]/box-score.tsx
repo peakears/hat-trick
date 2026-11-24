@@ -7,7 +7,8 @@ import { CrashScreen, Empty, ErrorView, OfflineBanner, UpdatedAt } from "../../.
 import { ListSkeleton } from "../../../src/ui/components/Skeleton";
 import { StatTableView } from "../../../src/ui/components/StatTableView";
 import { useSpoilers } from "../../../src/ui/spoilers/spoiler-context";
-import { NHL, useSportsData } from "../../../src/ui/data/sports-data-context";
+import { useSportsData } from "../../../src/ui/data/sports-data-context";
+import { usePageLeague } from "../../../src/ui/data/use-page-league";
 import { useColors } from "../../../src/ui/theme/theme";
 import { usePolled } from "../../../src/ui/data/use-polled";
 
@@ -23,7 +24,10 @@ export default function BoxScoreScreen() {
   const colors = useColors();
   const spoilers = useSpoilers();
   const [side, setSide] = useState<"away" | "home">("away");
-  const detail = usePolled(`game:${id}`, (o) => sports.getGameDetail(NHL, id, o));
+  const league = usePageLeague();
+  const detail = usePolled(`${league}:game:${id}`, (o) => sports.getGameDetail(league, id, o));
+  // Only leagues with a player page link to one.
+  const linkPlayers = sports.supports(league, "player");
 
   if (detail.loading) return <ListSkeleton />;
   if (!detail.data) {
@@ -65,9 +69,11 @@ export default function BoxScoreScreen() {
               onChange={setSide}
             />
             {tables.length === 0 ? (
-              <Empty message={game.status === "scheduled" ? "Box score starts at puck drop." : "No box score yet."} />
+              <Empty
+                message={game.status === "scheduled" ? "Box score starts when the game does." : "No box score yet."}
+              />
             ) : (
-              tables.map((t) => <StatTableView key={t.title} table={t} />)
+              tables.map((t) => <StatTableView key={t.title} table={t} linkPlayers={linkPlayers} />)
             )}
           </>
         )}

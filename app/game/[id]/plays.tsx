@@ -8,7 +8,8 @@ import { CrashScreen, Empty, ErrorView, OfflineBanner, UpdatedAt } from "../../.
 import { ListSkeleton } from "../../../src/ui/components/Skeleton";
 import { playPeriodLabels, playPeriods, type PlayFilter } from "../../../src/ui/game/plays";
 import { useSpoilers } from "../../../src/ui/spoilers/spoiler-context";
-import { NHL, useSportsData } from "../../../src/ui/data/sports-data-context";
+import { useSportsData } from "../../../src/ui/data/sports-data-context";
+import { usePageLeague } from "../../../src/ui/data/use-page-league";
 import { useColors } from "../../../src/ui/theme/theme";
 import { usePolled } from "../../../src/ui/data/use-polled";
 
@@ -32,7 +33,8 @@ export default function PlaysScreen() {
   const spoilers = useSpoilers();
   const [filter, setFilter] = useState<PlayFilter>("all");
   const [period, setPeriod] = useState<string>(ALL);
-  const plays = usePolled(`plays:${id}`, (o) => sports.getPlays(NHL, id, o));
+  const league = usePageLeague();
+  const plays = usePolled(`${league}:plays:${id}`, (o) => sports.getPlays(league, id, o));
 
   if (plays.loading) return <ListSkeleton />;
   if (!plays.data) {

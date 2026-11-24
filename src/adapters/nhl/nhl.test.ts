@@ -82,6 +82,7 @@ runLeagueAdapterContract({
     leaderQueries: [{}, { category: "goals", limit: 3 }, { category: "savePctg" }, { category: "goalsAgainstAverage" }],
     teamIds: ["TOR"],
     playerIds: ["8474563", "8475311"], // Doughty (D), Kuemper (G)
+    goalies: true,
     specialEventDates: ["2026-11-17"],
   },
 });
@@ -645,6 +646,7 @@ describe("NHL adapter", () => {
       const d = await adapter.getPlayer("8474563");
       expect(urls).toEqual(["https://api-web.nhle.com/v1/player/8474563/landing"]);
       expect(d.player).toMatchObject({ id: "8474563", name: "Drew Doughty", teamId: "LAK", position: "D" });
+      expect(d.positionName).toBe("Defence");
       expect(d.player.headshotUrl).toMatch(/^https:\/\/assets\.nhle\.com\/mugs\//);
       expect(d).toMatchObject({ sweaterNumber: 8, active: true, goalie: false, seasonLabel: "2026-27" });
       expect(d.team).toMatchObject({ id: "LAK", name: "Los Angeles Kings" });
