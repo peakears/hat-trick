@@ -189,8 +189,8 @@ function TeamsStep() {
           title="Pick your teams"
           detail={
             count > 0
-              ? `${count} picked. Their games show first on Scores, and you can get reminders before puck drop.`
-              : "Tap as many as you like. Their games show first on Scores, and you can get reminders before puck drop."
+              ? `${count} picked. Their games show first on Scores, and you can get reminders before their games.`
+              : "Tap as many as you like. Their games show first on Scores, and you can get reminders before their games."
           }
         />
       </View>
@@ -288,7 +288,7 @@ function OptionsStep() {
       <StepHeading title="Game options" detail="All off unless you turn them on." />
       <Section title="Reminders">
         <ToggleRow
-          label="Puck drop reminders"
+          label="Game start reminders"
           detail={reminderHint(favorites, permissionDenied)}
           value={settings.remindersEnabled}
           onChange={setReminders}

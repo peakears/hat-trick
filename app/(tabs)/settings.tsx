@@ -19,7 +19,8 @@ import { REMINDER_LEADS, type ReminderLead } from "../../src/ui/settings/setting
 import { useSettings } from "../../src/ui/settings/settings-context";
 import type { UpdateStatus } from "../../src/ui/updates/updates";
 import { useColors, DIVIDER } from "../../src/ui/theme/theme";
-import { favoritesFor, favoritesLabel } from "../../src/ui/team/favorites";
+import { favoritesFor } from "../../src/ui/team/favorites";
+import { FavoriteTeamsList } from "../../src/ui/components/FavoriteTeamsList";
 import { NHL } from "../../src/ui/data/sports-data-context";
 import { APP_VERSION, useUpdate } from "../../src/ui/updates/update-context";
 
@@ -88,38 +89,15 @@ export default function SettingsScreen() {
         />
       </Section>
 
-      <Section title="Favourite teams">
-        <View style={styles.row}>
-          <View style={styles.rowText}>
-            <Text style={[styles.label, { color: colors.text }]}>
-              {settings.favoriteTeams.length > 0 ? favoritesLabel(settings.favoriteTeams) : "None yet"}
-            </Text>
-            <Text style={[styles.detail, { color: colors.muted }]}>
-              Star a team on its team page. Their games show first on Scores, in every league.
-            </Text>
-          </View>
-          {settings.favoriteTeams.length > 0 && (
-            <Pressable
-              onPress={() => update({ favoriteTeams: [] })}
-              hitSlop={8}
-              accessibilityRole="button"
-              accessibilityLabel="Clear favourite teams"
-            >
-              <Text style={[styles.label, { color: colors.accent }]}>Clear</Text>
-            </Pressable>
-          )}
-        </View>
-      </Section>
-
       <Section title="Notifications">
         <ToggleRow
-          label="Puck drop reminders"
+          label="Game start reminders"
           detail={
             permissionDenied
               ? "Notifications are blocked. Allow them for Hat Trick in your phone's settings, then try again."
               : favoritesFor(NHL, settings.favoriteTeams).length === 0
-                ? "Notifies you before your favourite NHL teams' games. Star a team first."
-                : "Notifies you before your favourite NHL teams' games."
+                ? "A notification before your favourite teams' games (NHL for now). Star a team first."
+                : "A notification before your favourite teams' games (NHL for now). Choose teams under Favourite teams."
           }
           value={settings.remindersEnabled}
           onChange={setReminders}
@@ -142,8 +120,8 @@ export default function SettingsScreen() {
             !liveAvailable
               ? "Available in the installed Android app (not in Expo Go)."
               : favoritesFor(NHL, settings.favoriteTeams).length === 0
-                ? "Follows your favourite NHL teams' games in a notification, even with the app closed. Star a team first."
-                : "Follows your favourite NHL teams' games in a notification, even with the app closed. Starts when you open the app (or a reminder) near puck drop."
+                ? "Follows your favourite teams' games in a notification, even with the app closed (NHL for now). Star a team first."
+                : "Follows your favourite teams' games in a notification, even with the app closed (NHL for now). Starts when you open the app, or a reminder, near game time."
           }
           value={liveAvailable && settings.liveScores}
           onChange={setLiveScores}
@@ -152,7 +130,7 @@ export default function SettingsScreen() {
         />
         {liveAvailable && settings.liveScores && (
           <ToggleRow
-            label="Goal alerts"
+            label="Scoring alerts"
             detail={
               settings.spoilerShield
                 ? "Off while the spoiler shield is on."
@@ -163,6 +141,10 @@ export default function SettingsScreen() {
             last
           />
         )}
+      </Section>
+
+      <Section title="Favourite teams">
+        <FavoriteTeamsList liveAvailable={liveAvailable} />
       </Section>
 
       <Section title="About">

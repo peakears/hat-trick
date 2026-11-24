@@ -10,6 +10,7 @@ import { followUpdate, gamesToFollow, ongoingSummary, TRACK_POLL_MS, type Follow
 import { liveTrackingAvailable, postAlert, registerLiveService, showOngoing, stopOngoing } from "./live-tracker-native";
 import { getServices, NHL } from "../data/sports-data-context";
 import { favoritesFor } from "../team/favorites";
+import { favoritesWithAlert } from "./team-alerts";
 import { createWaiter, KEEP_AWAKE_MS } from "./live-wait";
 import { allowSleep, backgroundSleep, keepAwake } from "./background-wait-native";
 
@@ -36,8 +37,8 @@ export function registerLiveTracking(): void {
 }
 
 /** Whether a check should follow anything: the setting is on and a favourite is set. */
-// Live scores are NHL only for now (#132), so they follow the NHL's favourites.
-const nhlFavorites = (s: Settings) => favoritesFor(NHL, s.favoriteTeams);
+// Live scores are NHL only for now (#132), so they follow the NHL's favourites, less those switched off in Settings.
+const nhlFavorites = (s: Settings) => favoritesFor(NHL, favoritesWithAlert(s.favoriteTeams, s.teamAlerts, "live"));
 const wanted = (s: Settings) => s.liveScores && nhlFavorites(s).length > 0;
 
 /**
