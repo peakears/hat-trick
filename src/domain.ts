@@ -74,6 +74,27 @@ export interface Game {
   venue?: Venue;
   /** The league's name for a special game or series it is part of: "Winter Classic", "Original 6 Series". */
   specialEvent?: string;
+  /**
+   * Each team's score in each period played so far, in order (a shootout is one more, worth one to the winner).
+   * Live and final games only; absent when the league does not say, or when the periods do not add up to the score.
+   */
+  periods?: PeriodScore[];
+  /** The game's standout player so far (most points), worded by the adapter. Live and final games only. */
+  standout?: GameStandout;
+}
+
+export interface PeriodScore {
+  label: string; // "Q1", "2nd", "OT", "SO" - adapter formats it
+  away: number;
+  home: number;
+}
+
+export interface GameStandout {
+  /** Short form, "J. Brunson". */
+  name: string;
+  teamId: string;
+  /** What they did, worded by the adapter: "31 PTS, 8 REB", "2 G, 1 A". */
+  line: string;
 }
 
 // ---------- Generic stat tables ----------
