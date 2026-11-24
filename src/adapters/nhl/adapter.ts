@@ -58,6 +58,7 @@ export interface NhlAdapterOptions extends NhlClientOptions {
 /** Orchestrates endpoints; validation lives in raw-types.ts, shape conversion in mappers.ts. */
 export class NhlAdapter implements LeagueAdapter {
   readonly league = LEAGUE;
+  readonly name = "National Hockey League";
   readonly leaderGroups = [
     { id: "skaters", label: "Skaters" },
     { id: "goalies", label: "Goalies", categories: GOALIE_LEADER_CATEGORIES },

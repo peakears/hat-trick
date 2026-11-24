@@ -160,8 +160,9 @@ export function runLeagueAdapterContract(options: ContractOptions): void {
   const has = (feature: LeagueFeature) => adapterSupports(makeAdapter(), feature);
 
   describe(`LeagueAdapter contract: ${name}`, () => {
-    it("reports its league id", () => {
+    it("reports its league id and name", () => {
       expect(makeAdapter().league).toBe(league);
+      expectNonEmptyString(makeAdapter().name, "name");
     });
 
     describe("getScores", () => {

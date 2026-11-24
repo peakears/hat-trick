@@ -396,6 +396,8 @@ export function adapterSupports(adapter: LeagueAdapter, feature: LeagueFeature):
  */
 export interface LeagueAdapter {
   readonly league: LeagueId;
+  /** The league's full name, shown in the league menu ("National Hockey League"). */
+  readonly name: string;
 
   /** All games on a league calendar date, YYYY-MM-DD. */
   getScores(date: string, options?: RequestOptions): Promise<Game[]>;

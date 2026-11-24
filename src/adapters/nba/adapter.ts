@@ -57,6 +57,7 @@ export interface NbaAdapterOptions extends NbaClientOptions {
  */
 export class NbaAdapter implements LeagueAdapter {
   readonly league = LEAGUE;
+  readonly name = "National Basketball Association";
 
   private readonly client: NbaClient;
   private readonly onWarning: (warning: AdapterWarning) => void;
