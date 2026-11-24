@@ -1,44 +1,46 @@
-import Ionicons from "@expo/vector-icons/Ionicons";
 import { useRouter } from "expo-router";
-import type { ComponentProps } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import type { LeagueId, Team } from "../../domain";
 import { teamRoute } from "../common/routes";
 import { useSportsData } from "../data/sports-data-context";
 import { usePolled } from "../data/use-polled";
+import { liveTrackingAvailable } from "../notifications/live-tracker-native";
 import { alertsOn, setAlert, type AlertKind } from "../notifications/team-alerts";
 import { useSettings } from "../settings/settings-context";
 import { favoriteKey, favoritesFor, leaguesWithFavorites } from "../team/favorites";
 import { findStandingRow } from "../team/team";
 import { leagueTint } from "../theme/palette";
 import { DIVIDER, useColors, useScheme } from "../theme/theme";
+import { ToggleRow } from "./SettingsRows";
 import { TeamLogo } from "./TeamLogo";
 
 /**
- * Settings › Favourite teams: one block per league, each team a row with its logo and name (from the Standings tab's
- * cached standings, so no extra request once that tab has loaded; the abbreviation until then). Each row can open the
- * team page, switch this team's reminders and live scores on or off (while the main switch is on), and remove the
- * team.
+ * The Favourite teams page (Settings › Favourite teams): one card per team, grouped under each league's heading. A
+ * card has the team's logo and name (from the Standings tab's cached standings, so no extra request once that tab
+ * has loaded; the abbreviation until then), opening its team page, then a labelled switch for this team's game start
+ * reminders and one for its live scores, and a Remove button. A switch stays in place, greyed out with a hint, while
+ * its main switch in Settings is off, so the page never changes shape.
  */
-export function FavoriteTeamsList({ liveAvailable }: { liveAvailable: boolean }) {
+export function FavoriteTeamsList() {
   const colors = useColors();
   const { settings } = useSettings();
   const leagues = leaguesWithFavorites(settings.favoriteTeams);
 
   if (leagues.length === 0) {
     return (
-      <View style={styles.empty}>
+      <View style={[styles.card, styles.empty, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
         <Text style={[styles.emptyTitle, { color: colors.text }]}>No favourite teams yet</Text>
-        <Text style={[styles.emptyDetail, { color: colors.muted }]}>
-          Star a team on its team page. Their games show first on Scores, in every league.
+        <Text style={[styles.hint, { color: colors.muted }]}>
+          Star a team on its team page. Their games show first on Scores, and each team can have reminders and live
+          scores.
         </Text>
       </View>
     );
   }
   return (
     <>
-      {leagues.map((league, i) => (
-        <LeagueFavorites key={league} league={league} first={i === 0} liveAvailable={liveAvailable} />
+      {leagues.map((league) => (
+        <LeagueFavorites key={league} league={league} />
       ))}
       <Text style={[styles.footnote, { color: colors.muted }]}>
         Star a team on its team page to add it. Their games show first on Scores.
@@ -48,15 +50,7 @@ export function FavoriteTeamsList({ liveAvailable }: { liveAvailable: boolean })
 }
 
 /** One league's favourites. Its own component, so each league reads its own standings (one usePolled each). */
-function LeagueFavorites({
-  league,
-  first,
-  liveAvailable,
-}: {
-  league: LeagueId;
-  first: boolean;
-  liveAvailable: boolean;
-}) {
+function LeagueFavorites({ league }: { league: LeagueId }) {
   const colors = useColors();
   const scheme = useScheme();
   const sports = useSportsData();
@@ -65,144 +59,111 @@ function LeagueFavorites({
   const ids = favoritesFor(league, settings.favoriteTeams);
 
   return (
-    <View style={[!first && styles.leagueGap]}>
+    <View style={styles.league}>
       <View style={styles.leagueHead} accessible accessibilityRole="header">
         <Text style={[styles.leagueAbbrev, { color: leagueTint(league, scheme) }]}>{league.toUpperCase()}</Text>
         <Text style={[styles.leagueName, { color: colors.muted }]}>{sports.leagueName(league)}</Text>
       </View>
-      {ids.map((id, i) => {
+      {ids.map((id) => {
         const row = findStandingRow(standings.data, id);
         const team: Team = row?.team ?? { id, league, name: id, abbrev: id };
-        return (
-          <FavoriteRow
-            key={id}
-            team={team}
-            last={i === ids.length - 1}
-            reminders={settings.remindersEnabled}
-            live={liveAvailable && settings.liveScores}
-          />
-        );
+        return <FavoriteCard key={id} team={team} />;
       })}
     </View>
   );
 }
 
-function FavoriteRow({
-  team,
-  last,
-  reminders,
-  live,
-}: {
-  team: Team;
-  last: boolean;
-  /** Show the team's reminder switch (the league has reminders and they are on). */
-  reminders: boolean;
-  live: boolean;
-}) {
+function FavoriteCard({ team }: { team: Team }) {
   const colors = useColors();
   const router = useRouter();
   const sports = useSportsData();
   const { settings, update, toggleFavoriteTeam } = useSettings();
   const key = favoriteKey(team.league, team.id);
   const opens = sports.supports(team.league, "team");
-  const toggle = (kind: AlertKind) =>
-    update({ teamAlerts: setAlert(settings.teamAlerts, key, kind, !alertsOn(settings.teamAlerts, key, kind)) });
+  const liveAvailable = liveTrackingAvailable();
+  const set = (kind: AlertKind, on: boolean) => update({ teamAlerts: setAlert(settings.teamAlerts, key, kind, on) });
 
   return (
-    <View style={[styles.row, !last && { borderBottomColor: colors.border, borderBottomWidth: DIVIDER }]}>
-      <Pressable
-        onPress={opens ? () => router.push(teamRoute(team)) : undefined}
-        disabled={!opens}
-        style={styles.who}
-        accessibilityRole={opens ? "button" : undefined}
-        accessibilityLabel={opens ? `${team.name}, open team page` : team.name}
-      >
-        <TeamLogo team={team} size={28} />
-        <Text numberOfLines={1} style={[styles.name, { color: colors.text }]}>
-          {team.name}
-        </Text>
-      </Pressable>
-      {reminders && (
-        <AlertSwitch
-          icon="notifications"
-          on={alertsOn(settings.teamAlerts, key, "reminders")}
-          label={`Reminders for ${team.name}`}
-          onPress={() => toggle("reminders")}
-        />
-      )}
-      {live && (
-        <AlertSwitch
-          icon="pulse"
-          on={alertsOn(settings.teamAlerts, key, "live")}
-          label={`Live scores for ${team.name}`}
-          onPress={() => toggle("live")}
-        />
-      )}
-      <Pressable
-        onPress={() => toggleFavoriteTeam(team.league, team.id)}
-        hitSlop={6}
-        style={styles.iconButton}
-        accessibilityRole="button"
-        accessibilityLabel={`Remove ${team.name} from favourites`}
-      >
-        <Ionicons name="close" size={20} color={colors.muted} />
-      </Pressable>
+    <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+      <View style={[styles.head, { borderBottomColor: colors.border }]}>
+        <Pressable
+          onPress={opens ? () => router.push(teamRoute(team)) : undefined}
+          disabled={!opens}
+          style={styles.who}
+          accessibilityRole={opens ? "button" : undefined}
+          accessibilityLabel={opens ? `${team.name}, open team page` : team.name}
+        >
+          <TeamLogo team={team} size={36} />
+          <Text numberOfLines={2} style={[styles.name, { color: colors.text }]}>
+            {team.name}
+          </Text>
+        </Pressable>
+        <Pressable
+          onPress={() => toggleFavoriteTeam(team.league, team.id)}
+          hitSlop={8}
+          style={styles.remove}
+          accessibilityRole="button"
+          accessibilityLabel={`Remove ${team.name} from favourites`}
+        >
+          <Text style={[styles.removeText, { color: colors.accent }]}>Remove</Text>
+        </Pressable>
+      </View>
+      <ToggleRow
+        label="Game start reminders"
+        detail={
+          settings.remindersEnabled
+            ? "A notification before their games."
+            : "Turn on Game start reminders in Settings first."
+        }
+        value={settings.remindersEnabled && alertsOn(settings.teamAlerts, key, "reminders")}
+        onChange={(on) => set("reminders", on)}
+        disabled={!settings.remindersEnabled}
+      />
+      <ToggleRow
+        label="Live scores"
+        detail={
+          !liveAvailable
+            ? "Available in the installed Android app (not in Expo Go)."
+            : settings.liveScores
+              ? "The score and scoring alerts during their games."
+              : "Turn on Live scores in Settings first."
+        }
+        value={liveAvailable && settings.liveScores && alertsOn(settings.teamAlerts, key, "live")}
+        onChange={(on) => set("live", on)}
+        disabled={!liveAvailable || !settings.liveScores}
+        last
+      />
     </View>
   );
 }
 
-type IconName = ComponentProps<typeof Ionicons>["name"];
-
-/** An icon that switches one kind of notification for one team: filled in the accent colour when on. */
-function AlertSwitch({
-  icon,
-  on,
-  label,
-  onPress,
-}: {
-  icon: IconName;
-  on: boolean;
-  label: string;
-  onPress: () => void;
-}) {
-  const colors = useColors();
-  return (
-    <Pressable
-      onPress={onPress}
-      hitSlop={6}
-      style={[styles.iconButton, on && { backgroundColor: colors.tabSelected }]}
-      accessibilityRole="switch"
-      accessibilityState={{ checked: on }}
-      accessibilityLabel={label}
-    >
-      <Ionicons
-        name={on ? icon : (`${icon}-outline` as IconName)}
-        size={20}
-        color={on ? colors.accent : colors.muted}
-      />
-    </Pressable>
-  );
-}
-
 const styles = StyleSheet.create({
-  empty: { paddingHorizontal: 16, paddingVertical: 12, gap: 4 },
-  emptyTitle: { fontSize: 16 },
-  emptyDetail: { fontSize: 13 },
-  leagueGap: { marginTop: 8 },
+  league: { marginTop: 8 },
   leagueHead: {
     flexDirection: "row",
     alignItems: "baseline",
     gap: 8,
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 4,
+    marginHorizontal: 16,
+    marginTop: 12,
+    marginBottom: 6,
   },
   leagueAbbrev: { fontSize: 12, fontWeight: "700", letterSpacing: 0.5 },
   leagueName: { fontSize: 12 },
-  row: { flexDirection: "row", alignItems: "center", gap: 6, paddingLeft: 16, paddingRight: 10, minHeight: 52 },
-  who: { flex: 1, flexDirection: "row", alignItems: "center", gap: 12, minWidth: 0, paddingVertical: 8 },
-  name: { flex: 1, fontSize: 16 },
-  iconButton: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center" },
-  note: { fontSize: 12, paddingHorizontal: 16, paddingTop: 6 },
-  footnote: { fontSize: 12, paddingHorizontal: 16, paddingTop: 10, paddingBottom: 12 },
+  card: { marginHorizontal: 12, marginBottom: 10, borderRadius: 12, borderWidth: DIVIDER, overflow: "hidden" },
+  head: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingLeft: 14,
+    paddingRight: 8,
+    borderBottomWidth: DIVIDER,
+  },
+  who: { flex: 1, flexDirection: "row", alignItems: "center", gap: 12, minWidth: 0, paddingVertical: 10 },
+  name: { flex: 1, fontSize: 17, fontWeight: "600" },
+  remove: { minHeight: 44, paddingHorizontal: 10, justifyContent: "center" },
+  removeText: { fontSize: 14, fontWeight: "600" },
+  empty: { padding: 16, gap: 6, marginTop: 16 },
+  emptyTitle: { fontSize: 16, fontWeight: "600" },
+  hint: { fontSize: 13 },
+  footnote: { fontSize: 12, marginHorizontal: 16, marginTop: 4, marginBottom: 24 },
 });

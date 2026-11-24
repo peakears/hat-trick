@@ -1,3 +1,4 @@
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
@@ -19,10 +20,15 @@ import { REMINDER_LEADS, type ReminderLead } from "../../src/ui/settings/setting
 import { useSettings } from "../../src/ui/settings/settings-context";
 import type { UpdateStatus } from "../../src/ui/updates/updates";
 import { useColors, DIVIDER } from "../../src/ui/theme/theme";
-import { FavoriteTeamsList } from "../../src/ui/components/FavoriteTeamsList";
+import { favoritesLabel } from "../../src/ui/team/favorites";
 import { APP_VERSION, useUpdate } from "../../src/ui/updates/update-context";
 
 const LEAD_OPTIONS = REMINDER_LEADS.map((n) => ({ value: String(n), label: `${n} min` }));
+
+/** The Favourite teams row: "TOR, MTL" (by league with more than one league), or "None yet". */
+function favoritesSummary(favorites: readonly string[]): string {
+  return favorites.length > 0 ? favoritesLabel(favorites) : "None yet";
+}
 
 export default function SettingsScreen() {
   const colors = useColors();
@@ -142,7 +148,20 @@ export default function SettingsScreen() {
       </Section>
 
       <Section title="Favourite teams">
-        <FavoriteTeamsList liveAvailable={liveAvailable} />
+        <Pressable
+          onPress={() => router.push("/favorites")}
+          accessibilityRole="button"
+          accessibilityLabel={`Favourite teams: ${favoritesSummary(settings.favoriteTeams)}. Open`}
+          style={styles.row}
+        >
+          <View style={styles.rowText}>
+            <Text style={[styles.label, { color: colors.text }]}>{favoritesSummary(settings.favoriteTeams)}</Text>
+            <Text style={[styles.detail, { color: colors.muted }]}>
+              Their games show first on Scores. Choose reminders and live scores for each team.
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={colors.muted} />
+        </Pressable>
       </Section>
 
       <Section title="About">
