@@ -17,6 +17,7 @@ import type {
   RequestOptions,
   Standings,
   TeamDetail,
+  PeriodScore,
 } from "../../domain";
 import { NhlClient, type NhlClientOptions } from "./client";
 import { GOALIE_LEADER_CATEGORIES, LEAGUE, SKATER_LEADER_CATEGORIES } from "./constants";
@@ -62,6 +63,7 @@ export interface NhlAdapterOptions extends NhlClientOptions {
 export class NhlAdapter implements LeagueAdapter {
   readonly league = LEAGUE;
   readonly name = "National Hockey League";
+  readonly gameStartTerm = "Puck drop";
   readonly leaderGroups = [
     { id: "skaters", label: "Skaters" },
     { id: "goalies", label: "Goalies", categories: GOALIE_LEADER_CATEGORIES },
@@ -127,7 +129,12 @@ export class NhlAdapter implements LeagueAdapter {
     ]);
     return {
       // The box score has no special event; a final game's landing does (others get it from the week's schedule).
-      game: { ...game, specialEvent: game.specialEvent ?? landing?.specialEvent },
+      game: {
+        ...game,
+        specialEvent: game.specialEvent ?? landing?.specialEvent,
+        // Each period's goals come from the same scores response as the goal list.
+        ...(fromScores?.periods ? { periods: fromScores.periods } : {}),
+      },
       goals: fromScores?.goals,
       videos: fromScores?.videos,
       threeStars: landing?.threeStars,
@@ -147,12 +154,12 @@ export class NhlAdapter implements LeagueAdapter {
     id: number,
     date: string | undefined,
     options?: RequestOptions,
-  ): Promise<{ goals?: Goal[]; videos: GameVideo[] } | undefined> {
+  ): Promise<{ goals?: Goal[]; videos: GameVideo[]; periods?: PeriodScore[] } | undefined> {
     if (!date) return undefined;
     try {
       const raw = await this.fetch(`/score/${date}`, RawScoreResponseSchema, options);
       const game = raw.games?.find((g) => g.id === id);
-      return { goals: mapGoals(game?.goals), videos: mapGameVideos(game) };
+      return { goals: mapGoals(game?.goals), videos: mapGameVideos(game), periods: game && mapGame(game).periods };
     } catch (err) {
       this.extraFailed(`/score/${date}`, "goals and videos", err, options);
       return undefined;

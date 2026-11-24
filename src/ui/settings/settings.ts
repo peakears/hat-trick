@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { normalizeFavorites } from "../team/favorites";
+import type { TeamAlerts } from "../notifications/team-alerts";
 import type { KeyValueStore } from "../../data";
 import { TV_REGIONS, type TvRegionPreference } from "../game/broadcasts";
 import { ACCENTS, type AccentId } from "../theme/palette";
@@ -46,6 +48,10 @@ export interface Settings {
   onboardingComplete: boolean;
   /** The league the Scores, Standings and Leaders tabs show (a LeagueId). One the app lacks shows the NHL. */
   league: string;
+  /** Scores shows every league's games (the league row's "All"), rather than `league`'s alone. */
+  scoresAllLeagues: boolean;
+  /** Per favourite, the notifications switched off for it (team-alerts.ts); every other favourite gets them all. */
+  teamAlerts: TeamAlerts;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -65,6 +71,8 @@ export const DEFAULT_SETTINGS: Settings = {
   standingsView: "division",
   onboardingComplete: false,
   league: "nhl",
+  scoresAllLeagues: true,
+  teamAlerts: {},
 };
 
 export const SETTINGS_KEY = "settings:v1";
@@ -77,11 +85,8 @@ const schema = z.object({
   accent: z.enum(ACCENTS).catch(DEFAULT_SETTINGS.accent),
   showLogos: z.boolean().catch(DEFAULT_SETTINGS.showLogos),
   showBetting: z.boolean().catch(DEFAULT_SETTINGS.showBetting),
-  // Duplicates are dropped, so a hand-edited or doubled-up list stays a set.
-  favoriteTeams: z
-    .array(z.string())
-    .transform((ids) => [...new Set(ids)])
-    .catch([]),
+  // `league:team` keys. Bare ids from a version before favourites had a league are the NHL's; duplicates are dropped.
+  favoriteTeams: z.array(z.string()).transform(normalizeFavorites).catch([]),
   remindersEnabled: z.boolean().catch(DEFAULT_SETTINGS.remindersEnabled),
   reminderLeadMinutes: z.literal(REMINDER_LEADS).catch(DEFAULT_SETTINGS.reminderLeadMinutes),
   liveScores: z.boolean().catch(DEFAULT_SETTINGS.liveScores),
@@ -94,6 +99,18 @@ const schema = z.object({
   // used the app, so they skip it. Only a fresh install (nothing stored) starts with it false.
   onboardingComplete: z.boolean().catch(true),
   league: z.string().min(1).catch(DEFAULT_SETTINGS.league),
+  scoresAllLeagues: z.boolean().catch(DEFAULT_SETTINGS.scoresAllLeagues),
+  // A team's entry that cannot be read is dropped (its alerts come back on), never the whole setting.
+  teamAlerts: z
+    .record(
+      z.string(),
+      z
+        .object({ reminders: z.literal(false).optional(), live: z.literal(false).optional() })
+        .transform((a): TeamAlerts[string] => a)
+        .catch({}),
+    )
+    .transform((alerts) => Object.fromEntries(Object.entries(alerts).filter(([, a]) => Object.keys(a).length > 0)))
+    .catch({}),
 });
 
 /** Defaults for someone who has used the app before but whose stored settings are unreadable. */

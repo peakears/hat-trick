@@ -1,5 +1,7 @@
 // ESPN's unofficial, keyless site API, on two hosts: the scoreboard, game summaries and team pages on site/v2,
 // standings on apis/v2 (site/v2 standings is an empty stub), leaders and players on the "common" v3 API. Shapes: raw-types.ts; notes: CLAUDE.md.
+import type { StandingsBand } from "../../domain";
+
 export const LEAGUE = "nba" as const;
 
 export const SITE_URL = "https://site.api.espn.com/apis/site/v2/sports/basketball/nba";
@@ -70,3 +72,29 @@ export const PLAYER_GAME_COLUMNS = [
 
 /** Games in the player page's last games table, as for the NHL. */
 export const PLAYER_LAST_GAMES = 5;
+
+/**
+ * The game page's team stats, from the summary's `boxscore.teams` (stat name, label, shown as a percentage). In the
+ * order shown; a stat a team lacks leaves its line out.
+ */
+export const TEAM_GAME_STATS: [name: string, label: string, percent: boolean][] = [
+  ["fieldGoalPct", "Field goal %", true],
+  ["threePointFieldGoalPct", "3-point %", true],
+  ["freeThrowPct", "Free throw %", true],
+  ["totalRebounds", "Rebounds", false],
+  ["assists", "Assists", false],
+  ["turnovers", "Turnovers", false],
+  ["pointsInPaint", "Points in the paint", false],
+  ["fastBreakPoints", "Fast break points", false],
+  ["largestLead", "Largest lead", false],
+];
+
+/** What a conference seed means in the NBA: the top six go to the playoffs, seven to ten to the play-in. */
+export const CONFERENCE_BANDS: StandingsBand[] = [
+  { label: "Playoffs", through: 6 },
+  { label: "Play-in", through: 10 },
+  { label: "Out" },
+];
+
+/** Quarters in regulation: a live game's strip lists all of them from tip-off, and late lead changes count from the last. */
+export const QUARTERS = 4;

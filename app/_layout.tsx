@@ -8,6 +8,7 @@ import { SpoilerProvider } from "../src/ui/spoilers/spoiler-context";
 import { SportsDataProvider } from "../src/ui/data/sports-data-context";
 import { UpdateProvider } from "../src/ui/updates/update-context";
 import { useColors, useScheme } from "../src/ui/theme/theme";
+import { useAppFonts } from "../src/ui/theme/use-app-fonts";
 
 /** Catches a render error anywhere in the app, so a release build never shows a blank screen. */
 export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
@@ -55,6 +56,7 @@ function ThemedStack() {
         <Stack.Screen name="player/[id]" options={{ title: "Player" }} />
         <Stack.Screen name="spotlight" options={{ title: "Player spotlight" }} />
         <Stack.Screen name="diagnostics" options={{ title: "Diagnostics" }} />
+        <Stack.Screen name="favorites" options={{ title: "Favourite teams" }} />
         <Stack.Screen name="welcome" options={{ headerShown: false, gestureEnabled: false, animation: "fade" }} />
       </Stack>
       <Reminders />
@@ -64,6 +66,7 @@ function ThemedStack() {
 }
 
 export default function RootLayout() {
+  useAppFonts();
   return (
     <SettingsProvider>
       <SpoilerProvider>

@@ -11,6 +11,9 @@ import { GoalSummary } from "../../../src/ui/components/GoalSummary";
 import { PlayByPlayCard } from "../../../src/ui/components/PlayByPlayCard";
 import { PenaltySummary } from "../../../src/ui/components/PenaltySummary";
 import { GameInfoLines } from "../../../src/ui/components/GameInfoLines";
+import { PeriodTable } from "../../../src/ui/components/PeriodTable";
+import { TeamStatsCard } from "../../../src/ui/components/TeamStatsCard";
+import { TopPerformers } from "../../../src/ui/components/TopPerformers";
 import { GameVideos } from "../../../src/ui/components/GameVideos";
 import { ThreeStars } from "../../../src/ui/components/ThreeStars";
 import { localDate, teamRecord } from "../../../src/ui/common/format";
@@ -20,6 +23,7 @@ import { useSportsData } from "../../../src/ui/data/sports-data-context";
 import { usePageLeague } from "../../../src/ui/data/use-page-league";
 import { boxScoreRoute, teamRoute } from "../../../src/ui/common/routes";
 import { tabular, useColors } from "../../../src/ui/theme/theme";
+import { scoreFont } from "../../../src/ui/theme/fonts";
 import { usePolled } from "../../../src/ui/data/use-polled";
 
 /** A game page that fails to render keeps the header, so Back still returns to the scores. */
@@ -52,7 +56,7 @@ export default function GameScreen() {
     );
   }
 
-  const { game, goals, threeStars, penalties, videos } = detail.data;
+  const { game, goals, threeStars, penalties, videos, teamStats, performers, attendance } = detail.data;
   const live = game.status === "live";
   // While hidden: no score, shots, goals, three stars, penalties, box score, and no records (the standings already
   // count a finished game).
@@ -116,15 +120,15 @@ export default function GameScreen() {
                   <FlashScore
                     value={game.away.score}
                     live={live}
-                    style={[styles.score, tabular, { color: colors.text }]}
+                    style={[styles.score, scoreFont, { color: colors.text }]}
                   >
                     {game.away.score ?? "-"}
                   </FlashScore>
-                  <Text style={[styles.score, { color: colors.text }]}>–</Text>
+                  <Text style={[styles.score, scoreFont, { color: colors.muted }]}>–</Text>
                   <FlashScore
                     value={game.home.score}
                     live={live}
-                    style={[styles.score, tabular, { color: colors.text }]}
+                    style={[styles.score, scoreFont, { color: colors.text }]}
                   >
                     {game.home.score ?? "-"}
                   </FlashScore>
@@ -138,10 +142,15 @@ export default function GameScreen() {
             {team(game.home)}
           </View>
           {/* Arena and TV channels, one compact line each, instead of a line and a card of their own. */}
-          <GameInfoLines game={game} />
+          <GameInfoLines game={game} attendance={attendance} />
         </View>
 
         <GameEvent game={game} />
+
+        {/* Each period's score, the top performers and the team stats all give the score away: shielded. */}
+        {!hidden && <PeriodTable game={game} />}
+        {!hidden && performers && <TopPerformers performers={performers} />}
+        {!hidden && teamStats && <TeamStatsCard game={game} stats={teamStats} />}
 
         {/* Not shielded: the rows name no score or player, and opening a video is the user's choice. */}
         <GameVideos videos={videos} />
@@ -228,7 +237,7 @@ const styles = StyleSheet.create({
   sogLabel: { fontSize: 10, fontWeight: "600", letterSpacing: 0.5 },
   middle: { alignItems: "center", paddingHorizontal: 8, gap: 4 },
   scoreRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  score: { fontSize: 30, fontWeight: "800" },
+  score: { fontSize: 34 },
   hiddenScore: { fontSize: 16, fontWeight: "600" },
   status: { fontSize: 13, fontWeight: "600" },
 });

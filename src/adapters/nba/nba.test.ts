@@ -12,6 +12,10 @@ import { birthDate, draft, periodLabel, positionName } from "./mappers";
 const FIXTURES: [RegExp, string][] = [
   [/\/scoreboard\?dates=20261122$/, "scoreboard-2026-11-22.json"], // 5 final (one in OT), 2 live
   [/\/scoreboard\?dates=20261124$/, "scoreboard-2026-11-24.json"], // scheduled
+  // Recorded 2026-11-23 about 10:40 pm ET: 6 final, 4 live (one in overtime, one at the end of the 1st). Trimmed of
+  // links, headlines and broadcasts.
+  [/\/scoreboard\?dates=20261123$/, "scoreboard-2026-11-23.json"],
+  [/\/summary\?event=401910043$/, "summary-401910043-live.json"], // LAC at HOU, 4:10 left in the 4th (same time)
   [/\/standings\?level=3$/, "standings-now.json"],
   [/\/summary\?event=401910032$/, "summary-401910032-final.json"], // DEN won 151-145 at CHI in OT
   [/\/summary\?event=401909314$/, "summary-401909314-pre.json"], // DET at ORL, scheduled
@@ -188,12 +192,80 @@ describe("NBA adapter", () => {
       expect(postponed.home.score).toBeNull();
     });
 
+    it("gives live and final games each quarter's points and the top scorer", async () => {
+      const games = await fixtureAdapter().adapter.getScores("2026-11-23");
+      const overtime = byMatchup(games, "PHX", "NO");
+      expect(overtime).toMatchObject({ status: "live", clock: { period: 5, label: "OT", timeRemaining: "1:03" } });
+      expect(overtime.periods).toEqual([
+        { label: "Q1", away: 31, home: 35 },
+        { label: "Q2", away: 25, home: 19 },
+        { label: "Q3", away: 23, home: 29 },
+        { label: "Q4", away: 30, home: 26 },
+        { label: "OT", away: 10, home: 5 },
+      ]);
+      // Poole leads with 28; ESPN's line for him is his points alone.
+      expect(overtime.standout).toEqual({ name: "J. Poole", teamId: "NO", line: "28 PTS" });
+      // Garland outscores Durant, and his line has his assists too.
+      expect(byMatchup(games, "LAC", "HOU").standout).toEqual({
+        name: "D. Garland",
+        teamId: "LAC",
+        line: "26 PTS, 6 AST",
+      });
+
+      const endOfFirst = byMatchup(games, "UTAH", "LAL");
+      expect(endOfFirst.clock).toEqual({ period: 1, label: "End Q1" });
+      // All four quarters from the start, the ones not played yet scoreless; overtime only once played (above).
+      expect(endOfFirst.periods).toEqual([
+        { label: "Q1", away: 20, home: 30 },
+        { label: "Q2", away: null, home: null },
+        { label: "Q3", away: null, home: null },
+        { label: "Q4", away: null, home: null },
+      ]);
+
+      const finals = await fixtureAdapter().adapter.getScores("2026-11-22");
+      expect(byMatchup(finals, "DEN", "CHI").periods?.map((p) => p.label)).toEqual(["Q1", "Q2", "Q3", "Q4", "OT"]);
+      for (const game of await fixtureAdapter().adapter.getScores("2026-11-24")) {
+        expect(game.periods).toBeUndefined();
+        expect(game.standout).toBeUndefined();
+      }
+    });
+
+    it("leaves out quarters that do not add up to the score, and a game without leaders has no standout", async () => {
+      const { adapter, warnings } = fixtureAdapter((url, body) => {
+        if (!url.includes("scoreboard")) return;
+        const competitors = body.events.find((e: any) => e.id === "401910043").competitions[0].competitors;
+        competitors[0].linescores[1].value += 1;
+        for (const c of competitors) delete c.leaders;
+      });
+      const game = byMatchup(await adapter.getScores("2026-11-23"), "LAC", "HOU");
+      expect(game.status).toBe("live");
+      expect(game.periods).toBeUndefined();
+      expect(game.standout).toBeUndefined();
+      expect(warnings).toEqual([]);
+    });
+
     it("names quarters and overtimes", () => {
       expect([1, 4, 5, 6, 7].map(periodLabel)).toEqual(["Q1", "Q4", "OT", "2OT", "3OT"]);
     });
   });
 
   describe("standings", () => {
+    it("seeds each conference and bands the seeds: playoffs, play-in, out", async () => {
+      const standings = await fixtureAdapter().adapter.getStandings();
+      expect(standings.conferenceBands).toEqual([
+        { label: "Playoffs", through: 6 },
+        { label: "Play-in", through: 10 },
+        { label: "Out" },
+      ]);
+      const east = standings.groups
+        .flatMap((g) => g.rows)
+        .filter((r) => r.conferenceName === "Eastern Conference")
+        .sort((a, b) => a.conferenceRank! - b.conferenceRank!);
+      expect(east.map((r) => r.conferenceRank)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]);
+      expect(east.slice(0, 3).map((r) => r.team.id)).toEqual(["PHI", "BOS", "ATL"]);
+      expect(east[14].team.id).toBe("MIL");
+    });
+
     it("groups teams by division, in the league's order", async () => {
       const standings = await fixtureAdapter().adapter.getStandings();
       expect(standings.groups.map((g) => g.name)).toEqual([
@@ -302,7 +374,80 @@ describe("NBA adapter", () => {
         home: { team: expect.objectContaining({ id: "CHI", name: "Chicago Bulls" }), score: 145 },
         away: { team: expect.objectContaining({ id: "DEN", name: "Denver Nuggets" }), score: 151 },
         venue: { name: "United Center", city: "Chicago" },
+        periods: [
+          { label: "Q1", away: 33, home: 31 },
+          { label: "Q2", away: 39, home: 39 },
+          { label: "Q3", away: 33, home: 25 },
+          { label: "Q4", away: 26, home: 36 },
+          { label: "OT", away: 20, home: 14 },
+        ],
       });
+    });
+
+    it("compares the teams, names each team's top performer, and gives the attendance", async () => {
+      const detail = await fixtureAdapter().adapter.getGameDetail("401910032");
+      expect(detail.teamStats?.map((s) => s.label)).toEqual([
+        "Field goal %",
+        "3-point %",
+        "Free throw %",
+        "Rebounds",
+        "Assists",
+        "Turnovers",
+        "Points in the paint",
+        "Fast break points",
+        "Largest lead",
+      ]);
+      expect(detail.teamStats?.[0]).toEqual({
+        label: "Field goal %",
+        away: "53%",
+        home: "52%",
+        awayValue: 53,
+        homeValue: 52,
+      });
+      expect(detail.teamStats?.find((s) => s.label === "Points in the paint")).toMatchObject({
+        away: "66",
+        home: "48",
+      });
+      expect(detail.performers).toEqual([
+        {
+          teamId: "DEN",
+          player: expect.objectContaining({ name: "Jamal Murray", teamId: "DEN" }),
+          line: "45 PTS, 5 REB, 7 AST",
+        },
+        {
+          teamId: "CHI",
+          player: expect.objectContaining({ name: "Buddy Hield", teamId: "CHI" }),
+          line: "33 PTS, 7 REB, 6 AST",
+        },
+      ]);
+      expect(detail.attendance).toBe(19360);
+    });
+
+    it("has team stats and performers live, but no attendance yet, and none of them before tip-off", async () => {
+      const live = await fixtureAdapter().adapter.getGameDetail("401910043");
+      expect(live.teamStats?.length).toBeGreaterThan(5);
+      expect(live.performers?.map((p) => p.teamId)).toEqual(["LAC", "HOU"]);
+      expect(live.game.periods?.map((p) => p.label)).toEqual(["Q1", "Q2", "Q3", "Q4"]);
+      expect(live.attendance).toBeUndefined();
+      // Before tip-off `boxscore.teams` holds season averages: not shown as the game's.
+      const pre = await fixtureAdapter().adapter.getGameDetail("401909314");
+      expect([pre.teamStats, pre.performers, pre.game.periods, pre.attendance]).toEqual([
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+      ]);
+    });
+
+    it("still shows the game page when the team totals are missing or a stat is not a number", async () => {
+      const { adapter } = fixtureAdapter((url, body) => {
+        if (!url.includes("summary")) return;
+        delete body.boxscore.teams[1];
+        body.boxscore.teams = body.boxscore.teams.filter(Boolean);
+      });
+      const detail = await adapter.getGameDetail("401910032");
+      expect(detail.teamStats).toBeUndefined();
+      expect(detail.boxscore.away.length).toBeGreaterThan(0);
     });
 
     it("splits each box score into starters and bench, with ESPN's columns, leaving out who did not play", async () => {
@@ -346,7 +491,19 @@ describe("NBA adapter", () => {
       expect(detail.boxscore).toEqual({ home: [], away: [] });
     });
 
-    // No live summary is recorded yet (see CLAUDE.md): this edits the final one into a live third quarter.
+    it("maps a live game page: quarter, clock, score and box score", async () => {
+      const detail = await fixtureAdapter().adapter.getGameDetail("401910043");
+      expect(detail.game).toMatchObject({
+        status: "live",
+        clock: { period: 4, label: "Q4", timeRemaining: "4:10" },
+        away: { team: { id: "LAC" }, score: 95 },
+        home: { team: { id: "HOU" }, score: 103 },
+      });
+      expect(detail.boxscore.away.flatMap((t) => t.rows).length).toBeGreaterThan(5);
+      expect(detail.boxscore.home.flatMap((t) => t.rows).length).toBeGreaterThan(5);
+    });
+
+    // The live page above has a period and clock; this edits the final one to check another quarter.
     it("maps a live game's quarter and clock from the header, when it has them", async () => {
       const { adapter } = fixtureAdapter((url, body) => {
         if (!url.includes("summary")) return;

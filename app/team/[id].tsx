@@ -16,7 +16,6 @@ import { useSpoilers } from "../../src/ui/spoilers/spoiler-context";
 import { useSportsData } from "../../src/ui/data/sports-data-context";
 import { usePageLeague } from "../../src/ui/data/use-page-league";
 import { gameRoute } from "../../src/ui/common/routes";
-import { hasFavorites } from "../../src/ui/team/favorites";
 import {
   findStandingRow,
   gamesBehindLabel,
@@ -261,11 +260,9 @@ export default function TeamScreen() {
               </Text>
             )}
           </View>
-          {hasFavorites(league) && (
-            <View style={styles.star}>
-              <FavoriteStar team={team} size={26} />
-            </View>
-          )}
+          <View style={styles.star}>
+            <FavoriteStar team={team} size={26} />
+          </View>
         </View>
 
         {next && <NextGameCard game={next.game} teamId={team.id} standings={standings.data} />}

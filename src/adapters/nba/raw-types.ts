@@ -14,12 +14,29 @@ const RawScoreboardTeamSchema = z.object({
 
 const RawRecordSchema = z.object({ type: z.string(), summary: z.string() });
 
+/** One quarter's points. Verified on 2026-11-23 live: { value: 25, displayValue: "25", period: 1 }, one per period played. */
+const RawLinescoreSchema = z.object({ value: z.number(), period: z.number() });
+
+/**
+ * The team's leader in one stat so far. Verified on 2026-11-23 live: `name` "points", "rebounds", "assists" and
+ * "rating", whose `displayValue` is a line ("23 PTS, 8 REB"); the others' is the number ("23").
+ */
+const RawCompetitorLeaderSchema = z.object({
+  name: z.string(),
+  leaders: lenientArray(
+    z.object({ displayValue: z.string(), value: z.number(), athlete: z.object({ shortName: z.string().min(1) }) }),
+    "competitor.leaders.leaders",
+  ),
+});
+
 const RawCompetitorSchema = z.object({
   homeAway: z.enum(["home", "away"]),
   team: RawScoreboardTeamSchema,
   /** A string ("107"); "0" before tip-off. */
   score: z.string(),
   records: lenientArray(RawRecordSchema, "competitor.records"),
+  linescores: lenientArray(RawLinescoreSchema, "competitor.linescores"),
+  leaders: lenientArray(RawCompetitorLeaderSchema, "competitor.leaders"),
 });
 
 const RawVenueSchema = z.object({
@@ -27,7 +44,10 @@ const RawVenueSchema = z.object({
   address: minor(z.object({ city: minor(z.string(), "venue.address.city") }), "venue.address"),
 });
 
-/** Verified on 2026-11-22: STATUS_SCHEDULED (pre), STATUS_IN_PROGRESS (in), STATUS_FINAL (post, "Final/OT"). */
+/**
+ * Verified on 2026-11-22: STATUS_SCHEDULED (pre), STATUS_IN_PROGRESS (in), STATUS_FINAL (post, "Final/OT"); on
+ * 2026-11-23: STATUS_END_PERIOD (in, `displayClock` "0.1") and a live overtime (period 5, "1:03").
+ */
 const RawStatusSchema = z.object({
   /** Game clock as shown, "4:06"; "0.0" before tip-off and at the end of a period. */
   displayClock: minor(z.string(), "status.displayClock"),
@@ -192,9 +212,32 @@ export const RawSummarySchema = z.object({
       )
       .min(1),
   }),
-  /** `players` is absent before tip-off. */
-  boxscore: minor(z.object({ players: lenientArray(RawBoxscoreTeamSchema, "boxscore.players") }), "boxscore"),
-  gameInfo: minor(z.object({ venue: minor(RawVenueSchema, "gameInfo.venue") }), "gameInfo"),
+  /**
+   * `players` is absent before tip-off. `teams` is each team's game totals by `name` ("fieldGoalPct": "53",
+   * "totalRebounds": "47"; verified on 2026-11-23, final and live); before tip-off it holds season averages instead,
+   * which the mapper does not read.
+   */
+  boxscore: minor(
+    z.object({
+      players: lenientArray(RawBoxscoreTeamSchema, "boxscore.players"),
+      teams: lenientArray(
+        z.object({
+          team: z.object({ abbreviation: z.string().min(1) }),
+          statistics: lenientArray(
+            z.object({ name: z.string(), displayValue: z.string() }),
+            "boxscore.teams.statistics",
+          ),
+        }),
+        "boxscore.teams",
+      ),
+    }),
+    "boxscore",
+  ),
+  /** `attendance` is 0 or absent until the league reports it (seen on a final game, not a live one). */
+  gameInfo: minor(
+    z.object({ venue: minor(RawVenueSchema, "gameInfo.venue"), attendance: minor(z.number(), "gameInfo.attendance") }),
+    "gameInfo",
+  ),
 });
 export type RawSummary = z.output<typeof RawSummarySchema>;
 export type RawBoxscoreTeam = z.output<typeof RawBoxscoreTeamSchema>;

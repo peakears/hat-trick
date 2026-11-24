@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import type { Game, GameDetail, Goal } from "../../domain";
 import {
   createTapRouter,
+  followKey,
   followUpdate,
+  parseFollowKey,
   gamesToFollow,
   ongoingSummary,
   ongoingText,
@@ -101,7 +103,7 @@ describe("followUpdate", () => {
   it("announces nothing on the first check, so earlier goals are not replayed", () => {
     const update = followUpdate(undefined, detail(game({ away: 2 }), [goal("TOR", "a"), goal("TOR", "b")]), on);
     expect(update.alerts).toEqual([]);
-    expect(update.state).toEqual({ gameId: "g1", awayScore: 2, homeScore: 0, goalCount: 2 });
+    expect(update.state).toEqual({ gameId: "g1", awayScore: 2, homeScore: 0, goalCount: 2, period: 2, leader: -1 });
     expect(update.done).toBe(false);
   });
 
@@ -131,8 +133,8 @@ describe("followUpdate", () => {
     const before = followUpdate(undefined, detail(game({ away: 1, home: 0 })), on);
     const update = followUpdate(before.state, detail(game({ away: 1, home: 2 })), on);
     expect(update.alerts.map((a) => [a.id, a.title, a.body])).toEqual([
-      ["goal:g1:home:1", "Goal: CHI", "TOR 1–2 CHI"],
-      ["goal:g1:home:2", "Goal: CHI", "TOR 1–2 CHI"],
+      ["goal:nhl:g1:home:1", "Goal: CHI", "TOR 1–2 CHI"],
+      ["goal:nhl:g1:home:2", "Goal: CHI", "TOR 1–2 CHI"],
     ]);
   });
 
@@ -186,7 +188,7 @@ describe("followUpdate", () => {
     const update = followUpdate(before.state, detail(final, []), on);
     expect(update.done).toBe(true);
     expect(update.ongoing).toBeNull();
-    expect(update.alerts).toEqual([{ id: "final:g1", title: "Final: TOR 3–2 CHI", body: "Final/OT" }]);
+    expect(update.alerts).toEqual([{ id: "final:nhl:g1", title: "Final: TOR 3–2 CHI", body: "Final/OT" }]);
   });
 
   it("stops without a word for a postponed game", () => {
@@ -271,5 +273,73 @@ describe("createTapRouter", () => {
     router.attach((id) => opened.push(id), 5_000);
     router.tap("g1", 5_500); // the launch notification, reported again once the app is up
     expect(opened).toEqual(["g1"]);
+  });
+});
+
+describe("every league", () => {
+  const nba = (over: GameOver & { period?: number; label?: string } = {}): Game => {
+    const { period = 4, label = "Q4", ...rest } = over;
+    const g = game({ ...rest, clock: { period, label, timeRemaining: "4:10" } });
+    const side = (s: Game["away"]) => ({ ...s, team: { ...s.team, league: "nba" } });
+    return { ...g, league: "nba", away: side(g.away), home: side(g.home) };
+  };
+  const late = { ...on, rule: { kind: "lateLeadChanges", regulationPeriods: 4 } as const };
+
+  it("follows favourites in each game's own league: the Bruins are not the Celtics", () => {
+    const bruins = {
+      ...game({ id: "h" }),
+      away: { team: { id: "BOS", league: "nhl", name: "BOS", abbrev: "BOS" }, score: 0 },
+    };
+    const celtics = nba({ id: "b" });
+    const withBos = { ...celtics, away: { team: { id: "BOS", league: "nba", name: "BOS", abbrev: "BOS" }, score: 0 } };
+    expect(gamesToFollow([bruins, withBos], ["nba:BOS"], NOW).map((g) => g.id)).toEqual(["b"]);
+  });
+
+  it("keys games by league for taps, reading an old bare id as the NHL's", () => {
+    expect(followKey({ league: "nba", id: "401910043" })).toBe("nba:401910043");
+    expect(parseFollowKey("nba:401910043")).toEqual({ league: "nba", id: "401910043" });
+    expect(parseFollowKey("2026020333")).toEqual({ league: "nhl", id: "2026020333" });
+  });
+
+  it("announces no basket, only a change of lead from the last quarter on", () => {
+    // Q3: the lead changes hands, and no alert.
+    let state = followUpdate(undefined, detail(nba({ away: 60, home: 58, period: 3, label: "Q3" })), late).state;
+    let update = followUpdate(state, detail(nba({ away: 60, home: 62, period: 3, label: "Q3" })), late);
+    expect(update.alerts).toEqual([]);
+    // Q4: more baskets, same leader: still nothing.
+    update = followUpdate(update.state, detail(nba({ away: 80, home: 84 })), late);
+    expect(update.alerts).toEqual([]);
+    // Q4: through a tie to the other team: one lead change.
+    state = followUpdate(update.state, detail(nba({ away: 84, home: 84 })), late).state;
+    update = followUpdate(state, detail(nba({ away: 86, home: 84 })), late);
+    expect(update.alerts).toEqual([
+      { id: "lead:nba:g1:86-84", title: "Lead change: TOR", body: "TOR 86–84 CHI · Q4 4:10" },
+    ]);
+  });
+
+  it("announces each overtime as it starts, then the final", () => {
+    const tied = followUpdate(undefined, detail(nba({ away: 100, home: 100 })), late).state;
+    const ot = followUpdate(tied, detail(nba({ away: 100, home: 100, period: 5, label: "OT" })), late);
+    expect(ot.alerts).toEqual([
+      { id: "overtime:nba:g1:5", title: "OT: TOR 100–100 CHI", body: "Tied at the end of regulation" },
+    ]);
+    // The next check is still OT: not announced again. TOR going ahead is no lead change either, as nobody led
+    // before (the first check was already tied).
+    const next = followUpdate(ot.state, detail(nba({ away: 102, home: 100, period: 5, label: "OT" })), late);
+    expect(next.alerts).toEqual([]);
+    const final = followUpdate(
+      ot.state,
+      detail({ ...nba({ away: 110, home: 108 }), status: "final", clock: undefined }),
+      late,
+    );
+    expect(final.alerts.map((a) => a.id)).toEqual(["final:nba:g1"]);
+    expect(final.done).toBe(true);
+  });
+
+  it("stays quiet with the spoiler shield on or scoring alerts off", () => {
+    const state = followUpdate(undefined, detail(nba({ away: 80, home: 82 })), late).state;
+    const flipped = detail(nba({ away: 84, home: 82 }));
+    expect(followUpdate(state, flipped, { ...late, hidden: true }).alerts).toEqual([]);
+    expect(followUpdate(state, flipped, { ...late, goalAlerts: false }).alerts).toEqual([]);
   });
 });

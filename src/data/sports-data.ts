@@ -16,6 +16,7 @@ import type {
   LeagueFeature,
   LeaderGroup,
   LeagueId,
+  LiveAlertRule,
   RequestOptions,
   Standings,
   PlayerDetail,
@@ -31,7 +32,7 @@ import type { KeyValueStore } from "./store";
 import type { DataMeta, Fetched, FetchOptions } from "./types";
 
 /** Bump when the shape of cached domain data changes, so old entries are ignored. */
-export const CACHE_VERSION = 16;
+export const CACHE_VERSION = 19;
 
 /** Storage keys are prefixed so the cache can share a store with app settings. */
 const PREFIX = "cache:";
@@ -226,9 +227,19 @@ export class SportsData {
     return this.registry.get(league).leaderGroups ?? [{ id: "leaders", label: "Leaders" }];
   }
 
-  /** The league's full name ("National Hockey League"), for the league menu. */
+  /** The league's full name ("National Hockey League"), for the league row. */
   leagueName(league: LeagueId): string {
     return this.registry.get(league).name;
+  }
+
+  /** What the league's live score notifications announce (LiveAlertRule); each score if it does not say. */
+  liveAlerts(league: LeagueId): LiveAlertRule {
+    return this.registry.get(league).liveAlerts ?? { kind: "eachScore" };
+  }
+
+  /** The league's word for the start of a game ("Puck drop", "Tip-off"), for reminders; "Game start" if it has none. */
+  gameStartTerm(league: LeagueId): string {
+    return this.registry.get(league).gameStartTerm?.trim() || "Game start";
   }
 
   /** The leagues the app has, in the order they were registered. */

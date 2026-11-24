@@ -10,6 +10,7 @@ import { useSportsData } from "../data/sports-data-context";
 import { gameRoute } from "../common/routes";
 import { teamGameLine } from "../team/team";
 import { tabular, useColors, DIVIDER } from "../theme/theme";
+import { scoreFont } from "../theme/fonts";
 import { usePolled } from "../data/use-polled";
 import { useScoresToday } from "../scores/use-today";
 import { useTvRegion } from "../game/use-tv-region";
@@ -123,15 +124,15 @@ function NextGameView({ game, teamId, standings }: { game: Game; teamId: string;
               <FlashScore
                 value={game.away.score}
                 live={phase === "live"}
-                style={[styles.score, tabular, { color: colors.text }]}
+                style={[styles.score, scoreFont, { color: colors.text }]}
               >
                 {game.away.score ?? "-"}
               </FlashScore>
-              <Text style={[styles.score, { color: colors.text }]}>–</Text>
+              <Text style={[styles.score, scoreFont, { color: colors.muted }]}>–</Text>
               <FlashScore
                 value={game.home.score}
                 live={phase === "live"}
-                style={[styles.score, tabular, { color: colors.text }]}
+                style={[styles.score, scoreFont, { color: colors.text }]}
               >
                 {game.home.score ?? "-"}
               </FlashScore>
@@ -225,7 +226,7 @@ const styles = StyleSheet.create({
   side: { width: 72, alignItems: "center", gap: 4 },
   sog: { fontSize: 12 },
   scorePair: { flexDirection: "row", alignItems: "center", gap: 6 },
-  score: { fontSize: 34, fontWeight: "800" },
+  score: { fontSize: 38 },
   hiddenBox: { alignItems: "center", gap: 6 },
   hiddenText: { fontSize: 15, fontWeight: "600" },
   footer: {

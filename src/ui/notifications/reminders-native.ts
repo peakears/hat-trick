@@ -32,7 +32,8 @@ Notifications.setNotificationHandler({
 async function ensureChannel(): Promise<void> {
   if (Platform.OS !== "android") return;
   await Notifications.setNotificationChannelAsync(CHANNEL_ID, {
-    name: "Puck drop reminders",
+    // Only the name people see changes: the channel id stays, so reminders already scheduled keep their channel.
+    name: "Game start reminders",
     importance: Notifications.AndroidImportance.DEFAULT,
   });
 }
@@ -78,7 +79,7 @@ export async function applyReminders(planned: readonly Reminder[]): Promise<void
   for (const r of schedule) {
     await Notifications.scheduleNotificationAsync({
       identifier: r.id,
-      content: { title: r.title, body: r.body, data: { gameId: r.gameId } },
+      content: { title: r.title, body: r.body, data: { gameId: r.gameId, league: r.league } },
       trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: r.fireAt, channelId: CHANNEL_ID },
     });
   }

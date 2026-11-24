@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { ACCENTS, colorsFor, contrastRatio, schemeFor, type Colors, type Scheme } from "./palette";
+import {
+  ACCENTS,
+  colorsFor,
+  contrastRatio,
+  leagueTint,
+  schemeFor,
+  TINTED_LEAGUES,
+  type Colors,
+  type Scheme,
+} from "./palette";
 
 const SCHEMES: Scheme[] = ["light", "dark", "black"];
 const AA_TEXT = 4.5;
@@ -16,6 +25,13 @@ const TEXT_PAIRS: [keyof Colors, keyof Colors][] = [
   ["live", "card"],
   ["bannerText", "banner"],
   ["onAccent", "accent"],
+  ["text", "surfaceSunken"],
+  ["muted", "surfaceSunken"],
+  ["text", "badge"],
+  ["text", "tabSelected"],
+  ["chipSelectedText", "chipSelected"],
+  ["win", "background"],
+  ["win", "card"],
 ];
 
 describe("palette contrast (WCAG AA)", () => {
@@ -36,6 +52,60 @@ describe("palette contrast (WCAG AA)", () => {
       const colors = colorsFor(scheme, "blue");
       expect(colors.card).not.toBe(colors.background);
       expect(contrastRatio(colors.cardBorder, colors.card)).toBeGreaterThan(contrastRatio(colors.border, colors.card));
+    });
+  }
+
+  for (const scheme of SCHEMES) {
+    it(`${scheme}: every league colour reads on the page, cards and sunken panels`, () => {
+      const colors = colorsFor(scheme, "blue");
+      for (const league of TINTED_LEAGUES) {
+        const tint = leagueTint(league, scheme);
+        for (const bg of ["background", "card", "surfaceSunken"] as const) {
+          const ratio = contrastRatio(tint, colors[bg]);
+          expect(ratio, `${league} ${tint} on ${bg}: ${ratio.toFixed(2)}:1`).toBeGreaterThanOrEqual(AA_TEXT);
+        }
+      }
+    });
+  }
+
+  it("gives a league without a colour of its own the muted text colour", () => {
+    expect(leagueTint("mlb", "dark")).toBe(colorsFor("dark", "blue").muted);
+  });
+
+  it("gives each league its own colour in every scheme", () => {
+    for (const scheme of SCHEMES) {
+      const tints = TINTED_LEAGUES.map((l) => leagueTint(l, scheme));
+      expect(new Set(tints).size).toBe(tints.length);
+    }
+  });
+
+  // Marks that are not text (dots, bars, a selected chip's edge, the selected tab's icon) need 3:1 (WCAG 1.4.11).
+  for (const scheme of SCHEMES) {
+    for (const accent of ACCENTS) {
+      it(`${scheme} with ${accent}: dots, bars, chips and the selected tab stand out`, () => {
+        const c = colorsFor(scheme, accent);
+        const pairs: [string, string, string][] = [
+          ["accent on card (team stat bars)", c.accent, c.card],
+          ["selected tab icon on its pill", c.accent, c.tabSelected],
+          ["live dot on a selected chip", c.chipSelectedLive, c.chipSelected],
+          ["live dot on a chip", c.live, c.surfaceSunken],
+          ["selected chip on the bar", c.chipSelected, c.card],
+          ...TINTED_LEAGUES.map((l): [string, string, string] => [
+            `${l} bar on its track`,
+            leagueTint(l, scheme),
+            c.border,
+          ]),
+        ];
+        for (const [what, fg, bg] of pairs) {
+          expect(contrastRatio(fg, bg), `${what}: ${fg} on ${bg}`).toBeGreaterThanOrEqual(3);
+        }
+      });
+    }
+
+    it(`${scheme}: sunken panels and the selected tab's pill differ from the card`, () => {
+      const c = colorsFor(scheme, "blue");
+      expect(contrastRatio(c.surfaceSunken, c.card)).toBeGreaterThanOrEqual(1.15);
+      expect(c.tabSelected).not.toBe(c.card);
     });
   }
 

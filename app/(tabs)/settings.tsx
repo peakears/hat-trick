@@ -1,3 +1,4 @@
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
@@ -19,9 +20,15 @@ import { REMINDER_LEADS, type ReminderLead } from "../../src/ui/settings/setting
 import { useSettings } from "../../src/ui/settings/settings-context";
 import type { UpdateStatus } from "../../src/ui/updates/updates";
 import { useColors, DIVIDER } from "../../src/ui/theme/theme";
+import { favoritesLabel } from "../../src/ui/team/favorites";
 import { APP_VERSION, useUpdate } from "../../src/ui/updates/update-context";
 
 const LEAD_OPTIONS = REMINDER_LEADS.map((n) => ({ value: String(n), label: `${n} min` }));
+
+/** The Favourite teams row: "TOR, MTL" (by league with more than one league), or "None yet". */
+function favoritesSummary(favorites: readonly string[]): string {
+  return favorites.length > 0 ? favoritesLabel(favorites) : "None yet";
+}
 
 export default function SettingsScreen() {
   const colors = useColors();
@@ -86,38 +93,15 @@ export default function SettingsScreen() {
         />
       </Section>
 
-      <Section title="Favourite teams">
-        <View style={styles.row}>
-          <View style={styles.rowText}>
-            <Text style={[styles.label, { color: colors.text }]}>
-              {settings.favoriteTeams.length > 0 ? settings.favoriteTeams.join(", ") : "None yet"}
-            </Text>
-            <Text style={[styles.detail, { color: colors.muted }]}>
-              Star a team on the Standings tab or a game page. Their games show first on Scores.
-            </Text>
-          </View>
-          {settings.favoriteTeams.length > 0 && (
-            <Pressable
-              onPress={() => update({ favoriteTeams: [] })}
-              hitSlop={8}
-              accessibilityRole="button"
-              accessibilityLabel="Clear favourite teams"
-            >
-              <Text style={[styles.label, { color: colors.accent }]}>Clear</Text>
-            </Pressable>
-          )}
-        </View>
-      </Section>
-
       <Section title="Notifications">
         <ToggleRow
-          label="Puck drop reminders"
+          label="Game start reminders"
           detail={
             permissionDenied
               ? "Notifications are blocked. Allow them for Hat Trick in your phone's settings, then try again."
               : settings.favoriteTeams.length === 0
-                ? "Notifies you before your favourite teams' games. Star a team first."
-                : "Notifies you before your favourite teams' games."
+                ? "A notification before your favourite teams' games. Star a team first."
+                : "A notification before your favourite teams' games. Choose teams under Favourite teams."
           }
           value={settings.remindersEnabled}
           onChange={setReminders}
@@ -141,7 +125,7 @@ export default function SettingsScreen() {
               ? "Available in the installed Android app (not in Expo Go)."
               : settings.favoriteTeams.length === 0
                 ? "Follows your favourite teams' games in a notification, even with the app closed. Star a team first."
-                : "Follows your favourite teams' games in a notification, even with the app closed. Starts when you open the app (or a reminder) near puck drop."
+                : "Follows your favourite teams' games in a notification, even with the app closed. Starts when you open the app, or a reminder, near game time."
           }
           value={liveAvailable && settings.liveScores}
           onChange={setLiveScores}
@@ -150,17 +134,34 @@ export default function SettingsScreen() {
         />
         {liveAvailable && settings.liveScores && (
           <ToggleRow
-            label="Goal alerts"
+            label="Scoring alerts"
             detail={
               settings.spoilerShield
                 ? "Off while the spoiler shield is on."
-                : "A notification for each goal, with the scorer, and the final score."
+                : "Each goal, with the scorer, in hockey; a change of lead late in the game and overtime in basketball; and the final score."
             }
             value={settings.goalAlerts}
             onChange={(goalAlerts) => update({ goalAlerts })}
             last
           />
         )}
+      </Section>
+
+      <Section title="Favourite teams">
+        <Pressable
+          onPress={() => router.push("/favorites")}
+          accessibilityRole="button"
+          accessibilityLabel={`Favourite teams: ${favoritesSummary(settings.favoriteTeams)}. Open`}
+          style={styles.row}
+        >
+          <View style={styles.rowText}>
+            <Text style={[styles.label, { color: colors.text }]}>{favoritesSummary(settings.favoriteTeams)}</Text>
+            <Text style={[styles.detail, { color: colors.muted }]}>
+              Their games show first on Scores. Choose reminders and live scores for each team.
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={colors.muted} />
+        </Pressable>
       </Section>
 
       <Section title="About">

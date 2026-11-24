@@ -1,8 +1,10 @@
 import * as SplashScreen from "expo-splash-screen";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Appearance } from "react-native";
+import type { LeagueId } from "../../domain";
 import { AsyncStorageStore } from "../data/async-storage-store";
 import { toggleFavorite } from "../team/favorites";
+import { pruneAlerts } from "../notifications/team-alerts";
 import { DEFAULT_SETTINGS, colorSchemeOverride, loadSettings, saveSettings, type Settings } from "./settings";
 
 // Keep the splash screen up until the stored theme is applied, so a dark-theme user never sees a light flash.
@@ -16,7 +18,7 @@ interface SettingsContextValue {
   loaded: boolean;
   update: (patch: Partial<Settings>) => void;
   /** Stars the team, or un-stars it if it already is a favourite. */
-  toggleFavoriteTeam: (teamId: string) => void;
+  toggleFavoriteTeam: (league: LeagueId, teamId: string) => void;
 }
 
 const SettingsContext = createContext<SettingsContextValue | null>(null);
@@ -53,8 +55,12 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   );
 
   const toggleFavoriteTeam = useCallback(
-    (teamId: string) => update({ favoriteTeams: toggleFavorite(settings.favoriteTeams, teamId) }),
-    [settings.favoriteTeams, update],
+    (league: LeagueId, teamId: string) => {
+      const favoriteTeams = toggleFavorite(settings.favoriteTeams, league, teamId);
+      // A team removed from the favourites loses its alert switches, so starring it again turns them all back on.
+      update({ favoriteTeams, teamAlerts: pruneAlerts(settings.teamAlerts, favoriteTeams) });
+    },
+    [settings.favoriteTeams, settings.teamAlerts, update],
   );
 
   const value = useMemo(

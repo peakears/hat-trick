@@ -8,17 +8,24 @@ import { gameRoute } from "../common/routes";
 import { channelsFor, channelsLabel, showsChannelsOnCard } from "../game/broadcasts";
 import { useSettings } from "../settings/settings-context";
 import { useSpoilers } from "../spoilers/spoiler-context";
-import { tabular, useColors } from "../theme/theme";
+import { tabular, useColors, useScheme } from "../theme/theme";
+import { leagueTint } from "../theme/palette";
+import { scoreFont, scoreFontSemiBold } from "../theme/fonts";
 import { useTvRegion } from "../game/use-tv-region";
+import { showLiveDetail, standoutText } from "../scores/game-card";
 import { ChannelLine } from "./ChannelLine";
 import { FlashScore } from "./FlashScore";
 import { RevealButton } from "./ShieldUi";
 import { SpecialEventTag } from "./SpecialEventTag";
 import { TeamLogo } from "./TeamLogo";
 
-/** One game in the scores list: away team on top, home below, status on the right. */
-export function GameCard({ game }: { game: Game }) {
+/**
+ * One game in the scores list: away team on top, home below, status on the right. `showLeague` names the league
+ * above the teams, for a list that mixes leagues ("Your teams" in the All view).
+ */
+export function GameCard({ game, showLeague = false }: { game: Game; showLeague?: boolean }) {
   const colors = useColors();
+  const scheme = useScheme();
   const router = useRouter();
   const { settings } = useSettings();
   const sports = useSportsData();
@@ -39,6 +46,8 @@ export function GameCard({ game }: { game: Game }) {
   const region = useTvRegion();
   const channels = showsChannelsOnCard(game.status) ? channelsFor(game, region) : [];
   const showScores = game.status !== "scheduled" && game.status !== "postponed";
+  const detail = showLiveDetail(game, hidden);
+  const standout = detail && game.standout ? standoutText(game.standout) : undefined;
 
   const row = (side: GameSide, which: "home" | "away") => {
     const dim = won !== undefined && won !== which;
@@ -68,7 +77,7 @@ export function GameCard({ game }: { game: Game }) {
             value={side.score}
             live={live && !hidden}
             containerStyle={styles.scoreBox}
-            style={[styles.score, tabular, { color: dim || hidden ? colors.muted : colors.text }]}
+            style={[styles.score, scoreFont, { color: dim || hidden ? colors.muted : colors.text }]}
           >
             {hidden ? "•" : (side.score ?? "-")}
           </FlashScore>
@@ -88,10 +97,13 @@ export function GameCard({ game }: { game: Game }) {
         { backgroundColor: colors.card, borderColor: colors.cardBorder, opacity: pressed ? 0.7 : 1 },
       ]}
       accessibilityRole={opens ? "button" : undefined}
-      accessibilityLabel={`${game.specialEvent ? `${game.specialEvent}. ` : ""}${game.away.team.name} at ${game.home.team.name}, ${statusLabel}${hidden ? ". Score hidden" : ""}${favoriteNote}${channels.length > 0 ? `. On TV: ${channelsLabel(channels)}` : ""}`}
+      accessibilityLabel={`${game.specialEvent ? `${game.specialEvent}. ` : ""}${game.away.team.name} at ${game.home.team.name}, ${statusLabel}${hidden ? ". Score hidden" : ""}${favoriteNote}${standout ? `. ${standout.spoken}` : ""}${channels.length > 0 ? `. On TV: ${channelsLabel(channels)}` : ""}`}
     >
       <View style={styles.main}>
         <View style={styles.teams}>
+          {showLeague && (
+            <Text style={[styles.league, { color: leagueTint(game.league, scheme) }]}>{game.league.toUpperCase()}</Text>
+          )}
           <SpecialEventTag name={game.specialEvent} />
           {row(game.away, "away")}
           {row(game.home, "home")}
@@ -102,6 +114,50 @@ export function GameCard({ game }: { game: Game }) {
           {hidden && <RevealButton label="Show score" onPress={() => spoilers.reveal(game.id)} />}
         </View>
       </View>
+      {detail && (
+        // Each period's score and the standout, live only. Part of the card's spoken label, so hidden from readers.
+        <View style={styles.detail} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
+          {game.periods && game.periods.length > 0 && (
+            <View style={[styles.periods, { backgroundColor: colors.surfaceSunken }]}>
+              <View style={styles.periodColumn}>
+                <Text style={[styles.periodHead, { color: colors.muted }]}> </Text>
+                <Text style={[styles.periodTeam, { color: colors.text }]}>{game.away.team.abbrev}</Text>
+                <Text style={[styles.periodTeam, { color: colors.text }]}>{game.home.team.abbrev}</Text>
+              </View>
+              {game.periods.map((p, i) => (
+                <View key={`${p.label}-${i}`} style={[styles.periodColumn, styles.periodValues]}>
+                  <Text style={[styles.periodHead, { color: colors.muted }]}>{p.label}</Text>
+                  {/* A period not played yet shows "-". */}
+                  <Text
+                    style={[
+                      styles.periodValue,
+                      scoreFontSemiBold,
+                      { color: p.away === null ? colors.muted : colors.text },
+                    ]}
+                  >
+                    {p.away ?? "-"}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.periodValue,
+                      scoreFontSemiBold,
+                      { color: p.home === null ? colors.muted : colors.text },
+                    ]}
+                  >
+                    {p.home ?? "-"}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          )}
+          {standout && (
+            <Text numberOfLines={1} style={[styles.standout, { color: colors.text }]}>
+              <Text style={{ color: colors.muted }}>Top performer · </Text>
+              {standout.shown}
+            </Text>
+          )}
+        </View>
+      )}
       <ChannelLine channels={channels} />
     </Pressable>
   );
@@ -125,7 +181,7 @@ const styles = StyleSheet.create({
   record: { fontSize: 13, fontWeight: "600", marginRight: 12 },
   // Room for two digits keeps the scores lined up; the number sits at the right and the flash glow hugs it.
   scoreBox: { marginRight: 12, minWidth: 28, alignItems: "flex-end" },
-  score: { fontSize: 20, fontWeight: "700", textAlign: "right" },
+  score: { fontSize: 22, textAlign: "right" },
   status: {
     width: 96,
     alignItems: "center",
@@ -134,5 +190,15 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   liveDot: { fontSize: 11, fontWeight: "700" },
+  league: { fontSize: 11, fontWeight: "700", letterSpacing: 0.5, marginBottom: -4 },
+  detail: { gap: 8, paddingHorizontal: 14, paddingBottom: 12 },
+  periods: { flexDirection: "row", borderRadius: 10, paddingVertical: 8, paddingHorizontal: 10, gap: 4 },
+  periodColumn: { gap: 3, minWidth: 40 },
+  periodValues: { flex: 1, alignItems: "center", minWidth: 0 },
+  // One line height for every row, so the team names line up with their numbers.
+  periodHead: { fontSize: 11, lineHeight: 16, fontWeight: "600" },
+  periodTeam: { fontSize: 12, lineHeight: 18, fontWeight: "700" },
+  periodValue: { fontSize: 14, lineHeight: 18 },
+  standout: { fontSize: 13 },
   statusText: { fontSize: 13, fontWeight: "600", textAlign: "center" },
 });

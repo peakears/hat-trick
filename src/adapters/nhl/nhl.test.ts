@@ -130,6 +130,55 @@ describe("NHL adapter", () => {
       });
     });
 
+    it("counts each period's goals and names the game's standout, live and final", async () => {
+      const games = await fixtureAdapter().adapter.getScores("2026-11-17");
+      const byId = (id: string) => games.find((g) => g.id === id)!;
+      // CGY at SJS, live in the 2nd: the 3rd is listed but not played yet, and nobody has two points yet.
+      expect(byId("2026020343").periods).toEqual([
+        { label: "1st", away: 2, home: 1 },
+        { label: "2nd", away: 1, home: 0 },
+        { label: "3rd", away: null, home: null },
+      ]);
+      expect(byId("2026020343").standout).toBeUndefined();
+      // DAL at VGK, scoreless in the 1st intermission: all three periods, two still to play.
+      expect(byId("2026020342").periods).toEqual([
+        { label: "1st", away: 0, home: 0 },
+        { label: "2nd", away: null, home: null },
+        { label: "3rd", away: null, home: null },
+      ]);
+      // EDM won 5-2 at FLA: three Oilers have 3 points; Podkolzin scored twice.
+      expect(byId("2026020335").periods).toEqual([
+        { label: "1st", away: 2, home: 0 },
+        { label: "2nd", away: 2, home: 0 },
+        { label: "3rd", away: 1, home: 2 },
+      ]);
+      expect(byId("2026020335").standout).toEqual({ name: "V. Podkolzin", teamId: "EDM", line: "2 G, 1 A" });
+      expect(byId("2026020339").standout).toEqual({ name: "C. Gauthier", teamId: "ANA", line: "3 G, 1 A" });
+    });
+
+    it("adds a shootout as one more period worth one to the winner, and drops periods that miss a goal", async () => {
+      const { adapter } = fixtureAdapter((_url, body) => {
+        const game = body.games.find((g: any) => g.id === 2026020335);
+        // Make it 5-5 after overtime with no goal in OT, won 6-5 in the shootout.
+        game.periodDescriptor = { number: 5, periodType: "SO", maxRegulationPeriods: 3 };
+        game.gameOutcome = { lastPeriodType: "SO" };
+        for (let i = 0; i < 3; i++) game.goals.push({ ...game.goals[4], period: 3 });
+        game.homeTeam.score = 5;
+        game.awayTeam.score = 6;
+        const live = body.games.find((g: any) => g.id === 2026020343);
+        live.goals.pop();
+      });
+      const games = await adapter.getScores("2026-11-17");
+      expect(games.find((g) => g.id === "2026020335")!.periods?.map((p) => [p.label, p.away, p.home])).toEqual([
+        ["1st", 2, 0],
+        ["2nd", 2, 0],
+        ["3rd", 1, 5],
+        ["OT", 0, 0],
+        ["SO", 1, 0],
+      ]);
+      expect(games.find((g) => g.id === "2026020343")!.periods).toBeUndefined();
+    });
+
     it("maps a final game", async () => {
       const games = await fixtureAdapter().adapter.getScores("2026-11-17");
       const game = games.find((g) => g.id === "2026020333")!;
@@ -209,6 +258,16 @@ describe("NHL adapter", () => {
         { network: "ABTV", country: "US", market: "away" },
         { network: "NESN", country: "US", market: "home" },
       ]);
+    });
+
+    it("gives the game each period's goals from the scores, and no team stats or performers (it has three stars)", async () => {
+      const detail = await fixtureAdapter().adapter.getGameDetail("2026020333");
+      expect(detail.game.periods).toEqual([
+        { label: "1st", away: 1, home: 0 },
+        { label: "2nd", away: 1, home: 0 },
+        { label: "3rd", away: 1, home: 0 },
+      ]);
+      expect([detail.teamStats, detail.performers, detail.attendance]).toEqual([undefined, undefined, undefined]);
     });
 
     it("includes the channels in the box score's game", async () => {
@@ -375,6 +434,7 @@ describe("NHL adapter", () => {
       expect(detail.game.id).toBe("2026020333");
       expect(detail.goals).toBeUndefined();
       expect(detail.videos).toBeUndefined();
+      expect(detail.game.periods).toBeUndefined();
       expect(warnings).toHaveLength(1);
       expect(warnings[0].url).toMatch(/\/score\/\d{4}-\d{2}-\d{2}$/);
       expect(warnings[0].message).toMatch(/^goals and videos left out: .*Network request failed/);

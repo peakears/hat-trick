@@ -165,6 +165,14 @@ export function runLeagueAdapterContract(options: ContractOptions): void {
     it("reports its league id and name", () => {
       expect(makeAdapter().league).toBe(league);
       expectNonEmptyString(makeAdapter().name, "name");
+      // Optional, but a reminder's title starts with it, so not a blank one.
+      const term = makeAdapter().gameStartTerm;
+      if (term !== undefined) expectNonEmptyString(term.trim(), "gameStartTerm");
+      // Late lead changes count from the last regulation period, so the league must say how many it has.
+      const rule = makeAdapter().liveAlerts;
+      if (rule?.kind === "lateLeadChanges") {
+        expect(Number.isInteger(rule.regulationPeriods) && rule.regulationPeriods >= 1, "regulationPeriods").toBe(true);
+      }
     });
 
     describe("getScores", () => {

@@ -74,6 +74,29 @@ export interface Game {
   venue?: Venue;
   /** The league's name for a special game or series it is part of: "Winter Classic", "Original 6 Series". */
   specialEvent?: string;
+  /**
+   * Each team's score in each period, in order (a shootout is one more, worth one to the winner). A live game lists
+   * every regulation period, the ones not played yet with null scores; overtime appears once it is played. Live and
+   * final games only; absent when the league does not say, or when the periods do not add up to the score.
+   */
+  periods?: PeriodScore[];
+  /** The game's standout player so far (most points), worded by the adapter. Live and final games only. */
+  standout?: GameStandout;
+}
+
+export interface PeriodScore {
+  label: string; // "Q1", "2nd", "OT", "SO" - adapter formats it
+  /** Null for a regulation period not played yet: a live game lists all of them, shown as "-". */
+  away: number | null;
+  home: number | null;
+}
+
+export interface GameStandout {
+  /** Short form, "J. Brunson". */
+  name: string;
+  teamId: string;
+  /** What they did, worded by the adapter: "31 PTS, 8 REB", "2 G, 1 A". */
+  line: string;
 }
 
 // ---------- Generic stat tables ----------
@@ -180,6 +203,29 @@ export interface GameDetail {
   penalties?: Penalty[];
   /** Recap first. Absent or empty until the league posts them (after the game) or when they could not be loaded. */
   videos?: GameVideo[];
+  /** The teams side by side (shooting, rebounds, ...), in the league's order. Absent when the league has none. */
+  teamStats?: TeamStatLine[];
+  /** Each team's top performer so far, away first. Absent when the league names its own (three stars). */
+  performers?: GamePerformer[];
+  /** Fans in the building, once the league reports it (usually after the game). */
+  attendance?: number;
+}
+
+export interface TeamStatLine {
+  label: string; // "Field goal %", "Rebounds" - adapter words it
+  /** As shown: "53%", "47". */
+  away: string;
+  home: string;
+  /** The same as numbers, for the bar that compares them. Absent when they do not compare as numbers. */
+  awayValue?: number;
+  homeValue?: number;
+}
+
+export interface GamePerformer {
+  teamId: string;
+  player: Player;
+  /** What they did, worded by the adapter: "45 PTS, 5 REB, 7 AST". */
+  line: string;
 }
 
 // ---------- Play-by-play ----------
@@ -322,6 +368,8 @@ export interface StandingRow {
   conferenceName?: string;
   /** Position in the whole league (the league's own tiebreakers), 1-based. */
   leagueRank?: number;
+  /** Position in the conference (the league's own seeding and tiebreakers), 1-based. */
+  conferenceRank?: number;
   /**
    * Position in the conference wild card race (the league's own tiebreakers), 1-based. Undefined for a team that
    * holds one of its division's playoff spots, and for leagues without wild cards.
@@ -334,11 +382,23 @@ export interface StandingsGroup {
   rows: StandingRow[];
 }
 
+export interface StandingsBand {
+  label: string;
+  /** The last conference position in the band; absent on the last band, which holds the rest. */
+  through?: number;
+}
+
 export interface Standings {
   league: LeagueId;
   groups: StandingsGroup[];
   /** Wild card playoff spots per conference (2 in the NHL); undefined for leagues without wild cards. */
   wildCardSpots?: number;
+  /**
+   * What a conference position means, best first: each band holds the positions up to its `through` (the last one
+   * holds the rest). The NBA's: "Playoffs" through 6, "Play-in" through 10, then "Out". Undefined for leagues whose
+   * conference rank decides nothing on its own (the NHL's playoff spots are by division and wild card).
+   */
+  conferenceBands?: StandingsBand[];
   updatedAt: string;
 }
 
@@ -425,10 +485,25 @@ export function adapterSupports(adapter: LeagueAdapter, feature: LeagueFeature):
  * Every league has scores, standings and leaders; the other methods are optional (LeagueFeature). An optional
  * method, when present, behaves as described here.
  */
+/**
+ * What a league's live score notifications announce, besides the final.
+ * - eachScore: every score, with the scorer from the game page's goal list (hockey's goals).
+ * - lateLeadChanges: a change of lead from the last regulation period on, and the start of each overtime (for a
+ *   sport that scores too often to announce each score). Read from the scores alone, so no game page is loaded.
+ */
+export type LiveAlertRule = { kind: "eachScore" } | { kind: "lateLeadChanges"; regulationPeriods: number };
+
 export interface LeagueAdapter {
   readonly league: LeagueId;
-  /** The league's full name, shown in the league menu ("National Hockey League"). */
+  /** The league's full name, read out for its button in the league row ("National Hockey League"). */
   readonly name: string;
+  /**
+   * The sport's word for the start of a game, capitalized, as a reminder's title begins: "Puck drop", "Tip-off".
+   * Absent: "Game start".
+   */
+  readonly gameStartTerm?: string;
+  /** Which moments of a followed game get a notification (LiveAlertRule). Absent: each score. */
+  readonly liveAlerts?: LiveAlertRule;
 
   /** All games on a league calendar date, YYYY-MM-DD. */
   getScores(date: string, options?: RequestOptions): Promise<Game[]>;

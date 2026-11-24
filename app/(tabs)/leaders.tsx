@@ -8,11 +8,21 @@ import { ErrorView, OfflineBanner, UpdatedAt } from "../../src/ui/components/Sta
 import { ListSkeleton } from "../../src/ui/components/Skeleton";
 import { TeamLogo } from "../../src/ui/components/TeamLogo";
 import { statValue } from "../../src/ui/common/format";
-import { LEADERS_MAX, leaderSectionKey, leaderValue, visibleLeaders } from "../../src/ui/leaders/leaders";
+import {
+  LEADERS_MAX,
+  leadLine,
+  leaderBarShare,
+  leaderSectionKey,
+  leaderValue,
+  visibleLeaders,
+} from "../../src/ui/leaders/leaders";
+import { PlayerHeadshot } from "../../src/ui/components/PlayerHeadshot";
+import { scoreFont, scoreFontSemiBold } from "../../src/ui/theme/fonts";
+import { leagueTint } from "../../src/ui/theme/palette";
 import { combineFetched } from "../../src/ui/data/polling";
 import { useSportsData } from "../../src/ui/data/sports-data-context";
 import { useLeague } from "../../src/ui/data/use-league";
-import { tabular, useColors, DIVIDER } from "../../src/ui/theme/theme";
+import { tabular, useColors, useScheme, DIVIDER } from "../../src/ui/theme/theme";
 import { usePolled } from "../../src/ui/data/use-polled";
 import { playerRoute } from "../../src/ui/common/routes";
 
@@ -20,6 +30,8 @@ export default function LeadersScreen() {
   const sports = useSportsData();
   const league = useLeague();
   const colors = useColors();
+  // The league's colour marks the leader and the bars.
+  const tint = leagueTint(league, useScheme());
   const router = useRouter();
   // The league's groups of boards (the NHL's Skaters and Goalies; one group needs no picker).
   const groups = sports.leaderGroups(league);
@@ -60,6 +72,8 @@ export default function LeadersScreen() {
       format: b.format,
       decimals: b.decimals,
       data: shown,
+      // The whole board, for the bars (sized against the leader) and the leader's lead.
+      board: b.entries,
       hasMore,
       expanded: isExpanded,
     };
@@ -122,27 +136,61 @@ export default function LeadersScreen() {
               </Pressable>
             ) : null
           }
-          renderItem={({ item, section }) => (
-            <Pressable
-              onPress={opensPlayer ? () => router.push(playerRoute(item.player)) : undefined}
-              disabled={!opensPlayer}
-              accessibilityRole={opensPlayer ? "button" : undefined}
-              accessibilityLabel={`${item.rank}. ${item.player.name}, ${item.team.abbrev}, ${leaderValue(item.value, section.format, statValue, section.decimals)}${opensPlayer ? ". Open player page" : ""}`}
-              style={[styles.row, { backgroundColor: colors.card, borderBottomColor: colors.border }]}
-            >
-              <Text style={[styles.rank, tabular, { color: colors.muted }]}>{item.rank}</Text>
-              <TeamLogo team={item.team} size={24} />
-              <View style={styles.who}>
-                <Text numberOfLines={1} style={{ color: colors.text, fontSize: 15 }}>
-                  {item.player.name}
-                </Text>
-                <Text style={{ color: colors.muted, fontSize: 12 }}>{item.team.abbrev}</Text>
-              </View>
-              <Text style={[styles.value, tabular, { color: colors.text }]}>
-                {leaderValue(item.value, section.format, statValue, section.decimals)}
-              </Text>
-            </Pressable>
-          )}
+          renderItem={({ item, index, section }) => {
+            const value = leaderValue(item.value, section.format, statValue, section.decimals);
+            const open = opensPlayer ? () => router.push(playerRoute(item.player)) : undefined;
+            if (index === 0) {
+              // The board's leader: photo, name and value large, and how far ahead they are.
+              const lead = leadLine(section.board, section.format, statValue, section.decimals);
+              return (
+                <Pressable
+                  onPress={open}
+                  disabled={!opensPlayer}
+                  accessibilityRole={opensPlayer ? "button" : undefined}
+                  accessibilityLabel={`${item.rank}. ${item.player.name}, ${item.team.abbrev}, ${value}${lead ? `. ${lead}` : ""}${opensPlayer ? ". Open player page" : ""}`}
+                  style={[styles.hero, { backgroundColor: colors.card, borderBottomColor: colors.border }]}
+                >
+                  <PlayerHeadshot player={item.player} size={56} />
+                  <View style={styles.who}>
+                    <Text style={[styles.heroTeam, { color: tint }]}>
+                      {item.rank === 1 ? "1st" : item.rank} · {item.team.abbrev}
+                    </Text>
+                    <Text numberOfLines={1} style={[styles.heroName, { color: colors.text }]}>
+                      {item.player.name}
+                    </Text>
+                    {lead && <Text style={[styles.heroLead, { color: colors.muted }]}>{lead}</Text>}
+                  </View>
+                  <Text style={[styles.heroValue, scoreFont, { color: colors.text }]}>{value}</Text>
+                </Pressable>
+              );
+            }
+            const share = leaderBarShare(item.value, section.board);
+            return (
+              <Pressable
+                onPress={open}
+                disabled={!opensPlayer}
+                accessibilityRole={opensPlayer ? "button" : undefined}
+                accessibilityLabel={`${item.rank}. ${item.player.name}, ${item.team.abbrev}, ${value}${opensPlayer ? ". Open player page" : ""}`}
+                style={[styles.row, { backgroundColor: colors.card, borderBottomColor: colors.border }]}
+              >
+                <Text style={[styles.rank, tabular, { color: colors.muted }]}>{item.rank}</Text>
+                <TeamLogo team={item.team} size={24} />
+                <View style={styles.who}>
+                  <View style={styles.nameLine}>
+                    <Text numberOfLines={1} style={[styles.name, { color: colors.text }]}>
+                      {item.player.name}
+                      <Text style={{ color: colors.muted, fontSize: 12 }}> {item.team.abbrev}</Text>
+                    </Text>
+                    <Text style={[styles.value, scoreFontSemiBold, { color: colors.text }]}>{value}</Text>
+                  </View>
+                  {/* Sized against the leader (inverted on a board where lower is better). */}
+                  <View style={[styles.track, { backgroundColor: colors.border }]}>
+                    <View style={[styles.fill, { width: `${Math.round(share * 100)}%`, backgroundColor: tint }]} />
+                  </View>
+                </View>
+              </Pressable>
+            );
+          }}
           ListFooterComponent={<UpdatedAt meta={leaders.meta} />}
         />
       )}
@@ -176,8 +224,24 @@ const styles = StyleSheet.create({
     borderBottomWidth: DIVIDER,
   },
   rank: { width: 20, textAlign: "right", fontSize: 13 },
-  who: { flex: 1 },
-  value: { fontSize: 16, fontWeight: "700" },
+  who: { flex: 1, minWidth: 0 },
+  nameLine: { flexDirection: "row", alignItems: "baseline", gap: 8 },
+  name: { flex: 1, fontSize: 15 },
+  value: { fontSize: 18 },
+  track: { height: 4, borderRadius: 2, marginTop: 5, overflow: "hidden" },
+  fill: { height: 4, borderRadius: 2 },
+  hero: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 14,
+    borderBottomWidth: DIVIDER,
+  },
+  heroTeam: { fontSize: 12, fontWeight: "700", letterSpacing: 0.3 },
+  heroName: { fontSize: 18, fontWeight: "700", marginTop: 1 },
+  heroLead: { fontSize: 12, marginTop: 2 },
+  heroValue: { fontSize: 38 },
   toggle: {
     flexDirection: "row",
     alignItems: "center",
