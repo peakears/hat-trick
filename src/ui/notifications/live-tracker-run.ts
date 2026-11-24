@@ -1,19 +1,27 @@
 // The live score service's loop (#114): every TRACK_POLL_MS it reads today's games through the app's SportsData
 // (same cache, same diagnostics log), follows favourites' live games, updates the ongoing notification and posts
 // goal alerts, and stops when no followed game is left. Decisions are in live-tracker.ts (pure, tested); the
-// notifications in live-tracker-native.ts. Runs inside the Android foreground service, so with the app closed too.
+// notifications in live-tracker-native.ts. Runs inside the Android foreground service, so with the app closed too:
+// the wait between checks and the wake lock are native (live-wait.ts, background-wait-native.ts, #137), as JS timers
+// stop once the app leaves the front.
 import { loadSettings, type Settings } from "../settings/settings";
 import { scoresToday } from "../common/format";
 import { followUpdate, gamesToFollow, ongoingSummary, TRACK_POLL_MS, type FollowState } from "./live-tracker";
 import { liveTrackingAvailable, postAlert, registerLiveService, showOngoing, stopOngoing } from "./live-tracker-native";
 import { getServices, NHL } from "../data/sports-data-context";
+import { createWaiter, KEEP_AWAKE_MS } from "./live-wait";
+import { allowSleep, backgroundSleep, keepAwake } from "./background-wait-native";
 
 let running = false;
 /** When a start was asked for and the service has not called runLoop yet; a start that never arrives expires. */
 let startingSince: number | undefined;
 const START_TIMEOUT_MS = 60_000;
 let stopRequested = false;
-let wake: (() => void) | undefined;
+const waiter = createWaiter({
+  nativeSleep: backgroundSleep,
+  setTimer: (done, ms) => setTimeout(done, ms),
+  clearTimer: (timer) => clearTimeout(timer as ReturnType<typeof setTimeout>),
+});
 /** Games the user stopped with the Stop button: not followed again while the app process lives. */
 const stoppedGames = new Set<string>();
 /** Alerts already posted, so a repeated check never posts a goal twice. */
@@ -56,7 +64,7 @@ export async function startLiveTracking(): Promise<void> {
 export function stopLiveTracking(options: { byUser?: boolean } = {}): void {
   stopRequested = true;
   if (options.byUser) for (const id of followed.keys()) stoppedGames.add(id);
-  wake?.();
+  waiter.wake();
 }
 
 async function runLoop(): Promise<void> {
@@ -65,6 +73,7 @@ async function runLoop(): Promise<void> {
   startingSince = undefined;
   try {
     while (!stopRequested) {
+      keepAwake(KEEP_AWAKE_MS); // renewed each check, so a loop that dies lets it lapse
       const settings = await loadSettings(store);
       if (!wanted(settings)) break;
       const now = Date.now();
@@ -94,25 +103,13 @@ async function runLoop(): Promise<void> {
 
       if (followed.size === 0) break;
       if (lines.length > 0) await showOngoing(ongoingSummary(lines)).catch(() => {});
-      await sleep(TRACK_POLL_MS);
+      await waiter.sleep(TRACK_POLL_MS);
     }
   } finally {
     followed.clear();
     running = false;
     stopRequested = false;
+    allowSleep();
     await stopOngoing().catch(() => {});
   }
-}
-
-/** Waits `ms`, or less if stopLiveTracking() is called. */
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => {
-    const timer = setTimeout(done, ms);
-    function done() {
-      clearTimeout(timer);
-      wake = undefined;
-      resolve();
-    }
-    wake = done;
-  });
 }

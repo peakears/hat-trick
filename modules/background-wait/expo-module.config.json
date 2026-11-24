@@ -1,0 +1,6 @@
+{
+  "platforms": ["android"],
+  "android": {
+    "modules": ["io.github.peakears.hattrick.backgroundwait.BackgroundWaitModule"]
+  }
+}
