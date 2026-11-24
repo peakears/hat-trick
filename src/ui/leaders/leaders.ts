@@ -44,3 +44,40 @@ export function leaderValue(
   if (decimals !== undefined) return value.toFixed(decimals);
   return statValue(value);
 }
+
+/**
+ * Whether a board ranks the lowest value first (goals against average). The league sends each board best first, so
+ * its order says which way it runs; no board needs naming.
+ */
+export function lowerIsBetter(entries: readonly { value: number }[]): boolean {
+  return entries.length > 1 && entries[0].value < entries[entries.length - 1].value;
+}
+
+/**
+ * How full a leader's bar is, 0-1, against the board's best: value / best, or best / value when lower is better.
+ * A board of zeros is full for everyone.
+ */
+export function leaderBarShare(value: number, entries: readonly { value: number }[]): number {
+  if (entries.length === 0) return 0;
+  const best = entries[0].value;
+  const share = lowerIsBetter(entries) ? (value > 0 ? best / value : 1) : best > 0 ? value / best : 1;
+  return Math.max(0, Math.min(1, share));
+}
+
+/**
+ * The line under a board's leader: "Leads by 5" (in the board's own format), "Tied for first" when the next has the
+ * same value, or nothing for a board of one.
+ */
+export function leadLine(
+  entries: readonly { value: number }[],
+  format: "percent" | undefined,
+  statValue: (v: number) => string,
+  decimals?: number,
+): string | undefined {
+  if (entries.length < 2) return undefined;
+  const gap = Math.abs(entries[0].value - entries[1].value);
+  // Rounded as shown, so "Leads by 0.0" never appears for a gap the board does not show.
+  const shown = leaderValue(gap, format, statValue, decimals);
+  if (gap === 0 || Number(shown.replace("%", "")) === 0) return "Tied for first";
+  return `Leads by ${shown}`;
+}
