@@ -36,6 +36,7 @@ import {
   PLAYER_LAST_GAMES,
   PLAYER_SEASON_COLUMNS,
   CONFERENCE_BANDS,
+  QUARTERS,
   TEAM_GAME_STATS,
   TEAM_GAMES_SHOWN,
   TEAM_STAT_COLUMNS,
@@ -68,9 +69,6 @@ export function compact<T>(value: T): T {
 }
 
 // ---------- Scores ----------
-
-/** Quarters in regulation; a live game's strip lists all of them from tip-off. */
-const QUARTERS = 4;
 
 /** "Q1".."Q4", then "OT", "2OT", ... (period 5 is the first overtime). */
 export function periodLabel(period: number): string {

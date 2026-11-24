@@ -32,13 +32,3 @@ export function pruneAlerts(alerts: TeamAlerts, favorites: readonly string[]): T
   const kept = new Set(favorites);
   return Object.fromEntries(Object.entries(alerts).filter(([key]) => kept.has(key)));
 }
-
-/**
- * Whether `kind` works for `league` yet: reminders do for every league; live scores only for the NHL so far (the
- * rest is #132). One place to widen, so Settings shows per-team switches only where they do something.
- */
-const LIVE_LEAGUES: readonly string[] = ["nhl"];
-
-export function alertsCover(league: string, kind: AlertKind): boolean {
-  return kind === "reminders" || LIVE_LEAGUES.includes(league);
-}

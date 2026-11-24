@@ -6,7 +6,7 @@ import type { LeagueId, Team } from "../../domain";
 import { teamRoute } from "../common/routes";
 import { useSportsData } from "../data/sports-data-context";
 import { usePolled } from "../data/use-polled";
-import { alertsOn, alertsCover, setAlert, type AlertKind } from "../notifications/team-alerts";
+import { alertsOn, setAlert, type AlertKind } from "../notifications/team-alerts";
 import { useSettings } from "../settings/settings-context";
 import { favoriteKey, favoritesFor, leaguesWithFavorites } from "../team/favorites";
 import { findStandingRow } from "../team/team";
@@ -17,8 +17,8 @@ import { TeamLogo } from "./TeamLogo";
 /**
  * Settings › Favourite teams: one block per league, each team a row with its logo and name (from the Standings tab's
  * cached standings, so no extra request once that tab has loaded; the abbreviation until then). Each row can open the
- * team page, switch this team's reminders and live scores on or off (where the league has them and the main switch is
- * on), and remove the team.
+ * team page, switch this team's reminders and live scores on or off (while the main switch is on), and remove the
+ * team.
  */
 export function FavoriteTeamsList({ liveAvailable }: { liveAvailable: boolean }) {
   const colors = useColors();
@@ -63,7 +63,6 @@ function LeagueFavorites({
   const { settings } = useSettings();
   const standings = usePolled(`${league}:standings`, (o) => sports.getStandings(league, o));
   const ids = favoritesFor(league, settings.favoriteTeams);
-  const liveCovered = alertsCover(league, "live");
 
   return (
     <View style={[!first && styles.leagueGap]}>
@@ -79,14 +78,11 @@ function LeagueFavorites({
             key={id}
             team={team}
             last={i === ids.length - 1}
-            reminders={alertsCover(league, "reminders") && settings.remindersEnabled}
-            live={liveCovered && liveAvailable && settings.liveScores}
+            reminders={settings.remindersEnabled}
+            live={liveAvailable && settings.liveScores}
           />
         );
       })}
-      {!liveCovered && liveAvailable && settings.liveScores && (
-        <Text style={[styles.note, { color: colors.muted }]}>Live scores are NHL only for now.</Text>
-      )}
     </View>
   );
 }

@@ -4,7 +4,7 @@ import { AppState } from "react-native";
 import { liveTrackingAvailable, onLiveNotificationTap } from "./live-tracker-native";
 import { startLiveTracking, stopLiveTracking } from "./live-tracker-run";
 import { gameRoute } from "../common/routes";
-import { NHL } from "../data/sports-data-context";
+import { parseFollowKey } from "./live-tracker";
 import { useSettings } from "../settings/settings-context";
 
 /**
@@ -30,5 +30,6 @@ export function useLiveTracking(): void {
     return () => subscription.remove();
   }, [loaded, liveScores, favoriteTeams, settings.teamAlerts]);
 
-  useEffect(() => onLiveNotificationTap((id) => router.push(gameRoute({ id, league: NHL }))), [router]);
+  // Notifications carry "league:game id" (followKey); a bare id is the NHL's.
+  useEffect(() => onLiveNotificationTap((key) => router.push(gameRoute(parseFollowKey(key)))), [router]);
 }

@@ -20,6 +20,7 @@ import {
   LEAGUE,
   SITE_URL,
   STANDINGS_URL,
+  QUARTERS,
 } from "./constants";
 import {
   hasPlayoffStats,
@@ -59,6 +60,8 @@ export class NbaAdapter implements LeagueAdapter {
   readonly league = LEAGUE;
   readonly name = "National Basketball Association";
   readonly gameStartTerm = "Tip-off";
+  // A basket every half minute is too many notifications: late lead changes, overtime and the final instead.
+  readonly liveAlerts = { kind: "lateLeadChanges", regulationPeriods: QUARTERS } as const;
 
   private readonly client: NbaClient;
   private readonly onWarning: (warning: AdapterWarning) => void;
