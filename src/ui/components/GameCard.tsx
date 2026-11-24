@@ -9,6 +9,7 @@ import { channelsFor, channelsLabel, showsChannelsOnCard } from "../game/broadca
 import { useSettings } from "../settings/settings-context";
 import { useSpoilers } from "../spoilers/spoiler-context";
 import { tabular, useColors } from "../theme/theme";
+import { scoreFont } from "../theme/fonts";
 import { useTvRegion } from "../game/use-tv-region";
 import { ChannelLine } from "./ChannelLine";
 import { FlashScore } from "./FlashScore";
@@ -68,7 +69,7 @@ export function GameCard({ game }: { game: Game }) {
             value={side.score}
             live={live && !hidden}
             containerStyle={styles.scoreBox}
-            style={[styles.score, tabular, { color: dim || hidden ? colors.muted : colors.text }]}
+            style={[styles.score, scoreFont, { color: dim || hidden ? colors.muted : colors.text }]}
           >
             {hidden ? "•" : (side.score ?? "-")}
           </FlashScore>
@@ -125,7 +126,7 @@ const styles = StyleSheet.create({
   record: { fontSize: 13, fontWeight: "600", marginRight: 12 },
   // Room for two digits keeps the scores lined up; the number sits at the right and the flash glow hugs it.
   scoreBox: { marginRight: 12, minWidth: 28, alignItems: "flex-end" },
-  score: { fontSize: 20, fontWeight: "700", textAlign: "right" },
+  score: { fontSize: 22, textAlign: "right" },
   status: {
     width: 96,
     alignItems: "center",

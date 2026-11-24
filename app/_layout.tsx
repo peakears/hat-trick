@@ -8,6 +8,7 @@ import { SpoilerProvider } from "../src/ui/spoilers/spoiler-context";
 import { SportsDataProvider } from "../src/ui/data/sports-data-context";
 import { UpdateProvider } from "../src/ui/updates/update-context";
 import { useColors, useScheme } from "../src/ui/theme/theme";
+import { useAppFonts } from "../src/ui/theme/use-app-fonts";
 
 /** Catches a render error anywhere in the app, so a release build never shows a blank screen. */
 export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
@@ -64,6 +65,7 @@ function ThemedStack() {
 }
 
 export default function RootLayout() {
+  useAppFonts();
   return (
     <SettingsProvider>
       <SpoilerProvider>

@@ -20,6 +20,7 @@ import { useSportsData } from "../../../src/ui/data/sports-data-context";
 import { usePageLeague } from "../../../src/ui/data/use-page-league";
 import { boxScoreRoute, teamRoute } from "../../../src/ui/common/routes";
 import { tabular, useColors } from "../../../src/ui/theme/theme";
+import { scoreFont } from "../../../src/ui/theme/fonts";
 import { usePolled } from "../../../src/ui/data/use-polled";
 
 /** A game page that fails to render keeps the header, so Back still returns to the scores. */
@@ -116,15 +117,15 @@ export default function GameScreen() {
                   <FlashScore
                     value={game.away.score}
                     live={live}
-                    style={[styles.score, tabular, { color: colors.text }]}
+                    style={[styles.score, scoreFont, { color: colors.text }]}
                   >
                     {game.away.score ?? "-"}
                   </FlashScore>
-                  <Text style={[styles.score, { color: colors.text }]}>–</Text>
+                  <Text style={[styles.score, scoreFont, { color: colors.muted }]}>–</Text>
                   <FlashScore
                     value={game.home.score}
                     live={live}
-                    style={[styles.score, tabular, { color: colors.text }]}
+                    style={[styles.score, scoreFont, { color: colors.text }]}
                   >
                     {game.home.score ?? "-"}
                   </FlashScore>
@@ -228,7 +229,7 @@ const styles = StyleSheet.create({
   sogLabel: { fontSize: 10, fontWeight: "600", letterSpacing: 0.5 },
   middle: { alignItems: "center", paddingHorizontal: 8, gap: 4 },
   scoreRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  score: { fontSize: 30, fontWeight: "800" },
+  score: { fontSize: 34 },
   hiddenScore: { fontSize: 16, fontWeight: "600" },
   status: { fontSize: 13, fontWeight: "600" },
 });
