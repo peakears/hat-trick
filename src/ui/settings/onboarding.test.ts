@@ -5,12 +5,17 @@ import { RawStandingsResponseSchema } from "../../adapters/nhl/raw-types";
 import type { Standings } from "../../domain";
 import {
   ONBOARDING_STEPS,
+  followedLeagues,
+  leaguesSentence,
+  liveHint,
   nextStep,
   previousStep,
   reminderHint,
   shouldShowOnboarding,
   stepProgress,
+  stepsFor,
   teamsByDivision,
+  toggleFollowedLeague,
 } from "./onboarding";
 
 // The recorded NHL standings (2026-11-17), through the real mapper.
@@ -31,15 +36,24 @@ describe("steps", () => {
     for (let s: (typeof ONBOARDING_STEPS)[number] | null = "welcome"; s; s = nextStep(s)) forward.push(s);
     expect(forward).toEqual([...ONBOARDING_STEPS]);
     expect(previousStep("welcome")).toBeNull();
-    expect(previousStep("teams")).toBe("welcome");
+    expect(previousStep("teams")).toBe("leagues");
     expect(nextStep("done")).toBeNull();
+  });
+
+  it("skips the league step when the app has a single league", () => {
+    const one = stepsFor(1);
+    expect(one).toEqual(["welcome", "teams", "look", "options", "done"]);
+    expect(nextStep("welcome", one)).toBe("teams");
+    expect(previousStep("teams", one)).toBe("welcome");
+    expect(stepsFor(2)).toEqual([...ONBOARDING_STEPS]);
   });
 
   it("counts progress only over the steps with choices", () => {
     expect(stepProgress("welcome")).toBeNull();
     expect(stepProgress("done")).toBeNull();
-    expect(stepProgress("teams")).toEqual({ index: 0, total: 3 });
-    expect(stepProgress("options")).toEqual({ index: 2, total: 3 });
+    expect(stepProgress("leagues")).toEqual({ index: 0, total: 4 });
+    expect(stepProgress("options")).toEqual({ index: 3, total: 4 });
+    expect(stepProgress("teams", stepsFor(1))).toEqual({ index: 0, total: 3 });
   });
 });
 
@@ -97,5 +111,36 @@ describe("teamsByDivision", () => {
       ["South", ["BBB", "ZZZ"]],
     ]);
     expect(teamsByDivision(undefined)).toEqual([]);
+  });
+});
+
+describe("leagues", () => {
+  const both = ["nhl", "nba"];
+
+  it("names the app's leagues in the welcome text", () => {
+    expect(leaguesSentence(["NHL"])).toBe("NHL");
+    expect(leaguesSentence(["NHL", "NBA"])).toBe("NHL and NBA");
+    expect(leaguesSentence(["NHL", "NBA", "MLB"])).toBe("NHL, NBA and MLB");
+  });
+
+  it("shows every league as followed while Scores shows All, else the one it shows", () => {
+    expect(followedLeagues({ scoresAllLeagues: true }, "nhl", both)).toEqual(both);
+    expect(followedLeagues({ scoresAllLeagues: false }, "nba", both)).toEqual(["nba"]);
+  });
+
+  it("turns All on with more than one league, off with one, and never leaves none", () => {
+    // Following the NHL alone, tap the NBA: both, so All.
+    expect(toggleFollowedLeague(["nhl"], "nba", both, "nhl")).toEqual({ league: "nhl", scoresAllLeagues: true });
+    // Following both, drop the NHL: the NBA alone, and the tabs move to it.
+    expect(toggleFollowedLeague(both, "nhl", both, "nhl")).toEqual({ league: "nba", scoresAllLeagues: false });
+    // The last one cannot be turned off.
+    expect(toggleFollowedLeague(["nba"], "nba", both, "nba")).toEqual({ league: "nba", scoresAllLeagues: false });
+  });
+
+  it("explains the live scores switch: the installed app, the permission, a favourite first", () => {
+    expect(liveHint(2, false, false)).toMatch(/installed Android app/);
+    expect(liveHint(2, true, true)).toMatch(/blocked/);
+    expect(liveHint(0, true, false)).toMatch(/favourite team first/);
+    expect(liveHint(1, true, false)).toMatch(/scoring alerts/);
   });
 });
