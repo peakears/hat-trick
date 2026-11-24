@@ -130,6 +130,50 @@ describe("NHL adapter", () => {
       });
     });
 
+    it("counts each period's goals and names the game's standout, live and final", async () => {
+      const games = await fixtureAdapter().adapter.getScores("2026-11-17");
+      const byId = (id: string) => games.find((g) => g.id === id)!;
+      // CGY at SJS, live in the 2nd: one goal each, and nobody has two points yet.
+      expect(byId("2026020343").periods).toEqual([
+        { label: "1st", away: 2, home: 1 },
+        { label: "2nd", away: 1, home: 0 },
+      ]);
+      expect(byId("2026020343").standout).toBeUndefined();
+      // DAL at VGK, scoreless in the 1st intermission.
+      expect(byId("2026020342").periods).toEqual([{ label: "1st", away: 0, home: 0 }]);
+      // EDM won 5-2 at FLA: three Oilers have 3 points; Podkolzin scored twice.
+      expect(byId("2026020335").periods).toEqual([
+        { label: "1st", away: 2, home: 0 },
+        { label: "2nd", away: 2, home: 0 },
+        { label: "3rd", away: 1, home: 2 },
+      ]);
+      expect(byId("2026020335").standout).toEqual({ name: "V. Podkolzin", teamId: "EDM", line: "2 G, 1 A" });
+      expect(byId("2026020339").standout).toEqual({ name: "C. Gauthier", teamId: "ANA", line: "3 G, 1 A" });
+    });
+
+    it("adds a shootout as one more period worth one to the winner, and drops periods that miss a goal", async () => {
+      const { adapter } = fixtureAdapter((_url, body) => {
+        const game = body.games.find((g: any) => g.id === 2026020335);
+        // Make it 5-5 after overtime with no goal in OT, won 6-5 in the shootout.
+        game.periodDescriptor = { number: 5, periodType: "SO", maxRegulationPeriods: 3 };
+        game.gameOutcome = { lastPeriodType: "SO" };
+        for (let i = 0; i < 3; i++) game.goals.push({ ...game.goals[4], period: 3 });
+        game.homeTeam.score = 5;
+        game.awayTeam.score = 6;
+        const live = body.games.find((g: any) => g.id === 2026020343);
+        live.goals.pop();
+      });
+      const games = await adapter.getScores("2026-11-17");
+      expect(games.find((g) => g.id === "2026020335")!.periods?.map((p) => [p.label, p.away, p.home])).toEqual([
+        ["1st", 2, 0],
+        ["2nd", 2, 0],
+        ["3rd", 1, 5],
+        ["OT", 0, 0],
+        ["SO", 1, 0],
+      ]);
+      expect(games.find((g) => g.id === "2026020343")!.periods).toBeUndefined();
+    });
+
     it("maps a final game", async () => {
       const games = await fixtureAdapter().adapter.getScores("2026-11-17");
       const game = games.find((g) => g.id === "2026020333")!;

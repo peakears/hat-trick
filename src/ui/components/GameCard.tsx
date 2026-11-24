@@ -9,8 +9,9 @@ import { channelsFor, channelsLabel, showsChannelsOnCard } from "../game/broadca
 import { useSettings } from "../settings/settings-context";
 import { useSpoilers } from "../spoilers/spoiler-context";
 import { tabular, useColors } from "../theme/theme";
-import { scoreFont } from "../theme/fonts";
+import { scoreFont, scoreFontSemiBold } from "../theme/fonts";
 import { useTvRegion } from "../game/use-tv-region";
+import { showLiveDetail, standoutText } from "../scores/game-card";
 import { ChannelLine } from "./ChannelLine";
 import { FlashScore } from "./FlashScore";
 import { RevealButton } from "./ShieldUi";
@@ -40,6 +41,8 @@ export function GameCard({ game }: { game: Game }) {
   const region = useTvRegion();
   const channels = showsChannelsOnCard(game.status) ? channelsFor(game, region) : [];
   const showScores = game.status !== "scheduled" && game.status !== "postponed";
+  const detail = showLiveDetail(game, hidden);
+  const standout = detail && game.standout ? standoutText(game.standout) : undefined;
 
   const row = (side: GameSide, which: "home" | "away") => {
     const dim = won !== undefined && won !== which;
@@ -89,7 +92,7 @@ export function GameCard({ game }: { game: Game }) {
         { backgroundColor: colors.card, borderColor: colors.cardBorder, opacity: pressed ? 0.7 : 1 },
       ]}
       accessibilityRole={opens ? "button" : undefined}
-      accessibilityLabel={`${game.specialEvent ? `${game.specialEvent}. ` : ""}${game.away.team.name} at ${game.home.team.name}, ${statusLabel}${hidden ? ". Score hidden" : ""}${favoriteNote}${channels.length > 0 ? `. On TV: ${channelsLabel(channels)}` : ""}`}
+      accessibilityLabel={`${game.specialEvent ? `${game.specialEvent}. ` : ""}${game.away.team.name} at ${game.home.team.name}, ${statusLabel}${hidden ? ". Score hidden" : ""}${favoriteNote}${standout ? `. ${standout.spoken}` : ""}${channels.length > 0 ? `. On TV: ${channelsLabel(channels)}` : ""}`}
     >
       <View style={styles.main}>
         <View style={styles.teams}>
@@ -103,6 +106,33 @@ export function GameCard({ game }: { game: Game }) {
           {hidden && <RevealButton label="Show score" onPress={() => spoilers.reveal(game.id)} />}
         </View>
       </View>
+      {detail && (
+        // Each period's score and the standout, live only. Part of the card's spoken label, so hidden from readers.
+        <View style={styles.detail} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
+          {game.periods && game.periods.length > 0 && (
+            <View style={[styles.periods, { backgroundColor: colors.surfaceSunken }]}>
+              <View style={styles.periodColumn}>
+                <Text style={[styles.periodHead, { color: colors.muted }]}> </Text>
+                <Text style={[styles.periodTeam, { color: colors.text }]}>{game.away.team.abbrev}</Text>
+                <Text style={[styles.periodTeam, { color: colors.text }]}>{game.home.team.abbrev}</Text>
+              </View>
+              {game.periods.map((p, i) => (
+                <View key={`${p.label}-${i}`} style={[styles.periodColumn, styles.periodValues]}>
+                  <Text style={[styles.periodHead, { color: colors.muted }]}>{p.label}</Text>
+                  <Text style={[styles.periodValue, scoreFontSemiBold, { color: colors.text }]}>{p.away}</Text>
+                  <Text style={[styles.periodValue, scoreFontSemiBold, { color: colors.text }]}>{p.home}</Text>
+                </View>
+              ))}
+            </View>
+          )}
+          {standout && (
+            <Text numberOfLines={1} style={[styles.standout, { color: colors.text }]}>
+              <Text style={{ color: colors.muted }}>Top performer · </Text>
+              {standout.shown}
+            </Text>
+          )}
+        </View>
+      )}
       <ChannelLine channels={channels} />
     </Pressable>
   );
@@ -135,5 +165,14 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   liveDot: { fontSize: 11, fontWeight: "700" },
+  detail: { gap: 8, paddingHorizontal: 14, paddingBottom: 12 },
+  periods: { flexDirection: "row", borderRadius: 10, paddingVertical: 8, paddingHorizontal: 10, gap: 4 },
+  periodColumn: { gap: 3, minWidth: 40 },
+  periodValues: { flex: 1, alignItems: "center", minWidth: 0 },
+  // One line height for every row, so the team names line up with their numbers.
+  periodHead: { fontSize: 11, lineHeight: 16, fontWeight: "600" },
+  periodTeam: { fontSize: 12, lineHeight: 18, fontWeight: "700" },
+  periodValue: { fontSize: 14, lineHeight: 18 },
+  standout: { fontSize: 13 },
   statusText: { fontSize: 13, fontWeight: "600", textAlign: "center" },
 });

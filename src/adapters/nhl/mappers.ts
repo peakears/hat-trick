@@ -8,10 +8,12 @@ import type {
   GameClock,
   GameEnding,
   GameSide,
+  GameStandout,
   GameStar,
   GameStatus,
   GameVideo,
   Goal,
+  PeriodScore,
   GoalStrength,
   LeaderBoard,
   SpecialEvents,
@@ -33,6 +35,7 @@ import type {
   PenaltyKind,
   Venue,
 } from "../../domain";
+import { periodsMatchingScore } from "../periods";
 import {
   GOALIE_COLUMNS,
   LEADER_LABELS,
@@ -185,7 +188,7 @@ function mapVenue(raw: RawGame): Venue | undefined {
 
 export function mapGame(raw: RawGame): Game {
   const status = mapStatus(raw.gameState);
-  return {
+  const game: Game = {
     id: String(raw.id),
     league: LEAGUE,
     startTime: raw.startTimeUTC,
@@ -198,6 +201,73 @@ export function mapGame(raw: RawGame): Game {
     venue: mapVenue(raw),
     specialEvent: specialEventName(raw.specialEvent),
   };
+  // Only /score lists the goals, so only the Scores list has periods and a standout.
+  if (raw.goals && (status === "live" || status === "final")) {
+    const periods = goalPeriods(raw, game);
+    if (periods) game.periods = periods;
+    const standout = goalStandout(raw.goals);
+    if (standout) game.standout = standout;
+  }
+  return game;
+}
+
+/**
+ * Each period's goals, from the goal list, up to the period being played (or the last one played). A period with no
+ * goals is 0-0. A shootout is one more period, worth one to the winner: what the score has beyond the other periods.
+ */
+function goalPeriods(raw: RawGame, game: Game): PeriodScore[] | undefined {
+  const goals = raw.goals ?? [];
+  const last = raw.periodDescriptor?.number ?? Math.max(0, ...goals.map((g) => g.period));
+  const maxRegulation = raw.periodDescriptor?.maxRegulationPeriods ?? 3;
+  const periods: PeriodScore[] = [];
+  for (let period = 1; period <= last; period++) {
+    const descriptor =
+      period === raw.periodDescriptor?.number
+        ? raw.periodDescriptor
+        : { periodType: period <= maxRegulation ? "REG" : "OT", maxRegulationPeriods: maxRegulation };
+    const label = periodLabel(period, descriptor);
+    if (descriptor.periodType === "SO") {
+      const sum = (side: "away" | "home") => periods.reduce((total, p) => total + p[side], 0);
+      const away = (game.away.score ?? 0) - sum("away");
+      const home = (game.home.score ?? 0) - sum("home");
+      if (away + home !== 1 || away < 0 || home < 0) return undefined;
+      periods.push({ label, away, home });
+      continue;
+    }
+    const inPeriod = goals.filter((g) => g.period === period);
+    periods.push({
+      label,
+      away: inPeriod.filter((g) => g.teamAbbrev === raw.awayTeam.abbrev).length,
+      home: inPeriod.filter((g) => g.teamAbbrev === raw.homeTeam.abbrev).length,
+    });
+  }
+  return periodsMatchingScore(periods, game.away, game.home);
+}
+
+/**
+ * The player with the most points in the game (then goals, then whoever got there first), once someone has two: a
+ * single point does not stand out. Shootout goals do not count.
+ */
+function goalStandout(goals: RawGoal[]): GameStandout | undefined {
+  const tally = new Map<number, { name: string; teamId: string; goals: number; assists: number }>();
+  const add = (id: number, name: string, teamId: string, kind: "goals" | "assists") => {
+    const t = tally.get(id) ?? { name, teamId, goals: 0, assists: 0 };
+    t[kind]++;
+    tally.set(id, t);
+  };
+  for (const g of goals) {
+    if (g.periodDescriptor?.periodType === "SO") continue;
+    add(g.playerId, g.name.default, g.teamAbbrev, "goals");
+    for (const a of g.assists ?? []) add(a.playerId, a.name.default, g.teamAbbrev, "assists");
+  }
+  let best: { name: string; teamId: string; goals: number; assists: number } | undefined;
+  for (const t of tally.values()) {
+    const [points, bestPoints] = [t.goals + t.assists, best ? best.goals + best.assists : 0];
+    if (!best || points > bestPoints || (points === bestPoints && t.goals > best.goals)) best = t;
+  }
+  if (!best || best.goals + best.assists < 2) return undefined;
+  const parts = [best.goals > 0 && `${best.goals} G`, best.assists > 0 && `${best.assists} A`].filter(Boolean);
+  return { name: best.name, teamId: best.teamId, line: parts.join(", ") };
 }
 
 function specialEventName(raw: { name: { default: string } } | undefined): string | undefined {

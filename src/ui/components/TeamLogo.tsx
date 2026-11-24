@@ -14,8 +14,8 @@ export function TeamLogo({ team, size = 32 }: { team: Team; size?: number }) {
   const { settings } = useSettings();
   if (!team.logoUrl || !settings.showLogos) {
     return (
-      <View style={[styles.fallback, { width: size, height: size, borderColor: colors.border }]}>
-        <Text style={{ color: colors.muted, fontSize: size * 0.28, fontWeight: "600" }}>{team.abbrev}</Text>
+      <View style={[styles.fallback, { width: size, height: size, backgroundColor: colors.badge }]}>
+        <Text style={{ color: colors.text, fontSize: size * 0.28, fontWeight: "700" }}>{team.abbrev}</Text>
       </View>
     );
   }
@@ -35,6 +35,5 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderRadius: 999,
-    borderWidth: StyleSheet.hairlineWidth,
   },
 });

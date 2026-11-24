@@ -5,9 +5,11 @@ import type {
   GameClock,
   GameDetail,
   GameSide,
+  GameStandout,
   GameStatus,
   LeaderBoard,
   LeaderEntry,
+  PeriodScore,
   PlayerBio,
   PlayerDetail,
   PlayerGameLine,
@@ -23,6 +25,7 @@ import type {
   Team,
   TeamDetail,
 } from "../../domain";
+import { periodsMatchingScore } from "../periods";
 import {
   LEAGUE,
   PLAYER_CAREER_KEYS,
@@ -167,10 +170,40 @@ function logoTeam(team: { abbreviation: string; displayName: string; logos?: { h
 const seasonRecord = (records: { type: string; summary: string }[] | undefined) =>
   records?.find((r) => r.type === "total")?.summary;
 
+type RawScoreboardCompetitor = RawEvent["competitions"][number]["competitors"][number];
+
+/** Each quarter's points, from both teams' linescores, while live or final. */
+function scoreboardPeriods(game: Game, competitors: RawScoreboardCompetitor[]): PeriodScore[] | undefined {
+  if (game.status !== "live" && game.status !== "final") return undefined;
+  const lines = (homeAway: "home" | "away") => competitors.find((c) => c.homeAway === homeAway)?.linescores ?? [];
+  const [away, home] = [lines("away"), lines("home")];
+  if (away.length !== home.length) return undefined;
+  const periods = away.map((a, i) => ({ label: periodLabel(a.period), away: a.value, home: home[i].value }));
+  return periodsMatchingScore(periods, game.away, game.home);
+}
+
+/** The game's top scorer so far, with their line ("23 PTS, 8 REB") when ESPN rates them their team's best too. */
+function scoreboardStandout(game: Game, competitors: RawScoreboardCompetitor[]): GameStandout | undefined {
+  if (game.status !== "live" && game.status !== "final") return undefined;
+  const leader = (c: RawScoreboardCompetitor, name: string) => c.leaders?.find((l) => l.name === name)?.leaders?.[0];
+  let best: GameStandout | undefined;
+  let bestPoints = 0;
+  for (const c of competitors) {
+    const points = leader(c, "points");
+    if (!points || points.value <= bestPoints) continue;
+    const rating = leader(c, "rating");
+    const line =
+      rating?.athlete.shortName === points.athlete.shortName ? rating.displayValue : `${points.displayValue} PTS`;
+    best = { name: points.athlete.shortName, teamId: c.team.abbreviation, line };
+    bestPoints = points.value;
+  }
+  return best;
+}
+
 export function mapGame(event: RawEvent): Game {
   const competition = event.competitions[0];
   const { type, period, displayClock } = event.status;
-  return buildGame(
+  const game = buildGame(
     event.id,
     event.date,
     { name: type.name, state: type.state, period, displayClock },
@@ -182,6 +215,11 @@ export function mapGame(event: RawEvent): Game {
     })),
     competition.venue,
   );
+  const periods = scoreboardPeriods(game, competition.competitors);
+  if (periods) game.periods = periods;
+  const standout = scoreboardStandout(game, competition.competitors);
+  if (standout) game.standout = standout;
+  return game;
 }
 
 export function mapScoreboard(raw: RawScoreboard): Game[] {
