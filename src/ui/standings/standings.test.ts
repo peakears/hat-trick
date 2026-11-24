@@ -3,7 +3,13 @@ import { describe, expect, it } from "vitest";
 import { mapStandings } from "../../adapters/nhl/mappers";
 import { RawStandingsResponseSchema } from "../../adapters/nhl/raw-types";
 import type { StandingRow, Standings } from "../../domain";
-import { availableStandingsViews, effectiveStandingsView, leagueOrder, standingsSections } from "./standings";
+import {
+  availableStandingsViews,
+  bandIndex,
+  effectiveStandingsView,
+  leagueOrder,
+  standingsSections,
+} from "./standings";
 
 // The recorded NHL standings (2026-11-17), through the real mapper.
 const nhl: Standings = mapStandings(
@@ -129,5 +135,59 @@ describe("standings views", () => {
   it("falls back to Division when the saved view is not available", () => {
     expect(effectiveStandingsView(plain, "conference")).toBe("division");
     expect(effectiveStandingsView(nhl, "conference")).toBe("conference");
+  });
+});
+
+describe("conference bands", () => {
+  const bands = [{ label: "Playoffs", through: 6 }, { label: "Play-in", through: 10 }, { label: "Out" }];
+  const team = (id: string, conferenceRank: number, leagueRank: number): StandingRow => ({
+    team: { id, league: "nba", name: id, abbrev: id },
+    rank: 1,
+    gamesPlayed: 10,
+    wins: 5,
+    losses: 5,
+    conferenceName: "Eastern Conference",
+    divisionName: "Atlantic",
+    conferenceRank,
+    leagueRank,
+  });
+
+  it("puts a position in the first band that reaches it, else the last", () => {
+    expect([1, 6, 7, 10, 11, 15].map((r) => bandIndex(bands, r))).toEqual([0, 0, 1, 1, 2, 2]);
+  });
+
+  it("orders Conference view by the league's seed and labels where each band starts", () => {
+    // League rank disagrees with the seed (a division winner seeded higher): the seed wins.
+    const rows = Array.from({ length: 12 }, (_, i) => team(`T${i + 1}`, i + 1, 12 - i));
+    const standings: Standings = {
+      league: "nba",
+      groups: [{ name: "Atlantic", rows }],
+      conferenceBands: bands,
+      updatedAt: "2026-11-24T00:00:00Z",
+    };
+    const [east] = standingsSections(standings, "conference");
+    expect(east.data.map((d) => d.rank)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
+    expect(east.data.map((d) => d.band)).toEqual([0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2]);
+    expect(east.data.filter((d) => d.bandStart).map((d) => [d.rank, d.bandStart])).toEqual([
+      [7, "Play-in"],
+      [11, "Out"],
+    ]);
+  });
+
+  it("draws no bands without a seed for every team, or without bands", () => {
+    const rows = [team("A", 1, 1), { ...team("B", 2, 2), conferenceRank: undefined }];
+    const standings: Standings = {
+      league: "nba",
+      groups: [{ name: "Atlantic", rows }],
+      conferenceBands: bands,
+      updatedAt: "2026-11-24T00:00:00Z",
+    };
+    expect(standingsSections(standings, "conference")[0].data.every((d) => d.band === undefined)).toBe(true);
+    const noBands = {
+      ...standings,
+      conferenceBands: undefined,
+      groups: [{ name: "Atlantic", rows: [team("A", 1, 1)] }],
+    };
+    expect(standingsSections(noBands, "conference")[0].data[0].band).toBeUndefined();
   });
 });

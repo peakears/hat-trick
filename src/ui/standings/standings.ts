@@ -1,5 +1,5 @@
 // Pure helpers for the Standings tab (no React Native imports; tested in standings.test.ts).
-import type { StandingRow, Standings } from "../../domain";
+import type { StandingRow, Standings, StandingsBand } from "../../domain";
 
 export const STANDINGS_VIEWS = ["division", "conference", "wildcard", "league"] as const;
 export type StandingsView = (typeof STANDINGS_VIEWS)[number];
@@ -18,6 +18,26 @@ export interface StandingsItem {
   row: StandingRow;
   /** Position within the section it is shown in. */
   rank: number;
+  /** Conference view, for a league with conference bands: which band the position is in (0 is the best). */
+  band?: number;
+  /** Set on the first team of every band after the first: the band's label, drawn as a divider above it. */
+  bandStart?: string;
+}
+
+/** Which band a conference position falls in: the first whose `through` reaches it, else the last. */
+export function bandIndex(bands: readonly StandingsBand[], rank: number): number {
+  const i = bands.findIndex((b) => b.through !== undefined && rank <= b.through);
+  return i < 0 ? bands.length - 1 : i;
+}
+
+/** Items with their band, and the band's label on the first item of each band after the first. */
+function withBands(items: StandingsItem[], bands: readonly StandingsBand[] | undefined): StandingsItem[] {
+  if (!bands || bands.length === 0) return items;
+  return items.map((item, i) => {
+    const band = bandIndex(bands, item.rank);
+    const previous = i > 0 ? bandIndex(bands, items[i - 1].rank) : 0;
+    return band > previous ? { ...item, band, bandStart: bands[band].label } : { ...item, band };
+  });
 }
 
 export interface StandingsSection {
@@ -104,12 +124,22 @@ export function standingsSections(standings: Standings | undefined, view: Standi
     }
     return [...conferences.entries()]
       .sort(([a], [b]) => byName(a, b))
-      .map(([name, rows]) => ({
-        key: `conference:${name ?? "other"}`,
-        // The conference is the accent heading, as in Division and Wild card views; teams with none are "Other".
-        ...(name ? { conference: name, title: GROUPLESS_TITLE } : { title: "Other" }),
-        data: rows.map((row, i) => ({ row, rank: i + 1 })),
-      }));
+      .map(([name, rows]) => {
+        // The league's own conference seeding when every team has one (the NBA's, with its tiebreakers), else the
+        // league order within the conference. Only a seeding can carry bands.
+        const seeded = rows.every((r) => r.conferenceRank !== undefined);
+        const items = seeded
+          ? [...rows]
+              .sort((a, b) => a.conferenceRank! - b.conferenceRank!)
+              .map((row) => ({ row, rank: row.conferenceRank! }))
+          : rows.map((row, i) => ({ row, rank: i + 1 }));
+        return {
+          key: `conference:${name ?? "other"}`,
+          // The conference is the accent heading, as in Division and Wild card views; teams with none are "Other".
+          ...(name ? { conference: name, title: GROUPLESS_TITLE } : { title: "Other" }),
+          data: seeded ? withBands(items, standings.conferenceBands) : items,
+        };
+      });
   }
 
   if (view === "wildcard") return wildCardSections(standings);

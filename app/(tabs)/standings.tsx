@@ -98,47 +98,70 @@ export default function StandingsScreen() {
             </View>
           </View>
         )}
-        renderItem={({ item: { row: item, rank }, index, section }) => {
+        renderItem={({ item: { row: item, rank, band, bandStart }, index, section }) => {
           // Wild card view: a heavier line under the last team in a playoff spot.
           const lastIn = section.playoffLine === index + 1 && index + 1 < section.data.length;
+          // Conference view with the league's bands (NBA: playoffs, play-in, out): the band's name, said with the seed.
+          const bandLabel = band !== undefined ? standings.data?.conferenceBands?.[band]?.label : undefined;
           return (
-            <Pressable
-              onPress={opensTeam ? () => router.push(teamRoute(item.team)) : undefined}
-              disabled={!opensTeam}
-              accessibilityRole={opensTeam ? "button" : undefined}
-              accessibilityLabel={`${item.team.name}${lastIn ? ", last wild card spot" : ""}${opensTeam ? ", open team page" : ""}`}
-              style={[
-                styles.row,
-                styles.teamRow,
-                {
-                  backgroundColor: colors.card,
-                  borderBottomColor: lastIn ? colors.muted : colors.border,
-                  // A favourite team gets an accent bar on the left edge.
-                  borderLeftColor: isFavorite(favorites, item.team.id) ? colors.accent : "transparent",
-                },
-                lastIn && styles.playoffLine,
-              ]}
-            >
-              <Text style={[styles.rank, tabular, { color: colors.muted }]}>{rank}</Text>
-              <TeamLogo team={item.team} size={24} />
-              {/* Two lines, so long names ("Golden Knights") wrap on narrow screens instead of being cut off. */}
-              <Text numberOfLines={2} style={[styles.team, { color: colors.text }]}>
-                {item.team.name}
-              </Text>
-              {columns.map((c) => (
+            <View>
+              {bandStart && (
+                <View
+                  style={[styles.band, { backgroundColor: colors.surfaceSunken, borderTopColor: colors.cardBorder }]}
+                >
+                  <Text style={[styles.bandText, { color: colors.muted }]} importantForAccessibility="no">
+                    {bandStart.toUpperCase()}
+                  </Text>
+                </View>
+              )}
+              <Pressable
+                onPress={opensTeam ? () => router.push(teamRoute(item.team)) : undefined}
+                disabled={!opensTeam}
+                accessibilityRole={opensTeam ? "button" : undefined}
+                accessibilityLabel={`${item.team.name}${bandLabel ? `, seed ${rank}, ${bandLabel}` : ""}${lastIn ? ", last wild card spot" : ""}${opensTeam ? ", open team page" : ""}`}
+                style={[
+                  styles.row,
+                  styles.teamRow,
+                  {
+                    backgroundColor: colors.card,
+                    borderBottomColor: lastIn ? colors.muted : colors.border,
+                    // A favourite team gets an accent bar on the left edge.
+                    borderLeftColor: isFavorite(favorites, item.team.id) ? colors.accent : "transparent",
+                  },
+                  lastIn && styles.playoffLine,
+                ]}
+              >
+                {/* The best band's seeds in the accent colour, the rest muted. */}
                 <Text
-                  key={c.label}
                   style={[
-                    styles.num,
+                    styles.rank,
                     tabular,
-                    { width: c.width, color: colors.text },
-                    c.label === "PTS" && styles.bold,
+                    { color: band === 0 ? colors.accent : colors.muted },
+                    band === 0 && styles.bold,
                   ]}
                 >
-                  {c.value(item) ?? "-"}
+                  {rank}
                 </Text>
-              ))}
-            </Pressable>
+                <TeamLogo team={item.team} size={24} />
+                {/* Two lines, so long names ("Golden Knights") wrap on narrow screens instead of being cut off. */}
+                <Text numberOfLines={2} style={[styles.team, { color: colors.text }]}>
+                  {item.team.name}
+                </Text>
+                {columns.map((c) => (
+                  <Text
+                    key={c.label}
+                    style={[
+                      styles.num,
+                      tabular,
+                      { width: c.width, color: colors.text },
+                      c.label === "PTS" && styles.bold,
+                    ]}
+                  >
+                    {c.value(item) ?? "-"}
+                  </Text>
+                ))}
+              </Pressable>
+            </View>
           );
         }}
         ListFooterComponent={<UpdatedAt meta={standings.meta} />}
@@ -160,6 +183,8 @@ const styles = StyleSheet.create({
   },
   teamRow: { borderLeftWidth: 3 },
   playoffLine: { borderBottomWidth: 2 },
+  band: { paddingHorizontal: 12, paddingVertical: 4, borderTopWidth: 1 },
+  bandText: { fontSize: 11, fontWeight: "700", letterSpacing: 0.6 },
   headerRow: { paddingTop: 16 },
   conference: {
     paddingHorizontal: 12,

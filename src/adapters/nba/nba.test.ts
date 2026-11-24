@@ -250,6 +250,22 @@ describe("NBA adapter", () => {
   });
 
   describe("standings", () => {
+    it("seeds each conference and bands the seeds: playoffs, play-in, out", async () => {
+      const standings = await fixtureAdapter().adapter.getStandings();
+      expect(standings.conferenceBands).toEqual([
+        { label: "Playoffs", through: 6 },
+        { label: "Play-in", through: 10 },
+        { label: "Out" },
+      ]);
+      const east = standings.groups
+        .flatMap((g) => g.rows)
+        .filter((r) => r.conferenceName === "Eastern Conference")
+        .sort((a, b) => a.conferenceRank! - b.conferenceRank!);
+      expect(east.map((r) => r.conferenceRank)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]);
+      expect(east.slice(0, 3).map((r) => r.team.id)).toEqual(["PHI", "BOS", "ATL"]);
+      expect(east[14].team.id).toBe("MIL");
+    });
+
     it("groups teams by division, in the league's order", async () => {
       const standings = await fixtureAdapter().adapter.getStandings();
       expect(standings.groups.map((g) => g.name)).toEqual([

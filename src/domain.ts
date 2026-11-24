@@ -368,6 +368,8 @@ export interface StandingRow {
   conferenceName?: string;
   /** Position in the whole league (the league's own tiebreakers), 1-based. */
   leagueRank?: number;
+  /** Position in the conference (the league's own seeding and tiebreakers), 1-based. */
+  conferenceRank?: number;
   /**
    * Position in the conference wild card race (the league's own tiebreakers), 1-based. Undefined for a team that
    * holds one of its division's playoff spots, and for leagues without wild cards.
@@ -380,11 +382,23 @@ export interface StandingsGroup {
   rows: StandingRow[];
 }
 
+export interface StandingsBand {
+  label: string;
+  /** The last conference position in the band; absent on the last band, which holds the rest. */
+  through?: number;
+}
+
 export interface Standings {
   league: LeagueId;
   groups: StandingsGroup[];
   /** Wild card playoff spots per conference (2 in the NHL); undefined for leagues without wild cards. */
   wildCardSpots?: number;
+  /**
+   * What a conference position means, best first: each band holds the positions up to its `through` (the last one
+   * holds the rest). The NBA's: "Playoffs" through 6, "Play-in" through 10, then "Out". Undefined for leagues whose
+   * conference rank decides nothing on its own (the NHL's playoff spots are by division and wild card).
+   */
+  conferenceBands?: StandingsBand[];
   updatedAt: string;
 }
 

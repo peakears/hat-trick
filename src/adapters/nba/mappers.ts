@@ -35,6 +35,7 @@ import {
   PLAYER_GAME_COLUMNS,
   PLAYER_LAST_GAMES,
   PLAYER_SEASON_COLUMNS,
+  CONFERENCE_BANDS,
   TEAM_GAME_STATS,
   TEAM_GAMES_SHOWN,
   TEAM_STAT_COLUMNS,
@@ -292,7 +293,12 @@ export function mapStandings(raw: RawStandings, now: Date): Standings {
       const entries = [...division.standings.entries].sort((a, b) => seed(a) - seed(b));
       groups.push({
         name: division.name,
-        rows: entries.map((e, i) => standingRow(e, i + 1, division.name, conference.name)),
+        rows: entries.map((e, i) => {
+          const row = standingRow(e, i + 1, division.name, conference.name);
+          const s = seed(e);
+          if (s !== Number.MAX_SAFE_INTEGER) row.conferenceRank = s;
+          return row;
+        }),
       });
     }
   }
@@ -308,7 +314,7 @@ export function mapStandings(raw: RawStandings, now: Date): Standings {
         (b.winPercent ?? 0) - (a.winPercent ?? 0) || (seedOf.get(a.team.id) ?? 0) - (seedOf.get(b.team.id) ?? 0),
     )
     .forEach((row, i) => (row.leagueRank = i + 1));
-  return compact({ league: LEAGUE, groups, updatedAt: now.toISOString() });
+  return compact({ league: LEAGUE, groups, conferenceBands: CONFERENCE_BANDS, updatedAt: now.toISOString() });
 }
 
 // ---------- Leaders ----------
