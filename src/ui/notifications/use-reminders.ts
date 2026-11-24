@@ -8,6 +8,7 @@ import { applyReminders, cancelAllReminders, hasReminderPermission } from "./rem
 import { useSettings } from "../settings/settings-context";
 import { NHL, useSportsData } from "../data/sports-data-context";
 import { favoritesFor } from "../team/favorites";
+import { favoritesWithAlert } from "./team-alerts";
 import { gameRoute } from "../common/routes";
 
 /** How many days ahead to look for favourite teams' games (today plus the next six). */
@@ -22,8 +23,11 @@ export function useReminderSync(): void {
   const sports = useSportsData();
   const { settings, loaded } = useSettings();
   const { remindersEnabled, reminderLeadMinutes } = settings;
-  // Reminders are NHL only for now (#132), so they read the NHL's favourites.
-  const favoriteTeams = useMemo(() => favoritesFor(NHL, settings.favoriteTeams), [settings.favoriteTeams]);
+  // Reminders are NHL only for now (#132), so they read the NHL's favourites, less those switched off in Settings.
+  const favoriteTeams = useMemo(
+    () => favoritesFor(NHL, favoritesWithAlert(settings.favoriteTeams, settings.teamAlerts, "reminders")),
+    [settings.favoriteTeams, settings.teamAlerts],
+  );
   const [foregrounded, setForegrounded] = useState(0);
 
   useEffect(() => {

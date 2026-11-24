@@ -32,7 +32,8 @@ Notifications.setNotificationHandler({
 async function ensureChannel(): Promise<void> {
   if (Platform.OS !== "android") return;
   await Notifications.setNotificationChannelAsync(CHANNEL_ID, {
-    name: "Puck drop reminders",
+    // Only the name people see changes: the channel id stays, so reminders already scheduled keep their channel.
+    name: "Game start reminders",
     importance: Notifications.AndroidImportance.DEFAULT,
   });
 }

@@ -35,6 +35,7 @@ describe("parseSettings", () => {
       onboardingComplete: false,
       league: "nhl",
       scoresAllLeagues: true,
+      teamAlerts: {},
     });
   });
 
@@ -72,6 +73,7 @@ describe("parseSettings", () => {
       onboardingComplete: true,
       league: "nhl",
       scoresAllLeagues: true,
+      teamAlerts: {},
     });
     expect(parseSettings(JSON.stringify({ theme: "purple", showBetting: true }))).toEqual({
       theme: "system",
@@ -91,6 +93,7 @@ describe("parseSettings", () => {
       onboardingComplete: true,
       league: "nhl",
       scoresAllLeagues: true,
+      teamAlerts: {},
     });
   });
 
@@ -169,9 +172,20 @@ describe("loadSettings / saveSettings", () => {
       onboardingComplete: true,
       league: "nba",
       scoresAllLeagues: false,
+      teamAlerts: { "nhl:TOR": { live: false } },
     };
     await saveSettings(store, settings);
     expect(await loadSettings(store)).toEqual(settings);
+  });
+
+  it("keeps the alerts switched off per team, dropping an entry it cannot read rather than the whole setting", () => {
+    const parsed = parseSettings(
+      JSON.stringify({
+        teamAlerts: { "nhl:TOR": { live: false }, "nba:BOS": { reminders: "nope" }, "nhl:MTL": {} },
+      }),
+    ).teamAlerts;
+    expect(parsed).toEqual({ "nhl:TOR": { live: false } });
+    expect(parseSettings(JSON.stringify({ teamAlerts: [1, 2] })).teamAlerts).toEqual({});
   });
 
   it("shows every league on Scores unless one was picked there", () => {

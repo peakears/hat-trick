@@ -28,7 +28,7 @@ export function useLiveTracking(): void {
       if (next === "active") startLiveTracking().catch(() => {});
     });
     return () => subscription.remove();
-  }, [loaded, liveScores, favoriteTeams]);
+  }, [loaded, liveScores, favoriteTeams, settings.teamAlerts]);
 
   useEffect(() => onLiveNotificationTap((id) => router.push(gameRoute({ id, league: NHL }))), [router]);
 }
