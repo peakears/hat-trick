@@ -1,6 +1,16 @@
 import { describe, expect, it } from "vitest";
 import { statValue } from "../common/format";
-import { LEADERS_MAX, LEADERS_SHOWN, leaderSectionKey, leaderValue, spotlightDetail, visibleLeaders } from "./leaders";
+import {
+  LEADERS_MAX,
+  LEADERS_SHOWN,
+  leadLine,
+  leaderBarShare,
+  leaderSectionKey,
+  leaderValue,
+  lowerIsBetter,
+  spotlightDetail,
+  visibleLeaders,
+} from "./leaders";
 
 const list = (n: number) => Array.from({ length: n }, (_, i) => i + 1);
 
@@ -56,5 +66,33 @@ describe("leaderValue decimals", () => {
     expect(leaderValue(37.2, undefined, statValue, 1)).toBe("37.2");
     expect(leaderValue(30, undefined, statValue, 1)).toBe("30.0");
     expect(leaderValue(0.5, "percent", statValue, 1)).toBe("50.0%");
+  });
+});
+
+describe("leader bars and lead", () => {
+  const points = [{ value: 42 }, { value: 26 }, { value: 21 }];
+  const gaa = [{ value: 1.85 }, { value: 2.1 }, { value: 3.7 }];
+  const fmt = (v: number) => String(Math.round(v * 100) / 100);
+
+  it("reads which way a board runs from its order", () => {
+    expect(lowerIsBetter(points)).toBe(false);
+    expect(lowerIsBetter(gaa)).toBe(true);
+    expect(lowerIsBetter([{ value: 1 }])).toBe(false);
+  });
+
+  it("sizes bars against the leader, inverted when lower is better", () => {
+    expect(leaderBarShare(42, points)).toBe(1);
+    expect(leaderBarShare(21, points)).toBe(0.5);
+    expect(leaderBarShare(3.7, gaa)).toBeCloseTo(0.5, 5);
+    expect(leaderBarShare(0, [{ value: 0 }, { value: 0 }])).toBe(1);
+  });
+
+  it("says how far ahead the leader is, in the board's format, or that they are tied", () => {
+    expect(leadLine(points, undefined, fmt)).toBe("Leads by 16");
+    expect(leadLine([{ value: 37.2 }, { value: 31.7 }], undefined, fmt, 1)).toBe("Leads by 5.5");
+    expect(leadLine([{ value: 0.932 }, { value: 0.931 }], "percent", fmt)).toBe("Leads by 0.1%");
+    expect(leadLine([{ value: 25 }, { value: 25 }], undefined, fmt)).toBe("Tied for first");
+    expect(leadLine([{ value: 0.9321 }, { value: 0.932 }], "percent", fmt)).toBe("Tied for first");
+    expect(leadLine([{ value: 5 }], undefined, fmt)).toBeUndefined();
   });
 });
