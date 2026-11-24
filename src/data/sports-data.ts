@@ -226,7 +226,7 @@ export class SportsData {
     return this.registry.get(league).leaderGroups ?? [{ id: "leaders", label: "Leaders" }];
   }
 
-  /** The league's full name ("National Hockey League"), for the league menu. */
+  /** The league's full name ("National Hockey League"), for the league row. */
   leagueName(league: LeagueId): string {
     return this.registry.get(league).name;
   }

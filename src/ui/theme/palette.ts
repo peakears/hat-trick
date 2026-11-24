@@ -19,8 +19,6 @@ export interface Colors {
   live: string;
   banner: string;
   bannerText: string;
-  /** Dims the screen behind a menu; drawn at SCRIM_OPACITY. */
-  scrim: string;
   /** A panel set into a card or the page (points by period, a segmented control's track): `text` and `muted` read on it. */
   surfaceSunken: string;
   /** The circle behind a team's or player's abbreviation when there is no logo or photo; `text` reads on it. */
@@ -31,9 +29,6 @@ export interface Colors {
   /** Good news in text: a win streak. */
   win: string;
 }
-
-/** How strongly `scrim` dims the screen behind a menu. */
-export const SCRIM_OPACITY = 0.35;
 
 export type Scheme = "light" | "dark" | "black";
 
@@ -50,7 +45,6 @@ const BASES: Record<Scheme, Base> = {
     live: "#c81e1e",
     banner: "#fef3c7",
     bannerText: "#78350f",
-    scrim: "#000000",
     surfaceSunken: "#eceef1",
     badge: "#e3e6ea",
     chipSelected: "#14171a",
@@ -67,7 +61,6 @@ const BASES: Record<Scheme, Base> = {
     live: "#f87171",
     banner: "#3b2f12",
     bannerText: "#fde68a",
-    scrim: "#000000",
     surfaceSunken: "#16181c",
     badge: "#2b3038",
     chipSelected: "#f2f3f5",
@@ -86,7 +79,6 @@ const BASES: Record<Scheme, Base> = {
     live: "#f87171",
     banner: "#2a210c",
     bannerText: "#fde68a",
-    scrim: "#000000",
     surfaceSunken: "#0a0b0d",
     badge: "#22252b",
     chipSelected: "#f2f3f5",
