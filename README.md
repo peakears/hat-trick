@@ -107,8 +107,6 @@ Planned (each links to its issue):
 - [Betting odds](https://github.com/peakears/hat-trick/issues/7), if a usable source exists (off by default)
 - [More customization](https://github.com/peakears/hat-trick/issues/53) in Settings (colours, what each game card shows)
 - [Alternate app icons](https://github.com/peakears/hat-trick/issues/9), picked in Settings
-- [A redesign for more than one league](https://github.com/peakears/hat-trick/issues/139): a league row on each tab, an All view on Scores, new game cards, and a guide to adding a league
-- [Favourites, reminders and live scores for the NBA](https://github.com/peakears/hat-trick/issues/132)
 - [More leagues](https://github.com/peakears/hat-trick/issues/8) (NFL; golf later)
 
 See the [changelog](CHANGELOG.md) for what changed in each release.
