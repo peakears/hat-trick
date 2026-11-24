@@ -278,8 +278,7 @@ function TeamsStep() {
       ) : groups.length === 0 ? (
         <View style={[styles.padded, styles.errorBox]}>
           <Text style={[styles.subtitle, { color: colors.text }]}>
-            Couldn't load the teams. Check your connection, or skip this step and star teams later from the Standings
-            tab.
+            Couldn't load the teams. Check your connection, or skip this step and star teams later on their team pages.
           </Text>
           <Pressable onPress={standings.refresh} accessibilityRole="button" hitSlop={8}>
             <Text style={[styles.link, { color: colors.accent }]}>Try again</Text>
