@@ -16,7 +16,7 @@ import {
 } from "../src/ui/components/SettingsRows";
 import { TeamGridSkeleton } from "../src/ui/components/Skeleton";
 import { TeamLogo } from "../src/ui/components/TeamLogo";
-import { isFavorite } from "../src/ui/team/favorites";
+import { favoritesFor, favoritesLabel, isFavorite } from "../src/ui/team/favorites";
 import {
   nextStep,
   previousStep,
@@ -230,10 +230,10 @@ function TeamsStep() {
 function TeamTile({ team }: { team: Team }) {
   const colors = useColors();
   const { settings, toggleFavoriteTeam } = useSettings();
-  const picked = isFavorite(settings.favoriteTeams, team.id);
+  const picked = isFavorite(favoritesFor(NHL, settings.favoriteTeams), team.id);
   return (
     <Pressable
-      onPress={() => toggleFavoriteTeam(team.id)}
+      onPress={() => toggleFavoriteTeam(NHL, team.id)}
       accessibilityRole="checkbox"
       accessibilityState={{ checked: picked }}
       accessibilityLabel={team.name}
@@ -348,7 +348,7 @@ function DoneStep() {
         title="You're all set"
         detail={
           teams.length > 0
-            ? `Following ${teams.join(", ")}. Change this or anything else in Settings.`
+            ? `Following ${favoritesLabel(teams)}. Change this or anything else in Settings.`
             : "Star a team any time from Standings or a game page. Everything else is in Settings."
         }
       />

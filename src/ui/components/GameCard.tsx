@@ -8,7 +8,8 @@ import { gameRoute } from "../common/routes";
 import { channelsFor, channelsLabel, showsChannelsOnCard } from "../game/broadcasts";
 import { useSettings } from "../settings/settings-context";
 import { useSpoilers } from "../spoilers/spoiler-context";
-import { tabular, useColors } from "../theme/theme";
+import { tabular, useColors, useScheme } from "../theme/theme";
+import { leagueTint } from "../theme/palette";
 import { scoreFont, scoreFontSemiBold } from "../theme/fonts";
 import { useTvRegion } from "../game/use-tv-region";
 import { showLiveDetail, standoutText } from "../scores/game-card";
@@ -18,9 +19,13 @@ import { RevealButton } from "./ShieldUi";
 import { SpecialEventTag } from "./SpecialEventTag";
 import { TeamLogo } from "./TeamLogo";
 
-/** One game in the scores list: away team on top, home below, status on the right. */
-export function GameCard({ game }: { game: Game }) {
+/**
+ * One game in the scores list: away team on top, home below, status on the right. `showLeague` names the league
+ * above the teams, for a list that mixes leagues ("Your teams" in the All view).
+ */
+export function GameCard({ game, showLeague = false }: { game: Game; showLeague?: boolean }) {
   const colors = useColors();
+  const scheme = useScheme();
   const router = useRouter();
   const { settings } = useSettings();
   const sports = useSportsData();
@@ -96,6 +101,9 @@ export function GameCard({ game }: { game: Game }) {
     >
       <View style={styles.main}>
         <View style={styles.teams}>
+          {showLeague && (
+            <Text style={[styles.league, { color: leagueTint(game.league, scheme) }]}>{game.league.toUpperCase()}</Text>
+          )}
           <SpecialEventTag name={game.specialEvent} />
           {row(game.away, "away")}
           {row(game.home, "home")}
@@ -165,6 +173,7 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   liveDot: { fontSize: 11, fontWeight: "700" },
+  league: { fontSize: 11, fontWeight: "700", letterSpacing: 0.5, marginBottom: -4 },
   detail: { gap: 8, paddingHorizontal: 14, paddingBottom: 12 },
   periods: { flexDirection: "row", borderRadius: 10, paddingVertical: 8, paddingHorizontal: 10, gap: 4 },
   periodColumn: { gap: 3, minWidth: 40 },

@@ -1,7 +1,7 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Pressable } from "react-native";
 import type { Team } from "../../domain";
-import { isFavorite } from "../team/favorites";
+import { favoritesFor, isFavorite } from "../team/favorites";
 import { useSettings } from "../settings/settings-context";
 import { useColors } from "../theme/theme";
 
@@ -9,11 +9,11 @@ import { useColors } from "../theme/theme";
 export function FavoriteStar({ team, size = 22 }: { team: Team; size?: number }) {
   const colors = useColors();
   const { settings, toggleFavoriteTeam } = useSettings();
-  const favorite = isFavorite(settings.favoriteTeams, team.id);
+  const favorite = isFavorite(favoritesFor(team.league, settings.favoriteTeams), team.id);
 
   return (
     <Pressable
-      onPress={() => toggleFavoriteTeam(team.id)}
+      onPress={() => toggleFavoriteTeam(team.league, team.id)}
       hitSlop={10}
       accessibilityRole="button"
       accessibilityLabel={favorite ? `Remove ${team.name} from favourites` : `Add ${team.name} to favourites`}

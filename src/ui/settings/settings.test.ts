@@ -34,6 +34,7 @@ describe("parseSettings", () => {
       standingsView: "division",
       onboardingComplete: false,
       league: "nhl",
+      scoresAllLeagues: true,
     });
   });
 
@@ -70,6 +71,7 @@ describe("parseSettings", () => {
       standingsView: "division",
       onboardingComplete: true,
       league: "nhl",
+      scoresAllLeagues: true,
     });
     expect(parseSettings(JSON.stringify({ theme: "purple", showBetting: true }))).toEqual({
       theme: "system",
@@ -88,6 +90,7 @@ describe("parseSettings", () => {
       standingsView: "division",
       onboardingComplete: true,
       league: "nhl",
+      scoresAllLeagues: true,
     });
   });
 
@@ -112,11 +115,11 @@ describe("parseSettings", () => {
     });
   });
 
-  it("keeps stored favourite teams, drops duplicates, and defaults a bad value to none", () => {
-    expect(parseSettings(JSON.stringify({ favoriteTeams: ["TOR", "MTL", "TOR"] })).favoriteTeams).toEqual([
-      "TOR",
-      "MTL",
-    ]);
+  it("keeps stored favourite teams with their league, drops duplicates, and defaults a bad value to none", () => {
+    // Bare ids were saved by a version before favourites had a league: they are the NHL's.
+    expect(
+      parseSettings(JSON.stringify({ favoriteTeams: ["TOR", "MTL", "nhl:TOR", "nba:BOS"] })).favoriteTeams,
+    ).toEqual(["nhl:TOR", "nhl:MTL", "nba:BOS"]);
     expect(parseSettings(JSON.stringify({ favoriteTeams: "TOR" })).favoriteTeams).toEqual([]);
     expect(parseSettings(JSON.stringify({ favoriteTeams: ["TOR", 7] })).favoriteTeams).toEqual([]);
   });
@@ -154,7 +157,7 @@ describe("loadSettings / saveSettings", () => {
       accent: "purple",
       showLogos: false,
       showBetting: true,
-      favoriteTeams: ["TOR"],
+      favoriteTeams: ["nhl:TOR", "nba:BOS"],
       remindersEnabled: true,
       reminderLeadMinutes: 15,
       liveScores: true,
@@ -165,9 +168,16 @@ describe("loadSettings / saveSettings", () => {
       standingsView: "conference",
       onboardingComplete: true,
       league: "nba",
+      scoresAllLeagues: false,
     };
     await saveSettings(store, settings);
     expect(await loadSettings(store)).toEqual(settings);
+  });
+
+  it("shows every league on Scores unless one was picked there", () => {
+    expect(DEFAULT_SETTINGS.scoresAllLeagues).toBe(true);
+    expect(parseSettings(JSON.stringify({ scoresAllLeagues: false })).scoresAllLeagues).toBe(false);
+    expect(parseSettings(JSON.stringify({ scoresAllLeagues: "no" })).scoresAllLeagues).toBe(true);
   });
 
   it("falls back to defaults, with setup done, when the store throws", async () => {

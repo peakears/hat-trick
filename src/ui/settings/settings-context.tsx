@@ -1,6 +1,7 @@
 import * as SplashScreen from "expo-splash-screen";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Appearance } from "react-native";
+import type { LeagueId } from "../../domain";
 import { AsyncStorageStore } from "../data/async-storage-store";
 import { toggleFavorite } from "../team/favorites";
 import { DEFAULT_SETTINGS, colorSchemeOverride, loadSettings, saveSettings, type Settings } from "./settings";
@@ -16,7 +17,7 @@ interface SettingsContextValue {
   loaded: boolean;
   update: (patch: Partial<Settings>) => void;
   /** Stars the team, or un-stars it if it already is a favourite. */
-  toggleFavoriteTeam: (teamId: string) => void;
+  toggleFavoriteTeam: (league: LeagueId, teamId: string) => void;
 }
 
 const SettingsContext = createContext<SettingsContextValue | null>(null);
@@ -53,7 +54,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   );
 
   const toggleFavoriteTeam = useCallback(
-    (teamId: string) => update({ favoriteTeams: toggleFavorite(settings.favoriteTeams, teamId) }),
+    (league: LeagueId, teamId: string) =>
+      update({ favoriteTeams: toggleFavorite(settings.favoriteTeams, league, teamId) }),
     [settings.favoriteTeams, update],
   );
 
