@@ -1,12 +1,13 @@
 import * as Notifications from "expo-notifications";
 import { useRouter } from "expo-router";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AppState } from "react-native";
 import { addDays, scoresToday } from "../common/format";
 import { planReminders } from "./reminders";
 import { applyReminders, cancelAllReminders, hasReminderPermission } from "./reminders-native";
 import { useSettings } from "../settings/settings-context";
 import { NHL, useSportsData } from "../data/sports-data-context";
+import { favoritesFor } from "../team/favorites";
 import { gameRoute } from "../common/routes";
 
 /** How many days ahead to look for favourite teams' games (today plus the next six). */
@@ -20,7 +21,9 @@ const LOOKAHEAD_DAYS = 7;
 export function useReminderSync(): void {
   const sports = useSportsData();
   const { settings, loaded } = useSettings();
-  const { remindersEnabled, favoriteTeams, reminderLeadMinutes } = settings;
+  const { remindersEnabled, reminderLeadMinutes } = settings;
+  // Reminders are NHL only for now (#132), so they read the NHL's favourites.
+  const favoriteTeams = useMemo(() => favoritesFor(NHL, settings.favoriteTeams), [settings.favoriteTeams]);
   const [foregrounded, setForegrounded] = useState(0);
 
   useEffect(() => {

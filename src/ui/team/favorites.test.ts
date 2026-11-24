@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
 import type { Game, GameStatus } from "../../domain";
-import { favoritesFor, hasFavorites, involvesFavorite, isFavorite, toggleFavorite } from "./favorites";
+import {
+  favoritesFor,
+  favoritesLabel,
+  involvesFavorite,
+  isFavorite,
+  leaguesWithFavorites,
+  normalizeFavorites,
+  toggleFavorite,
+} from "./favorites";
 import { sortGamesForScores } from "../common/format";
 
 function game(id: string, status: GameStatus, startTime: string, away: string, home: string): Game {
@@ -17,15 +25,21 @@ function game(id: string, status: GameStatus, startTime: string, away: string, h
 
 describe("toggleFavorite", () => {
   it("adds a team that is not a favourite and removes one that is", () => {
-    expect(toggleFavorite([], "TOR")).toEqual(["TOR"]);
-    expect(toggleFavorite(["TOR"], "MTL")).toEqual(["TOR", "MTL"]);
-    expect(toggleFavorite(["TOR", "MTL"], "TOR")).toEqual(["MTL"]);
+    expect(toggleFavorite([], "nhl", "TOR")).toEqual(["nhl:TOR"]);
+    expect(toggleFavorite(["nhl:TOR"], "nhl", "MTL")).toEqual(["nhl:TOR", "nhl:MTL"]);
+    expect(toggleFavorite(["nhl:TOR", "nhl:MTL"], "nhl", "TOR")).toEqual(["nhl:MTL"]);
+  });
+
+  it("keeps a team apart from another league's team with the same abbreviation", () => {
+    const both = toggleFavorite(["nhl:BOS"], "nba", "BOS");
+    expect(both).toEqual(["nhl:BOS", "nba:BOS"]);
+    expect(toggleFavorite(both, "nhl", "BOS")).toEqual(["nba:BOS"]);
   });
 
   it("returns a new list and does not mutate the input", () => {
-    const favorites = ["TOR"];
-    expect(toggleFavorite(favorites, "MTL")).not.toBe(favorites);
-    expect(favorites).toEqual(["TOR"]);
+    const favorites = ["nhl:TOR"];
+    expect(toggleFavorite(favorites, "nhl", "MTL")).not.toBe(favorites);
+    expect(favorites).toEqual(["nhl:TOR"]);
   });
 });
 
@@ -61,15 +75,23 @@ describe("sortGamesForScores with favourites", () => {
 });
 
 describe("favoritesFor", () => {
-  it("applies favourites to the NHL only, as other leagues reuse abbreviations", () => {
-    expect(favoritesFor("nhl", ["BOS", "TOR"])).toEqual(["BOS", "TOR"]);
-    expect(favoritesFor("nba", ["BOS", "TOR"])).toEqual([]);
+  it("gives each league its own teams, so BOS is the Bruins in one and the Celtics in the other", () => {
+    const favorites = ["nhl:BOS", "nhl:TOR", "nba:BOS"];
+    expect(favoritesFor("nhl", favorites)).toEqual(["BOS", "TOR"]);
+    expect(favoritesFor("nba", favorites)).toEqual(["BOS"]);
+    expect(favoritesFor("nfl", favorites)).toEqual([]);
+  });
+
+  it("reads bare ids from an older version as the NHL's", () => {
+    expect(favoritesFor("nhl", ["TOR"])).toEqual(["TOR"]);
+    expect(normalizeFavorites(["TOR", "nhl:TOR", "", "nba:", "nba:DEN"])).toEqual(["nhl:TOR", "nba:DEN"]);
   });
 });
 
-describe("hasFavorites", () => {
-  it("is the NHL only, as favourites are bare team ids picked from NHL teams", () => {
-    expect(hasFavorites("nhl")).toBe(true);
-    expect(hasFavorites("nba")).toBe(false);
+describe("favourites across leagues", () => {
+  it("lists the leagues with a favourite and labels them for Settings", () => {
+    expect(leaguesWithFavorites(["nhl:TOR", "nba:DEN", "nhl:MTL"])).toEqual(["nhl", "nba"]);
+    expect(favoritesLabel(["nhl:TOR", "nhl:MTL"])).toBe("TOR, MTL");
+    expect(favoritesLabel(["nhl:TOR", "nba:DEN", "nhl:MTL"])).toBe("NHL: TOR, MTL · NBA: DEN");
   });
 });

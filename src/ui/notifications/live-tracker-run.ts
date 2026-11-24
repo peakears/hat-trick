@@ -9,6 +9,7 @@ import { scoresToday } from "../common/format";
 import { followUpdate, gamesToFollow, ongoingSummary, TRACK_POLL_MS, type FollowState } from "./live-tracker";
 import { liveTrackingAvailable, postAlert, registerLiveService, showOngoing, stopOngoing } from "./live-tracker-native";
 import { getServices, NHL } from "../data/sports-data-context";
+import { favoritesFor } from "../team/favorites";
 import { createWaiter, KEEP_AWAKE_MS } from "./live-wait";
 import { allowSleep, backgroundSleep, keepAwake } from "./background-wait-native";
 
@@ -35,7 +36,9 @@ export function registerLiveTracking(): void {
 }
 
 /** Whether a check should follow anything: the setting is on and a favourite is set. */
-const wanted = (s: Settings) => s.liveScores && s.favoriteTeams.length > 0;
+// Live scores are NHL only for now (#132), so they follow the NHL's favourites.
+const nhlFavorites = (s: Settings) => favoritesFor(NHL, s.favoriteTeams);
+const wanted = (s: Settings) => s.liveScores && nhlFavorites(s).length > 0;
 
 /**
  * Starts following if a favourite's game is live or about to start and the setting is on. Called by the app when
@@ -48,7 +51,7 @@ export async function startLiveTracking(): Promise<void> {
   const settings = await loadSettings(store);
   if (!wanted(settings)) return;
   const scores = await data.getScores(NHL, scoresToday()).catch(() => undefined);
-  const games = gamesToFollow(scores?.data ?? [], settings.favoriteTeams, Date.now()).filter(
+  const games = gamesToFollow(scores?.data ?? [], nhlFavorites(settings), Date.now()).filter(
     (g) => !stoppedGames.has(g.id),
   );
   if (games.length === 0 || running) return;
@@ -78,7 +81,7 @@ async function runLoop(): Promise<void> {
       if (!wanted(settings)) break;
       const now = Date.now();
       const scores = await data.getScores(NHL, scoresToday()).catch(() => undefined);
-      for (const game of gamesToFollow(scores?.data ?? [], settings.favoriteTeams, now)) {
+      for (const game of gamesToFollow(scores?.data ?? [], nhlFavorites(settings), now)) {
         if (!stoppedGames.has(game.id) && !followed.has(game.id)) followed.set(game.id, undefined);
       }
 

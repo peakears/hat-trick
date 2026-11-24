@@ -3,8 +3,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { LeagueId } from "../../domain";
 import { useSportsData } from "../data/sports-data-context";
 import { useLeague } from "../data/use-league";
-import { usePolled } from "../data/use-polled";
-import { dayCount, leagueChipLabel, leagueChipSpoken, showLeagueRow, type DayCount } from "../leagues/league-row";
+import { leagueChipLabel, leagueChipSpoken, showLeagueRow, type DayCount } from "../leagues/league-row";
 import { useSettings } from "../settings/settings-context";
 import { scoreFontSemiBold } from "../theme/fonts";
 import { DIVIDER, useColors } from "../theme/theme";
@@ -14,27 +13,34 @@ import { DIVIDER, useColors } from "../theme/theme";
  * filled. The pick is a setting, so all three tabs follow it and it survives a restart. With a single league the
  * bar keeps only the status bar's space.
  *
- * On Scores, pass `date`: each chip then shows that day's game count and a dot when a game is live. A chip reads
- * the same cache entry as the Scores list (`{league}:scores:{date}`), so the picked league costs no extra request,
- * and switching to another league shows its games at once.
+ * Scores passes `counts` (each league's games on the day it shows, which it loads anyway) and `all`, the "All" chip
+ * that lists every league's games. Picking a league there turns "All" off.
  */
-export function LeagueBar({ date }: { date?: string }) {
+export function LeagueBar({
+  counts,
+  all,
+}: {
+  counts?: Partial<Record<LeagueId, DayCount>>;
+  all?: { selected: boolean; onPress: () => void };
+}) {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const sports = useSportsData();
   const league = useLeague();
   const { update } = useSettings();
   const leagues = sports.leagues();
+  const shown = showLeagueRow(leagues);
+  const allCount = counts && sumCounts(leagues.map((id) => counts[id]));
 
   return (
     <View
       style={[
         styles.bar,
         { paddingTop: insets.top, backgroundColor: colors.card, borderBottomColor: colors.border },
-        !showLeagueRow(leagues) && styles.empty,
+        !shown && styles.empty,
       ]}
     >
-      {showLeagueRow(leagues) && (
+      {shown && (
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -42,36 +48,47 @@ export function LeagueBar({ date }: { date?: string }) {
           accessibilityRole="tablist"
           accessibilityLabel="League"
         >
-          {leagues.map((id) => {
-            const chip = {
-              league: id,
-              name: sports.leagueName(id),
-              selected: id === league,
-              onPress: () => update({ league: id }),
-            };
-            return date ? <DayChip key={id} {...chip} date={date} /> : <Chip key={id} {...chip} />;
-          })}
+          {all && (
+            <Chip label="All" name="All leagues" selected={all.selected} onPress={all.onPress} count={allCount} />
+          )}
+          {leagues.map((id) => (
+            <Chip
+              key={id}
+              label={leagueChipLabel(id)}
+              name={sports.leagueName(id)}
+              selected={!all?.selected && id === league}
+              onPress={() => update(all ? { league: id, scoresAllLeagues: false } : { league: id })}
+              count={counts?.[id]}
+            />
+          ))}
         </ScrollView>
       )}
     </View>
   );
 }
 
-interface ChipProps {
-  league: LeagueId;
+/** The "All" chip's count: every league's, once each has loaded. */
+function sumCounts(counts: (DayCount | undefined)[]): DayCount | undefined {
+  if (counts.some((c) => c === undefined)) return undefined;
+  return counts.reduce<DayCount>((sum, c) => ({ games: sum.games + c!.games, live: sum.live + c!.live }), {
+    games: 0,
+    live: 0,
+  });
+}
+
+function Chip({
+  label,
+  name,
+  selected,
+  onPress,
+  count,
+}: {
+  label: string;
   name: string;
   selected: boolean;
   onPress: () => void;
-}
-
-/** A chip with the day's games: loads them as the Scores list does, under the same key. */
-function DayChip({ date, ...chip }: ChipProps & { date: string }) {
-  const sports = useSportsData();
-  const day = usePolled(`${chip.league}:scores:${date}`, (o) => sports.getScores(chip.league, date, o));
-  return <Chip {...chip} count={dayCount(day.data)} />;
-}
-
-function Chip({ league, name, selected, onPress, count }: ChipProps & { count?: DayCount }) {
+  count?: DayCount;
+}) {
   const colors = useColors();
   const text = selected ? colors.chipSelectedText : colors.text;
   return (
@@ -90,7 +107,7 @@ function Chip({ league, name, selected, onPress, count }: ChipProps & { count?: 
       accessibilityLabel={leagueChipSpoken(name, count)}
     >
       {count !== undefined && count.live > 0 && <View style={[styles.liveDot, { backgroundColor: colors.live }]} />}
-      <Text style={[styles.label, { color: text }]}>{leagueChipLabel(league)}</Text>
+      <Text style={[styles.label, { color: text }]}>{label}</Text>
       {count !== undefined && (
         <Text style={[styles.count, scoreFontSemiBold, { color: selected ? text : colors.muted }]}>{count.games}</Text>
       )}

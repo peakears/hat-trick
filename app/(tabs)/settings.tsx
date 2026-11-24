@@ -19,6 +19,8 @@ import { REMINDER_LEADS, type ReminderLead } from "../../src/ui/settings/setting
 import { useSettings } from "../../src/ui/settings/settings-context";
 import type { UpdateStatus } from "../../src/ui/updates/updates";
 import { useColors, DIVIDER } from "../../src/ui/theme/theme";
+import { favoritesFor, favoritesLabel } from "../../src/ui/team/favorites";
+import { NHL } from "../../src/ui/data/sports-data-context";
 import { APP_VERSION, useUpdate } from "../../src/ui/updates/update-context";
 
 const LEAD_OPTIONS = REMINDER_LEADS.map((n) => ({ value: String(n), label: `${n} min` }));
@@ -90,10 +92,10 @@ export default function SettingsScreen() {
         <View style={styles.row}>
           <View style={styles.rowText}>
             <Text style={[styles.label, { color: colors.text }]}>
-              {settings.favoriteTeams.length > 0 ? settings.favoriteTeams.join(", ") : "None yet"}
+              {settings.favoriteTeams.length > 0 ? favoritesLabel(settings.favoriteTeams) : "None yet"}
             </Text>
             <Text style={[styles.detail, { color: colors.muted }]}>
-              Star a team on the Standings tab or a game page. Their games show first on Scores.
+              Star a team on its team page. Their games show first on Scores, in every league.
             </Text>
           </View>
           {settings.favoriteTeams.length > 0 && (
@@ -115,9 +117,9 @@ export default function SettingsScreen() {
           detail={
             permissionDenied
               ? "Notifications are blocked. Allow them for Hat Trick in your phone's settings, then try again."
-              : settings.favoriteTeams.length === 0
-                ? "Notifies you before your favourite teams' games. Star a team first."
-                : "Notifies you before your favourite teams' games."
+              : favoritesFor(NHL, settings.favoriteTeams).length === 0
+                ? "Notifies you before your favourite NHL teams' games. Star a team first."
+                : "Notifies you before your favourite NHL teams' games."
           }
           value={settings.remindersEnabled}
           onChange={setReminders}
@@ -139,9 +141,9 @@ export default function SettingsScreen() {
           detail={
             !liveAvailable
               ? "Available in the installed Android app (not in Expo Go)."
-              : settings.favoriteTeams.length === 0
-                ? "Follows your favourite teams' games in a notification, even with the app closed. Star a team first."
-                : "Follows your favourite teams' games in a notification, even with the app closed. Starts when you open the app (or a reminder) near puck drop."
+              : favoritesFor(NHL, settings.favoriteTeams).length === 0
+                ? "Follows your favourite NHL teams' games in a notification, even with the app closed. Star a team first."
+                : "Follows your favourite NHL teams' games in a notification, even with the app closed. Starts when you open the app (or a reminder) near puck drop."
           }
           value={liveAvailable && settings.liveScores}
           onChange={setLiveScores}
