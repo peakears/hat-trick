@@ -1,14 +1,13 @@
-import Ionicons from "@expo/vector-icons/Ionicons";
 import { useState } from "react";
-import { Pressable, RefreshControl, SectionList, StyleSheet, Text, View } from "react-native";
-import { DatePickerButton } from "../../src/ui/components/DatePickerButton";
+import { RefreshControl, SectionList, StyleSheet, Text, View } from "react-native";
+import { WeekStrip } from "../../src/ui/components/WeekStrip";
 import { GameCard } from "../../src/ui/components/GameCard";
 import { LeagueBar } from "../../src/ui/components/LeagueBar";
 import { Empty, ErrorView, OfflineBanner, UpdatedAt } from "../../src/ui/components/States";
 import { ScoresSkeleton } from "../../src/ui/components/Skeleton";
 import { ShieldBanner } from "../../src/ui/components/ShieldBanner";
 import { UpdateBanner } from "../../src/ui/components/UpdateBanner";
-import { addDays, dateLabel, groupGamesForScores } from "../../src/ui/common/format";
+import { addDays, groupGamesForScores } from "../../src/ui/common/format";
 import { useSettings } from "../../src/ui/settings/settings-context";
 import { useSportsData } from "../../src/ui/data/sports-data-context";
 import { useLeague } from "../../src/ui/data/use-league";
@@ -79,21 +78,7 @@ export default function ScoresScreen() {
   return (
     <View style={styles.screen} {...swipe.panHandlers}>
       <LeagueBar counts={counts} all={{ selected: allView, onPress: () => update({ scoresAllLeagues: true }) }} />
-      <View style={[styles.dateBar, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
-        <Pressable onPress={() => go(addDays(date, -1))} hitSlop={12} accessibilityLabel="Previous day">
-          <Ionicons name="chevron-back" size={24} color={colors.accent} />
-        </Pressable>
-        <View style={styles.dateCenter}>
-          <Pressable onPress={() => setPicked(null)} accessibilityLabel="Go to today">
-            <Text style={[styles.dateText, { color: colors.text }]}>{dateLabel(date, today)}</Text>
-          </Pressable>
-          {/* Picking today goes through go(), so it stores no fixed date and keeps following today. */}
-          <DatePickerButton date={date} onPick={go} onToday={() => setPicked(null)} />
-        </View>
-        <Pressable onPress={() => go(addDays(date, 1))} hitSlop={12} accessibilityLabel="Next day">
-          <Ionicons name="chevron-forward" size={24} color={colors.accent} />
-        </Pressable>
-      </View>
+      <WeekStrip date={date} today={today} onPick={go} onToday={() => setPicked(null)} />
       <UpdateBanner />
       <ShieldBanner games={games} />
       <OfflineBanner meta={offline} />
@@ -162,16 +147,6 @@ type ListSection = {
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  dateBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderBottomWidth: DIVIDER,
-  },
-  dateCenter: { flexDirection: "row", alignItems: "center", gap: 10 },
-  dateText: { fontSize: 17, fontWeight: "600" },
   list: { paddingVertical: 3 },
   leagueHeader: {
     flexDirection: "row",

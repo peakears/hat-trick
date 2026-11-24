@@ -28,6 +28,7 @@ const TEXT_PAIRS: [keyof Colors, keyof Colors][] = [
   ["text", "surfaceSunken"],
   ["muted", "surfaceSunken"],
   ["text", "badge"],
+  ["text", "tabSelected"],
   ["chipSelectedText", "chipSelected"],
   ["win", "background"],
   ["win", "card"],
