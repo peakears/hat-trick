@@ -106,7 +106,9 @@ function Chip({
       accessibilityState={{ selected }}
       accessibilityLabel={leagueChipSpoken(name, count)}
     >
-      {count !== undefined && count.live > 0 && <View style={[styles.liveDot, { backgroundColor: colors.live }]} />}
+      {count !== undefined && count.live > 0 && (
+        <View style={[styles.liveDot, { backgroundColor: selected ? colors.chipSelectedLive : colors.live }]} />
+      )}
       <Text style={[styles.label, { color: text }]}>{label}</Text>
       {count !== undefined && (
         <Text style={[styles.count, scoreFontSemiBold, { color: selected ? text : colors.muted }]}>{count.games}</Text>
