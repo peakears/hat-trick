@@ -34,7 +34,13 @@ export function spotlightDetail(entry: {
 }
 
 /** A leader's value as shown: "64.0%" for a percent board, otherwise as `statValue` shows it. */
-export function leaderValue(value: number, format: "percent" | undefined, statValue: (v: number) => string): string {
+export function leaderValue(
+  value: number,
+  format: "percent" | undefined,
+  statValue: (v: number) => string,
+  decimals?: number,
+): string {
   if (format === "percent") return `${(value * 100).toFixed(1)}%`;
+  if (decimals !== undefined) return value.toFixed(decimals);
   return statValue(value);
 }

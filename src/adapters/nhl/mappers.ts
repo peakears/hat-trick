@@ -754,6 +754,15 @@ function birthPlace(raw: RawPlayerLanding): string | undefined {
   return parts.length > 0 ? parts.join(", ") : undefined;
 }
 
+/** The NHL's position codes in words. */
+const POSITION_NAMES: Record<string, string> = {
+  C: "Centre",
+  L: "Left wing",
+  R: "Right wing",
+  D: "Defence",
+  G: "Goalie",
+};
+
 export function mapPlayerDetail(raw: RawPlayerLanding): PlayerDetail {
   const goalie = raw.position === "G";
   const teamId = raw.currentTeamAbbrev;
@@ -783,6 +792,7 @@ export function mapPlayerDetail(raw: RawPlayerLanding): PlayerDetail {
       position: raw.position,
       headshotUrl: raw.headshot,
     },
+    positionName: raw.position === undefined ? undefined : (POSITION_NAMES[raw.position] ?? raw.position),
     sweaterNumber: raw.sweaterNumber,
     team: teamId
       ? { id: teamId, league: LEAGUE, name: raw.fullTeamName?.default ?? teamId, abbrev: teamId, logoUrl: raw.teamLogo }

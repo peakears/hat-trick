@@ -8,6 +8,7 @@ import { ListSkeleton } from "../src/ui/components/Skeleton";
 import { TeamLogo } from "../src/ui/components/TeamLogo";
 import { spotlightDetail } from "../src/ui/leaders/leaders";
 import { NHL, useSportsData } from "../src/ui/data/sports-data-context";
+import { playerRoute } from "../src/ui/common/routes";
 import { useColors, DIVIDER } from "../src/ui/theme/theme";
 import { usePolled } from "../src/ui/data/use-polled";
 
@@ -52,7 +53,7 @@ export default function SpotlightScreen() {
           const detail = spotlightDetail(item);
           return (
             <Pressable
-              onPress={() => router.push({ pathname: "/player/[id]", params: { id: item.player.id } })}
+              onPress={() => router.push(playerRoute(item.player))}
               style={({ pressed }) => [
                 styles.row,
                 { backgroundColor: colors.card, opacity: pressed ? 0.6 : 1 },

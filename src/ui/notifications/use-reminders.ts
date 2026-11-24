@@ -7,6 +7,7 @@ import { planReminders } from "./reminders";
 import { applyReminders, cancelAllReminders, hasReminderPermission } from "./reminders-native";
 import { useSettings } from "../settings/settings-context";
 import { NHL, useSportsData } from "../data/sports-data-context";
+import { gameRoute } from "../common/routes";
 
 /** How many days ahead to look for favourite teams' games (today plus the next six). */
 const LOOKAHEAD_DAYS = 7;
@@ -69,6 +70,6 @@ export function useReminderTaps(): void {
     if (handled.current === id) return;
     handled.current = id;
     const gameId = response.notification.request.content.data?.gameId;
-    if (typeof gameId === "string") router.push({ pathname: "/game/[id]", params: { id: gameId } });
+    if (typeof gameId === "string") router.push(gameRoute({ id: gameId, league: NHL }));
   }, [response, router]);
 }

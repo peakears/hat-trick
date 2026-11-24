@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Game, GameStatus } from "../../domain";
-import { involvesFavorite, isFavorite, toggleFavorite } from "./favorites";
+import { favoritesFor, hasFavorites, involvesFavorite, isFavorite, toggleFavorite } from "./favorites";
 import { sortGamesForScores } from "../common/format";
 
 function game(id: string, status: GameStatus, startTime: string, away: string, home: string): Game {
@@ -57,5 +57,19 @@ describe("sortGamesForScores with favourites", () => {
   it("is the same as before when there are no favourites", () => {
     expect(sortGamesForScores(games).map((g) => g.id)).toEqual(["live", "soon", "fav-soon", "fav-final"]);
     expect(sortGamesForScores(games, [])).toEqual(sortGamesForScores(games));
+  });
+});
+
+describe("favoritesFor", () => {
+  it("applies favourites to the NHL only, as other leagues reuse abbreviations", () => {
+    expect(favoritesFor("nhl", ["BOS", "TOR"])).toEqual(["BOS", "TOR"]);
+    expect(favoritesFor("nba", ["BOS", "TOR"])).toEqual([]);
+  });
+});
+
+describe("hasFavorites", () => {
+  it("is the NHL only, as favourites are bare team ids picked from NHL teams", () => {
+    expect(hasFavorites("nhl")).toBe(true);
+    expect(hasFavorites("nba")).toBe(false);
   });
 });

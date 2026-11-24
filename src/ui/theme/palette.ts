@@ -19,7 +19,12 @@ export interface Colors {
   live: string;
   banner: string;
   bannerText: string;
+  /** Dims the screen behind a menu; drawn at SCRIM_OPACITY. */
+  scrim: string;
 }
+
+/** How strongly `scrim` dims the screen behind a menu. */
+export const SCRIM_OPACITY = 0.35;
 
 export type Scheme = "light" | "dark" | "black";
 
@@ -36,6 +41,7 @@ const BASES: Record<Scheme, Base> = {
     live: "#c81e1e",
     banner: "#fef3c7",
     bannerText: "#78350f",
+    scrim: "#000000",
   },
   dark: {
     background: "#0e0f11",
@@ -47,6 +53,7 @@ const BASES: Record<Scheme, Base> = {
     live: "#f87171",
     banner: "#3b2f12",
     bannerText: "#fde68a",
+    scrim: "#000000",
   },
   // Pure black for OLED screens: the page is #000 (those pixels are off), cards are a hair lighter
   // so they still read as cards.
@@ -60,6 +67,7 @@ const BASES: Record<Scheme, Base> = {
     live: "#f87171",
     banner: "#2a210c",
     bannerText: "#fde68a",
+    scrim: "#000000",
   },
 };
 

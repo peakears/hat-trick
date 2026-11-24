@@ -13,15 +13,20 @@ import { TeamLogo } from "../../src/ui/components/TeamLogo";
 import { dateLabel, localDate, recordLabel } from "../../src/ui/common/format";
 import { pickNextGame, withoutNextGame, type NextGame } from "../../src/ui/team/next-game";
 import { useSpoilers } from "../../src/ui/spoilers/spoiler-context";
-import { NHL, useSportsData } from "../../src/ui/data/sports-data-context";
+import { useSportsData } from "../../src/ui/data/sports-data-context";
+import { usePageLeague } from "../../src/ui/data/use-page-league";
+import { gameRoute } from "../../src/ui/common/routes";
+import { hasFavorites } from "../../src/ui/team/favorites";
 import {
   findStandingRow,
+  gamesBehindLabel,
   goalDifferentialLabel,
   rankLine,
   splitLines,
   teamGameLine,
   teamGameSpoken,
   visibleGames,
+  winPercentLabel,
 } from "../../src/ui/team/team";
 import { tabular, useColors, DIVIDER } from "../../src/ui/theme/theme";
 import { usePolled } from "../../src/ui/data/use-polled";
@@ -46,6 +51,8 @@ function statTiles(row: StandingRow): { label: string; value: string }[] {
   const tiles = [
     { label: "Games", value: row.gamesPlayed.toString() },
     { label: "Points", value: row.points?.toString() },
+    { label: "Win %", value: row.winPercent === undefined ? undefined : winPercentLabel(row.winPercent) },
+    { label: "Games back", value: row.gamesBehind === undefined ? undefined : gamesBehindLabel(row.gamesBehind) },
     { label: "Streak", value: row.streak },
     {
       label: "Goal diff",
@@ -85,7 +92,7 @@ function CompactGame({ game, teamId, today }: { game: Game; teamId: string; toda
 
   return (
     <Pressable
-      onPress={() => router.push({ pathname: "/game/[id]", params: { id: game.id } })}
+      onPress={() => router.push(gameRoute(game))}
       style={({ pressed }) => [styles.gameRow, { opacity: pressed ? 0.6 : 1 }]}
       accessibilityRole="button"
       accessibilityLabel={`${date}, ${teamGameSpoken(line)}${game.specialEvent ? `, ${game.specialEvent}` : ""}${line.result || line.liveScore ? "" : `, ${spoilers.statusLabel(game)}`}. Open game`}
@@ -152,6 +159,7 @@ function GamesSection({ title, games, teamId }: { title: string; games?: Game[];
  */
 function TeamExtras({
   teamId,
+  linkPlayers,
   data,
   next,
   loading,
@@ -159,6 +167,8 @@ function TeamExtras({
   onRetry,
 }: {
   teamId: string;
+  /** Whether player names open a player page (only leagues that have one). */
+  linkPlayers: boolean;
   data?: TeamDetail;
   /** The game in the next game card, left out of the list it came from. */
   next?: NextGame;
@@ -187,7 +197,7 @@ function TeamExtras({
       {data.stats.length === 0 ? (
         <Text style={[styles.none, { color: colors.muted }]}>No player stats yet this season.</Text>
       ) : (
-        data.stats.map((table) => <StatTableView key={table.title} table={table} />)
+        data.stats.map((table) => <StatTableView key={table.title} table={table} linkPlayers={linkPlayers} />)
       )}
     </>
   );
@@ -197,10 +207,11 @@ export default function TeamScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const sports = useSportsData();
   const colors = useColors();
+  const league = usePageLeague();
   // The standings (same cache entry as the Standings tab) hold everything shown here.
-  const standings = usePolled("standings", (o) => sports.getStandings(NHL, o));
+  const standings = usePolled(`${league}:standings`, (o) => sports.getStandings(league, o));
   // Season stats and games are a separate request, so the header above never waits for them.
-  const detail = usePolled(`team:${id}`, (o) => sports.getTeam(NHL, id, o));
+  const detail = usePolled(`${league}:team:${id}`, (o) => sports.getTeam(league, id, o));
 
   if (standings.loading) return <PageSkeleton avatar={96} />;
   if (!standings.data) {
@@ -250,9 +261,11 @@ export default function TeamScreen() {
               </Text>
             )}
           </View>
-          <View style={styles.star}>
-            <FavoriteStar team={team} size={26} />
-          </View>
+          {hasFavorites(league) && (
+            <View style={styles.star}>
+              <FavoriteStar team={team} size={26} />
+            </View>
+          )}
         </View>
 
         {next && <NextGameCard game={next.game} teamId={team.id} standings={standings.data} />}
@@ -295,6 +308,7 @@ export default function TeamScreen() {
         )}
         <TeamExtras
           teamId={team.id}
+          linkPlayers={sports.supports(league, "player")}
           data={detail.data}
           next={next}
           loading={detail.loading}
