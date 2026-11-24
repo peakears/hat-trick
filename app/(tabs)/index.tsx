@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import { Pressable, RefreshControl, SectionList, StyleSheet, Text, View } from "react-native";
 import { DatePickerButton } from "../../src/ui/components/DatePickerButton";
 import { GameCard } from "../../src/ui/components/GameCard";
+import { LeagueBar } from "../../src/ui/components/LeagueBar";
 import { Empty, ErrorView, OfflineBanner, UpdatedAt } from "../../src/ui/components/States";
 import { ScoresSkeleton } from "../../src/ui/components/Skeleton";
 import { ShieldBanner } from "../../src/ui/components/ShieldBanner";
@@ -54,6 +55,8 @@ export default function ScoresScreen() {
 
   return (
     <View style={styles.screen} {...swipe.panHandlers}>
+      {/* The settled date, like the list below, so swiping through days makes no request per day passed. */}
+      <LeagueBar date={settledDate} />
       <View style={[styles.dateBar, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
         <Pressable onPress={() => go(addDays(date, -1))} hitSlop={12} accessibilityLabel="Previous day">
           <Ionicons name="chevron-back" size={24} color={colors.accent} />
