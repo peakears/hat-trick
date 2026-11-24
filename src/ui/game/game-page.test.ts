@@ -17,6 +17,7 @@ describe("game page helpers", () => {
       "Field goal %: Nuggets 53%, Bulls 52%",
     );
     expect(periodSpoken("OT", 20, 14, game)).toBe("OT: Nuggets 20, Bulls 14");
+    expect(periodSpoken("3rd", null, null, game)).toBe("3rd: not played yet");
   });
 
   it("separates thousands in the attendance", () => {

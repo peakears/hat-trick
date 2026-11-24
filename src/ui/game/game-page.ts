@@ -21,7 +21,8 @@ export function attendanceLabel(attendance: number): string {
   return String(Math.round(attendance)).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
 
-/** "Q1: Nuggets 33, Bulls 31", for a screen reader reading the period table one period at a time. */
-export function periodSpoken(label: string, away: number, home: number, game: Game): string {
+/** "Q1: Nuggets 33, Bulls 31", or "3rd: not played yet", for a screen reader reading the period table. */
+export function periodSpoken(label: string, away: number | null, home: number | null, game: Game): string {
+  if (away === null || home === null) return `${label}: not played yet`;
   return `${label}: ${game.away.team.name} ${away}, ${game.home.team.name} ${home}`;
 }

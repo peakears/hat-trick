@@ -28,7 +28,7 @@ import type {
   TeamDetail,
   TeamStatLine,
 } from "../../domain";
-import { periodsMatchingScore } from "../periods";
+import { periodsMatchingScore, withUpcomingPeriods } from "../periods";
 import {
   LEAGUE,
   PLAYER_CAREER_KEYS,
@@ -67,6 +67,9 @@ export function compact<T>(value: T): T {
 }
 
 // ---------- Scores ----------
+
+/** Quarters in regulation; a live game's strip lists all of them from tip-off. */
+const QUARTERS = 4;
 
 /** "Q1".."Q4", then "OT", "2OT", ... (period 5 is the first overtime). */
 export function periodLabel(period: number): string {
@@ -183,7 +186,8 @@ function scoreboardPeriods(game: Game, competitors: RawScoreboardCompetitor[]): 
   const [away, home] = [lines("away"), lines("home")];
   if (away.length !== home.length) return undefined;
   const periods = away.map((a, i) => ({ label: periodLabel(a.period), away: a.value, home: home[i].value }));
-  return periodsMatchingScore(periods, game.away, game.home);
+  const checked = periodsMatchingScore(periods, game.away, game.home);
+  return checked && game.status === "live" ? withUpcomingPeriods(checked, QUARTERS, periodLabel) : checked;
 }
 
 /** The game's top scorer so far, with their line ("23 PTS, 8 REB") when ESPN rates them their team's best too. */
@@ -460,7 +464,8 @@ export function mapSummary(raw: RawSummary): GameDetail {
         home: Number(home[i].displayValue),
       }));
       const checked = periodsMatchingScore(scored, game.away, game.home);
-      if (checked) game.periods = checked;
+      if (checked)
+        game.periods = game.status === "live" ? withUpcomingPeriods(checked, QUARTERS, periodLabel) : checked;
     }
   }
   const team = (id: string) => raw.boxscore?.players?.find((p) => p.team.abbreviation === id);

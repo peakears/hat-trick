@@ -133,14 +133,19 @@ describe("NHL adapter", () => {
     it("counts each period's goals and names the game's standout, live and final", async () => {
       const games = await fixtureAdapter().adapter.getScores("2026-11-17");
       const byId = (id: string) => games.find((g) => g.id === id)!;
-      // CGY at SJS, live in the 2nd: one goal each, and nobody has two points yet.
+      // CGY at SJS, live in the 2nd: the 3rd is listed but not played yet, and nobody has two points yet.
       expect(byId("2026020343").periods).toEqual([
         { label: "1st", away: 2, home: 1 },
         { label: "2nd", away: 1, home: 0 },
+        { label: "3rd", away: null, home: null },
       ]);
       expect(byId("2026020343").standout).toBeUndefined();
-      // DAL at VGK, scoreless in the 1st intermission.
-      expect(byId("2026020342").periods).toEqual([{ label: "1st", away: 0, home: 0 }]);
+      // DAL at VGK, scoreless in the 1st intermission: all three periods, two still to play.
+      expect(byId("2026020342").periods).toEqual([
+        { label: "1st", away: 0, home: 0 },
+        { label: "2nd", away: null, home: null },
+        { label: "3rd", away: null, home: null },
+      ]);
       // EDM won 5-2 at FLA: three Oilers have 3 points; Podkolzin scored twice.
       expect(byId("2026020335").periods).toEqual([
         { label: "1st", away: 2, home: 0 },

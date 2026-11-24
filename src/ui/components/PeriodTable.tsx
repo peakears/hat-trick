@@ -6,7 +6,8 @@ import { DIVIDER, useColors } from "../theme/theme";
 
 /**
  * Each period's score in a small table: periods across, away and home down, the total at the end. The labels come
- * from the adapter ("Q1", "2nd", "OT"), so it serves any league. Nothing without periods. The caller hides it behind
+ * from the adapter ("Q1", "2nd", "OT"), so it serves any league; a live game lists every regulation period, "-" for
+ * those not played yet. Nothing without periods. The caller hides it behind
  * the spoiler shield.
  */
 export function PeriodTable({ game }: { game: Game }) {
@@ -26,8 +27,12 @@ export function PeriodTable({ game }: { game: Game }) {
       <View style={[styles.row, { borderTopColor: colors.border }]}>
         <Text style={[styles.team, { color }]}>{game[side].team.abbrev}</Text>
         {periods.map((p, i) => (
-          <Text key={`${p.label}-${i}`} style={[styles.cell, scoreFontSemiBold, { color }]}>
-            {p[side]}
+          // A period not played yet shows "-".
+          <Text
+            key={`${p.label}-${i}`}
+            style={[styles.cell, scoreFontSemiBold, { color: p[side] === null ? colors.muted : color }]}
+          >
+            {p[side] ?? "-"}
           </Text>
         ))}
         <Text style={[styles.cell, styles.total, scoreFont, { color }]}>{game[side].score ?? "-"}</Text>

@@ -127,8 +127,25 @@ export function GameCard({ game, showLeague = false }: { game: Game; showLeague?
               {game.periods.map((p, i) => (
                 <View key={`${p.label}-${i}`} style={[styles.periodColumn, styles.periodValues]}>
                   <Text style={[styles.periodHead, { color: colors.muted }]}>{p.label}</Text>
-                  <Text style={[styles.periodValue, scoreFontSemiBold, { color: colors.text }]}>{p.away}</Text>
-                  <Text style={[styles.periodValue, scoreFontSemiBold, { color: colors.text }]}>{p.home}</Text>
+                  {/* A period not played yet shows "-". */}
+                  <Text
+                    style={[
+                      styles.periodValue,
+                      scoreFontSemiBold,
+                      { color: p.away === null ? colors.muted : colors.text },
+                    ]}
+                  >
+                    {p.away ?? "-"}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.periodValue,
+                      scoreFontSemiBold,
+                      { color: p.home === null ? colors.muted : colors.text },
+                    ]}
+                  >
+                    {p.home ?? "-"}
+                  </Text>
                 </View>
               ))}
             </View>

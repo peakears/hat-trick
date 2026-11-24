@@ -214,7 +214,13 @@ describe("NBA adapter", () => {
 
       const endOfFirst = byMatchup(games, "UTAH", "LAL");
       expect(endOfFirst.clock).toEqual({ period: 1, label: "End Q1" });
-      expect(endOfFirst.periods).toEqual([{ label: "Q1", away: 20, home: 30 }]);
+      // All four quarters from the start, the ones not played yet scoreless; overtime only once played (above).
+      expect(endOfFirst.periods).toEqual([
+        { label: "Q1", away: 20, home: 30 },
+        { label: "Q2", away: null, home: null },
+        { label: "Q3", away: null, home: null },
+        { label: "Q4", away: null, home: null },
+      ]);
 
       const finals = await fixtureAdapter().adapter.getScores("2026-11-22");
       expect(byMatchup(finals, "DEN", "CHI").periods?.map((p) => p.label)).toEqual(["Q1", "Q2", "Q3", "Q4", "OT"]);
