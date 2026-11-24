@@ -87,7 +87,7 @@ league adapters -> domain model -> on-device cache -> app UI
 
 Settings (including favourite teams) are stored on the device, separately from cached data. Puck drop reminders are local notifications scheduled on the device. Live scores are checked by the app itself, from the same NHL API, while a followed game is on. The TV country is read from the phone's region setting, with no location permission and no network request. NBA data comes from ESPN's public API, and only while you look at it. The only other network request is the daily update check against GitHub. Videos are not played by the app: tapping one opens nhl.com's own page in a browser tab, only for nhl.com video links.
 
-Adding a league means writing a new adapter that implements `LeagueAdapter` and passes the shared contract tests in `src/contract/`. Nothing above it changes.
+Adding a league means writing a new adapter that implements `LeagueAdapter` and passes the shared contract tests in `src/contract/`. Nothing above it changes: see [Adding a league](#adding-a-league) for the steps.
 
 ### Tech stack
 
@@ -127,6 +127,85 @@ Commit messages follow [Conventional Commits](https://www.conventionalcommits.or
 `npm install` sets up a git hook that checks each commit message. Releases are made by merging the release PR that release-please keeps open.
 
 Work on a branch from `main`, one feature per pull request. CI runs typecheck and tests on every PR and builds a test APK. When testing with Expo Go, press `r` in the `npm start` terminal (or shake the phone and tap **Reload**) after switching branches: restarting the dev server alone does not reload the app on the phone.
+
+### Adding a league
+
+Each league is an adapter: a folder that turns one data source into the app's own types. The screens never know which league they are showing. Anything that differs between leagues reaches them as data from the adapter: period labels, which columns are empty, what a standings position means. Adding a league is mostly writing that folder. The NBA ([`src/adapters/nba/`](src/adapters/nba)) is the worked example; copy its layout.
+
+#### 1. Pick a data source
+
+- **Free and public**, and allowed to be read by an app like this one. No scraping of pages.
+- **Reachable from the phone itself:** the app has no server, so every request goes straight from the device to the source.
+- **No key, if possible.** If the source needs one, users enter their own in Settings and it is stored with `expo-secure-store`. Never commit a key, and the app must still work for every other league without one.
+- **Enough for the three required screens:** a day's scores, standings and stat leaders. Game, team and player pages are optional.
+- Add the source's hosts to the privacy line in [Features](#features) and [How it works](#how-it-works), and to the network rule in `CLAUDE.md`.
+
+#### 2. Record fixtures
+
+Tests never call the live API. They run on recorded responses (fixtures) in the adapter's `__fixtures__/` folder.
+
+- Record each endpoint the adapter reads with `curl`, named after the endpoint and what it holds: `scoreboard-<date>.json`, `summary-<gameId>-<final|live|pre>.json`, `standings-now.json`.
+- Cover the states the screens show: a scheduled game, a live game (ideally one in overtime and one between periods), a final game, and at least one team and one player.
+- Trim what the adapter does not read (links, news, videos) to keep the files small, and write down how you trimmed them.
+- In the adapter's own `CLAUDE.md`, record the commands you ran, which endpoint has which field, and what you have not seen yet (postponed games, playoffs). [`src/adapters/nba/CLAUDE.md`](src/adapters/nba/CLAUDE.md) shows the format.
+
+#### 3. Write the adapter
+
+One folder, `src/adapters/<league>/`, with the same files as the NBA's:
+
+| File               | What it does                                                                                              |
+| ------------------ | --------------------------------------------------------------------------------------------------------- |
+| `constants.ts`     | The league id, base URLs, leader categories, and other fixed lists                                        |
+| `client.ts`        | HTTP: builds URLs, sends requests, turns failures into the adapter's error type                           |
+| `errors.ts`        | `<League>ApiError` (the request failed) and `<League>ResponseError` (the response was not understood)     |
+| `raw-types.ts`     | [zod](https://zod.dev/) schemas for the responses, with a "Verified on <date>" note on each               |
+| `validate.ts`      | The validation policy, using the shared helpers in [`src/adapters/validate.ts`](src/adapters/validate.ts) |
+| `mappers.ts`       | Raw responses to the app's types in [`src/domain.ts`](src/domain.ts)                                      |
+| `adapter.ts`       | The `LeagueAdapter`: fetch, validate, map                                                                 |
+| `<league>.test.ts` | Tests on the fixtures, including the contract suite (step 4)                                              |
+
+How strict to be with each field:
+
+- **Core fields fail the response:** ids, teams, scores, game state, standings wins and losses. Use plain zod, so a change in the source shows up as an error instead of wrong scores.
+- **Minor fields are dropped with a warning:** a logo, a record, a TV channel. Use `minor()`. The warning reaches **Settings › Diagnostics**.
+- **Lists drop bad items, not the whole list:** box score rows, goals, leaders. Use `lenientArray()`.
+- **Extras are best effort:** when a screen adds data from a second request (the team page's schedule), catch its failure in the adapter, leave that part out and pass the failure on as a warning, so the rest of the screen still shows.
+- Text the user sees uses Canadian spelling, including labels the adapter makes ("Centre", "Defence").
+
+#### 4. Pass the contract suite
+
+Every adapter must pass [`src/contract/league-adapter.contract.ts`](src/contract/league-adapter.contract.ts). In your test file, call `runLeagueAdapterContract()` with an adapter served from your fixtures, one whose requests always fail, and the dates and ids you recorded.
+
+- **Required:** `getScores`, `getStandings`, `getLeaders`, and a `name` ("National Basketball Association").
+- **Optional features**, one method each (`LeagueFeature` in `domain.ts`): `getGameDetail` (game page and box score), `getPlays` (play-by-play), `getTeam`, `getPlayer`, `getSpotlight`, `getSpecialEvents`. Leave a method out and the app hides everything that leads to it (game cards stop opening a page, for example). The suite skips it too; pass `[]` for its inputs.
+- Start with the three required screens, ship, then add the pages one at a time.
+
+#### 5. Describe the league's differences as data
+
+These are the places a league differs. Each is a field the adapter fills, never a check in a screen:
+
+- **Periods:** `Game.clock.label` and `PeriodScore.label` are worded by the adapter ("Q1", "2nd", "OT"). A live game lists every regulation period, with `null` scores for the ones not played yet.
+- **Standings:** fill only the columns the league has (`points`, `otLosses`, `winPercent`, `gamesBehind`); empty columns are hidden. `conferenceRank` and `conferenceBands` mark seeds and what they mean (the NBA's playoffs, play-in and out). `wildCardSpots` and `wildCardRank` turn on the Wild Card view.
+- **Leaders:** `leaderGroups` splits boards into choices (the NHL's Skaters and Goalies). Each board's `format` and `decimals` say how to show its values. Send each board best first, and the app works out whether lower is better.
+- **Game page:** `teamStats`, `performers` (each team's top performer, for a league without three stars) and `standout` (the top performer on a live Scores card), with their lines worded by the adapter ("31 PTS, 8 REB", "2 G, 1 A").
+- **Box scores and team stats:** `StatTable` columns are the adapter's, so any sport's stats fit.
+- **Positions:** `PlayerDetail.positionName`, in words.
+- If a sport needs something the domain cannot say (golf has no home and away), add a domain type first and bump `CACHE_VERSION` in `src/data/sports-data.ts`.
+
+#### 6. Register it and give it a colour
+
+- Register the adapter in `getServices()` in [`src/ui/data/sports-data-context.tsx`](src/ui/data/sports-data-context.tsx). It then appears in the league row on Scores, Standings and Leaders, and in the All view.
+- Add its colour to `LEAGUE_TINTS` in [`src/ui/theme/palette.ts`](src/ui/theme/palette.ts): one shade for light and one for dark and pure black. `npm test` checks it reads on cards, the page and sunken panels in every scheme. It marks the league's name and bars only, never a fill under text.
+- Team ids only need to be unique within the league: favourites are stored as `league:team`, so a `BOS` in two leagues is fine.
+- Puck drop reminders and live score notifications are NHL only for now ([#132](https://github.com/peakears/hat-trick/issues/132)); a new league does not need them.
+
+#### 7. Before opening the pull request
+
+- [ ] `npm run typecheck`, `npm test` and `npm run format:check` pass.
+- [ ] `CI=1 npx expo export --platform android --output-dir <tmp dir>` bundles.
+- [ ] On a phone, with the test APK from the pull request: the league row, Scores (All and the league alone), Standings, Leaders, and each page the adapter has, in light and dark, with the spoiler shield on and off.
+- [ ] The README's Features and privacy lines name the league and its source.
+- [ ] The adapter's `CLAUDE.md` lists its endpoints, fixtures and what is still unverified.
 
 ### Release signing (maintainers)
 
