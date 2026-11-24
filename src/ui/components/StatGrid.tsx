@@ -1,7 +1,7 @@
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import type { StatColumn } from "../../domain";
-import { statValue } from "../format";
-import { tabular, useColors } from "../theme";
+import { statValue } from "../common/format";
+import { tabular, useColors, DIVIDER } from "../theme/theme";
 
 const NAME_WIDTH = 150;
 const COLUMN_WIDTH = 48;
@@ -94,7 +94,7 @@ const styles = StyleSheet.create({
   inner: { flexDirection: "row" },
   cols: { flexDirection: "row", alignItems: "center" },
   header: { fontSize: 12, fontWeight: "700", paddingVertical: 6, textTransform: "uppercase" },
-  row: { justifyContent: "center", borderTopWidth: StyleSheet.hairlineWidth },
+  row: { justifyContent: "center", borderTopWidth: DIVIDER },
   cell: { fontSize: 14 },
   detail: { fontSize: 11, marginTop: 1 },
   num: { width: COLUMN_WIDTH, textAlign: "right", paddingRight: 8 },

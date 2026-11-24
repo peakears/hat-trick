@@ -2,17 +2,18 @@ import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import type { Game, Standings } from "../../domain";
-import { channelsFor, summarizeChannels } from "../broadcasts";
-import { teamRecord, timeLabel } from "../format";
-import { countdownLabel, daysAwayLabel, nextGameHeading, nextGamePhase, type NextGamePhase } from "../next-game";
-import { useSpoilers } from "../spoiler-context";
-import { LEAGUE, useSportsData } from "../sports-data-context";
-import { teamGameLine } from "../team";
-import { tabular, useColors } from "../theme";
-import { usePolled } from "../use-polled";
-import { useScoresToday } from "../use-today";
-import { useTvRegion } from "../use-tv-region";
+import { channelsFor, summarizeChannels } from "../game/broadcasts";
+import { teamRecord, timeLabel } from "../common/format";
+import { countdownLabel, daysAwayLabel, nextGameHeading, nextGamePhase, type NextGamePhase } from "../team/next-game";
+import { useSpoilers } from "../spoilers/spoiler-context";
+import { NHL, useSportsData } from "../data/sports-data-context";
+import { teamGameLine } from "../team/team";
+import { tabular, useColors, DIVIDER } from "../theme/theme";
+import { usePolled } from "../data/use-polled";
+import { useScoresToday } from "../scores/use-today";
+import { useTvRegion } from "../game/use-tv-region";
 import { RevealButton } from "./ShieldUi";
+import { FlashScore } from "./FlashScore";
 import { TeamLogo } from "./TeamLogo";
 
 /** The current time, updated every `ms` while `active` (for the countdown). */
@@ -40,7 +41,7 @@ export function NextGameCard({ game, teamId, standings }: { game: Game; teamId: 
 
 function LiveNextGame({ game, teamId, standings }: { game: Game; teamId: string; standings?: Standings }) {
   const sports = useSportsData();
-  const detail = usePolled(`game:${game.id}`, (o) => sports.getGameDetail(LEAGUE, game.id, o));
+  const detail = usePolled(`game:${game.id}`, (o) => sports.getGameDetail(NHL, game.id, o));
   // Best effort: if the game's own request fails, the schedule's copy still shows.
   return <NextGameView game={detail.data?.game ?? game} teamId={teamId} standings={standings} />;
 }
@@ -117,9 +118,23 @@ function NextGameView({ game, teamId, standings }: { game: Game; teamId: string;
               <RevealButton label="Show score" onPress={() => spoilers.reveal(game.id)} />
             </View>
           ) : (
-            <Text style={[styles.score, tabular, { color: colors.text }]}>
-              {game.away.score ?? "-"} – {game.home.score ?? "-"}
-            </Text>
+            <View style={styles.scorePair}>
+              <FlashScore
+                value={game.away.score}
+                live={phase === "live"}
+                style={[styles.score, tabular, { color: colors.text }]}
+              >
+                {game.away.score ?? "-"}
+              </FlashScore>
+              <Text style={[styles.score, { color: colors.text }]}>–</Text>
+              <FlashScore
+                value={game.home.score}
+                live={phase === "live"}
+                style={[styles.score, tabular, { color: colors.text }]}
+              >
+                {game.home.score ?? "-"}
+              </FlashScore>
+            </View>
           )}
           <Side game={game} side="home" />
         </View>
@@ -208,6 +223,7 @@ const styles = StyleSheet.create({
   scoreRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 },
   side: { width: 72, alignItems: "center", gap: 4 },
   sog: { fontSize: 12 },
+  scorePair: { flexDirection: "row", alignItems: "center", gap: 6 },
   score: { fontSize: 34, fontWeight: "800" },
   hiddenBox: { alignItems: "center", gap: 6 },
   hiddenText: { fontSize: 15, fontWeight: "600" },
@@ -215,7 +231,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopWidth: DIVIDER,
     paddingVertical: 10,
   },
   link: { fontSize: 13, fontWeight: "600" },

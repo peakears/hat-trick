@@ -3,12 +3,13 @@ import { useRouter, type ErrorBoundaryProps } from "expo-router";
 import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from "react-native";
 import type { FetchOptions } from "../src/data";
 import { PlayerHeadshot } from "../src/ui/components/PlayerHeadshot";
-import { CrashScreen, Empty, ErrorView, Loading, OfflineBanner, UpdatedAt } from "../src/ui/components/States";
+import { CrashScreen, Empty, ErrorView, OfflineBanner, UpdatedAt } from "../src/ui/components/States";
+import { ListSkeleton } from "../src/ui/components/Skeleton";
 import { TeamLogo } from "../src/ui/components/TeamLogo";
-import { spotlightDetail } from "../src/ui/leaders";
-import { LEAGUE, useSportsData } from "../src/ui/sports-data-context";
-import { useColors } from "../src/ui/theme";
-import { usePolled } from "../src/ui/use-polled";
+import { spotlightDetail } from "../src/ui/leaders/leaders";
+import { NHL, useSportsData } from "../src/ui/data/sports-data-context";
+import { useColors, DIVIDER } from "../src/ui/theme/theme";
+import { usePolled } from "../src/ui/data/use-polled";
 
 /** A spotlight screen that fails to render keeps the header, so Back still returns to Leaders. */
 export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
@@ -20,9 +21,9 @@ export default function SpotlightScreen() {
   const sports = useSportsData();
   const colors = useColors();
   const router = useRouter();
-  const spotlight = usePolled("spotlight", (o: FetchOptions) => sports.getSpotlight(LEAGUE, o));
+  const spotlight = usePolled("spotlight", (o: FetchOptions) => sports.getSpotlight(NHL, o));
 
-  if (spotlight.loading) return <Loading />;
+  if (spotlight.loading) return <ListSkeleton />;
   if (!spotlight.data) {
     return (
       <ErrorView
@@ -55,7 +56,7 @@ export default function SpotlightScreen() {
               style={({ pressed }) => [
                 styles.row,
                 { backgroundColor: colors.card, opacity: pressed ? 0.6 : 1 },
-                index > 0 && { borderTopColor: colors.border, borderTopWidth: StyleSheet.hairlineWidth },
+                index > 0 && { borderTopColor: colors.border, borderTopWidth: DIVIDER },
               ]}
               accessibilityRole="button"
               accessibilityLabel={`${item.player.name}, ${detail}. Open player page`}

@@ -21,6 +21,7 @@ import type {
   Team,
   TeamDetail,
 } from "../domain";
+import { adapterSupports, type LeagueFeature } from "../domain";
 
 const STATUSES: GameStatus[] = ["scheduled", "live", "final", "postponed"];
 
@@ -29,6 +30,8 @@ export interface ContractInputs {
   scoreDates: string[];
   /** Game ids with recorded box score fixtures. */
   gameIds: string[];
+  /** Game ids with recorded play-by-play fixtures. */
+  playGameIds: string[];
   /** Leader queries with recorded fixtures. `{}` (the default boards) should be included. */
   leaderQueries: LeaderQuery[];
   /** Team ids with recorded team fixtures (season stats and schedule). */
@@ -38,6 +41,7 @@ export interface ContractInputs {
   /** Week start dates (YYYY-MM-DD) with recorded special event fixtures. */
   specialEventDates: string[];
 }
+// Inputs for a feature the adapter lacks (LeagueFeature) are not used: pass [] for them.
 
 export interface ContractOptions {
   name: string;
@@ -152,6 +156,8 @@ function expectLeaderBoard(board: LeaderBoard, league: LeagueId): void {
 
 export function runLeagueAdapterContract(options: ContractOptions): void {
   const { name, league, makeAdapter, inputs, makeFailingAdapter } = options;
+  /** Optional features (LeagueFeature) are only checked when the adapter has them. */
+  const has = (feature: LeagueFeature) => adapterSupports(makeAdapter(), feature);
 
   describe(`LeagueAdapter contract: ${name}`, () => {
     it("reports its league id", () => {
@@ -217,9 +223,9 @@ export function runLeagueAdapterContract(options: ContractOptions): void {
       );
     });
 
-    describe("getSpecialEvents", () => {
+    describe.runIf(has("specialEvents"))("getSpecialEvents", () => {
       it.each(inputs.specialEventDates)("returns event names by game id for the week of %s", async (date) => {
-        const events = await makeAdapter().getSpecialEvents(date);
+        const events = await makeAdapter().getSpecialEvents!(date);
         for (const [gameId, name] of Object.entries(events)) {
           expect(gameId, "game id").not.toBe("");
           expect(typeof name).toBe("string");
@@ -229,9 +235,9 @@ export function runLeagueAdapterContract(options: ContractOptions): void {
       });
     });
 
-    describe("getSpotlight", () => {
+    describe.runIf(has("spotlight"))("getSpotlight", () => {
       it("returns featured players, each once", async () => {
-        const entries = await makeAdapter().getSpotlight();
+        const entries = await makeAdapter().getSpotlight!();
         for (const e of entries) {
           expectPlayer(e.player, league);
           expectTeam(e.team, league);
@@ -243,9 +249,9 @@ export function runLeagueAdapterContract(options: ContractOptions): void {
       });
     });
 
-    describe("getGameDetail", () => {
+    describe.runIf(has("gameDetail"))("getGameDetail", () => {
       it.each(inputs.gameIds)("returns a valid box score for %s", async (gameId) => {
-        const detail = await makeAdapter().getGameDetail(gameId);
+        const detail = await makeAdapter().getGameDetail!(gameId);
         expectGame(detail.game, league);
         expect(detail.game.id).toBe(gameId);
         for (const side of [detail.boxscore.home, detail.boxscore.away]) {
@@ -255,9 +261,42 @@ export function runLeagueAdapterContract(options: ContractOptions): void {
       });
     });
 
-    describe("getTeam", () => {
+    describe.runIf(has("plays"))("getPlays", () => {
+      it.each(inputs.playGameIds)("returns the plays of %s in order", async (gameId) => {
+        const { game, plays } = await makeAdapter().getPlays!(gameId);
+        expectGame(game, league);
+        expect(game.id).toBe(gameId);
+        expect(plays.length).toBeGreaterThan(0);
+        const ids = plays.map((p) => p.id);
+        expect(new Set(ids).size, "each play once").toBe(ids.length);
+        const teams = [game.home.team.id, game.away.team.id];
+        for (const p of plays) {
+          expectNonEmptyString(p.text, "play text");
+          expectNonEmptyString(p.periodLabel, "period label");
+          expect(p.time).toMatch(/^\d{1,2}:\d{2}$/);
+          expect(["score", "penalty", "shot", "other"]).toContain(p.kind);
+          if (p.teamId !== undefined) expect(teams).toContain(p.teamId);
+        }
+        // In order: periods never go back, and within a period the clock never does.
+        const seconds = (t: string) => Number(t.split(":")[0]) * 60 + Number(t.split(":")[1]);
+        for (let i = 1; i < plays.length; i++) {
+          const [a, b] = [plays[i - 1], plays[i]];
+          expect(b.period, `play ${b.id} after ${a.id}`).toBeGreaterThanOrEqual(a.period);
+          if (b.period === a.period) expect(seconds(b.time)).toBeGreaterThanOrEqual(seconds(a.time));
+        }
+        // The last score's running total is the game's score.
+        const scores = plays.filter((p) => p.kind === "score");
+        if (game.status === "final" && scores.length > 0) {
+          const last = scores[scores.length - 1];
+          expect([last.awayScore, last.homeScore]).toEqual([game.away.score, game.home.score]);
+        }
+        expectJsonSafe({ game, plays });
+      });
+    });
+
+    describe.runIf(has("team"))("getTeam", () => {
       it.each(inputs.teamIds)("returns season stats and nearby games for %s", async (teamId) => {
-        const detail: TeamDetail = await makeAdapter().getTeam(teamId);
+        const detail: TeamDetail = await makeAdapter().getTeam!(teamId);
         expect(detail.teamId).toBe(teamId);
         expect(detail.stats.length).toBeGreaterThan(0);
         for (const table of detail.stats) {
@@ -280,7 +319,7 @@ export function runLeagueAdapterContract(options: ContractOptions): void {
       });
     });
 
-    describe("getPlayer", () => {
+    describe.runIf(has("player"))("getPlayer", () => {
       const expectItems = (items: StatItem[], what: string) => {
         for (const item of items) {
           expectNonEmptyString(item.value, `${what} value`);
@@ -293,7 +332,7 @@ export function runLeagueAdapterContract(options: ContractOptions): void {
       };
 
       it.each(inputs.playerIds)("returns a player page for %s", async (playerId) => {
-        const detail: PlayerDetail = await makeAdapter().getPlayer(playerId);
+        const detail: PlayerDetail = await makeAdapter().getPlayer!(playerId);
         expectPlayer(detail.player, league);
         expect(detail.player.id).toBe(playerId);
         if (detail.team) expectTeam(detail.team, league);
@@ -322,7 +361,7 @@ export function runLeagueAdapterContract(options: ContractOptions): void {
 
       it("covers a skater and a goalie", async () => {
         const goalies = await Promise.all(
-          inputs.playerIds.map(async (id) => (await makeAdapter().getPlayer(id)).goalie),
+          inputs.playerIds.map(async (id) => (await makeAdapter().getPlayer!(id)).goalie),
         );
         expect(goalies).toContain(true);
         expect(goalies).toContain(false);
@@ -335,9 +374,10 @@ export function runLeagueAdapterContract(options: ContractOptions): void {
         await expect(adapter.getScores(inputs.scoreDates[0])).rejects.toThrow();
         await expect(adapter.getStandings()).rejects.toThrow();
         await expect(adapter.getLeaders()).rejects.toThrow();
-        await expect(adapter.getGameDetail(inputs.gameIds[0])).rejects.toThrow();
-        await expect(adapter.getTeam(inputs.teamIds[0])).rejects.toThrow();
-        await expect(adapter.getPlayer(inputs.playerIds[0])).rejects.toThrow();
+        if (has("gameDetail")) await expect(adapter.getGameDetail!(inputs.gameIds[0])).rejects.toThrow();
+        if (has("plays")) await expect(adapter.getPlays!(inputs.playGameIds[0])).rejects.toThrow();
+        if (has("team")) await expect(adapter.getTeam!(inputs.teamIds[0])).rejects.toThrow();
+        if (has("player")) await expect(adapter.getPlayer!(inputs.playerIds[0])).rejects.toThrow();
       });
     });
   });

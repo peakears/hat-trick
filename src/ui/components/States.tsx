@@ -1,16 +1,7 @@
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import type { DataMeta } from "../../data";
-import { timeLabel } from "../format";
-import { useColors } from "../theme";
-
-export function Loading() {
-  const colors = useColors();
-  return (
-    <View style={styles.center}>
-      <ActivityIndicator color={colors.accent} />
-    </View>
-  );
-}
+import { timeLabel } from "../common/format";
+import { useColors } from "../theme/theme";
 
 export function ErrorView({ title, error, onRetry }: { title: string; error: Error; onRetry: () => void }) {
   const colors = useColors();

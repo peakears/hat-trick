@@ -1,48 +1,39 @@
-import Ionicons from "@expo/vector-icons/Ionicons";
-import { useState, type ReactNode } from "react";
-import { Linking, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
-import { TV_REGIONS, type TvRegionPreference } from "../../src/ui/broadcasts";
+import { useRouter } from "expo-router";
+import { useState } from "react";
+import { Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { ReleaseNotesModal } from "../../src/ui/components/ReleaseNotesModal";
 import { Segmented } from "../../src/ui/components/Segmented";
-import { timeLabel } from "../../src/ui/format";
-import { installStatusText, isBusy } from "../../src/ui/install-update";
-import { ACCENTS, ACCENT_LABELS, accentSwatch, type AccentId } from "../../src/ui/palette";
-import { RELEASES_URL, REPO_URL, reportProblemUrl } from "../../src/ui/links";
-import { requestReminderPermission } from "../../src/ui/reminders-native";
-import { REMINDER_LEADS, type ReminderLead, type ThemePreference } from "../../src/ui/settings";
-import { useSettings } from "../../src/ui/settings-context";
-import type { UpdateStatus } from "../../src/ui/updates";
-import { useColors, useScheme } from "../../src/ui/theme";
-import { APP_VERSION, useUpdate } from "../../src/ui/update-context";
-
-const THEME_OPTIONS: { value: ThemePreference; label: string }[] = [
-  { value: "system", label: "System" },
-  { value: "light", label: "Light" },
-  { value: "dark", label: "Dark" },
-];
-
-const TV_REGION_LABELS: Record<TvRegionPreference, string> = { auto: "Auto", CA: "Canada", US: "US" };
-const TV_REGION_OPTIONS = TV_REGIONS.map((value) => ({ value, label: TV_REGION_LABELS[value] }));
+import {
+  AccentPicker,
+  Section,
+  THEME_OPTIONS,
+  ToggleRow,
+  TV_REGION_OPTIONS,
+  useReminderToggle,
+} from "../../src/ui/components/SettingsRows";
+import { timeLabel } from "../../src/ui/common/format";
+import { installStatusText, isBusy } from "../../src/ui/updates/install-update";
+import { RELEASES_URL, REPO_URL, reportProblemUrl } from "../../src/ui/common/links";
+import { liveTrackingAvailable } from "../../src/ui/notifications/live-tracker-native";
+import { REMINDER_LEADS, type ReminderLead } from "../../src/ui/settings/settings";
+import { useSettings } from "../../src/ui/settings/settings-context";
+import type { UpdateStatus } from "../../src/ui/updates/updates";
+import { useColors, DIVIDER } from "../../src/ui/theme/theme";
+import { APP_VERSION, useUpdate } from "../../src/ui/updates/update-context";
 
 const LEAD_OPTIONS = REMINDER_LEADS.map((n) => ({ value: String(n), label: `${n} min` }));
 
 export default function SettingsScreen() {
   const colors = useColors();
+  const router = useRouter();
   const { settings, update } = useSettings();
   const { status, checking, checkNow, install, installNow, cancelInstall, openInBrowser, canInstallInApp } =
     useUpdate();
-  const [permissionDenied, setPermissionDenied] = useState(false);
+  const { setReminders, setLiveScores, permissionDenied } = useReminderToggle();
   const [notesOpen, setNotesOpen] = useState(false);
 
-  // Turning reminders on asks for the notification permission first; it stays off if refused.
-  const setReminders = async (enabled: boolean) => {
-    if (enabled && !(await requestReminderPermission().catch(() => false))) {
-      setPermissionDenied(true);
-      return;
-    }
-    setPermissionDenied(false);
-    update({ remindersEnabled: enabled });
-  };
+  // Live scores also need the notification permission; the service only exists in the installed Android app.
+  const liveAvailable = liveTrackingAvailable();
 
   return (
     <ScrollView style={{ backgroundColor: colors.background }} contentContainerStyle={styles.content}>
@@ -56,7 +47,7 @@ export default function SettingsScreen() {
           value={settings.pureBlack}
           onChange={(pureBlack) => update({ pureBlack })}
         />
-        <AccentPicker value={settings.accent} onChange={(accent) => update({ accent })} />
+        <AccentPicker value={settings.accent} onChange={(accent) => update({ accent })} last />
       </Section>
 
       <Section title="Display">
@@ -65,12 +56,6 @@ export default function SettingsScreen() {
           detail="Team logos and player photos. Off shows abbreviations and initials instead."
           value={settings.showLogos}
           onChange={(showLogos) => update({ showLogos })}
-        />
-        <ToggleRow
-          label="Show betting info"
-          detail="Odds and lines, when available. Coming in a later version."
-          value={settings.showBetting}
-          onChange={(showBetting) => update({ showBetting })}
           last
         />
       </Section>
@@ -124,7 +109,7 @@ export default function SettingsScreen() {
         </View>
       </Section>
 
-      <Section title="Reminders">
+      <Section title="Notifications">
         <ToggleRow
           label="Puck drop reminders"
           detail={
@@ -136,10 +121,9 @@ export default function SettingsScreen() {
           }
           value={settings.remindersEnabled}
           onChange={setReminders}
-          last={!settings.remindersEnabled}
         />
         {settings.remindersEnabled && (
-          <View style={styles.row}>
+          <View style={[styles.row, styles.divider, { borderBottomColor: colors.border }]}>
             <Text style={[styles.label, { color: colors.text }]}>Remind me</Text>
             <View style={styles.leadPicker}>
               <Segmented
@@ -150,15 +134,64 @@ export default function SettingsScreen() {
             </View>
           </View>
         )}
+        <ToggleRow
+          label="Live scores"
+          detail={
+            !liveAvailable
+              ? "Available in the installed Android app (not in Expo Go)."
+              : settings.favoriteTeams.length === 0
+                ? "Follows your favourite teams' games in a notification, even with the app closed. Star a team first."
+                : "Follows your favourite teams' games in a notification, even with the app closed. Starts when you open the app (or a reminder) near puck drop."
+          }
+          value={liveAvailable && settings.liveScores}
+          onChange={setLiveScores}
+          disabled={!liveAvailable}
+          last={!(liveAvailable && settings.liveScores)}
+        />
+        {liveAvailable && settings.liveScores && (
+          <ToggleRow
+            label="Goal alerts"
+            detail={
+              settings.spoilerShield
+                ? "Off while the spoiler shield is on."
+                : "A notification for each goal, with the scorer, and the final score."
+            }
+            value={settings.goalAlerts}
+            onChange={(goalAlerts) => update({ goalAlerts })}
+            last
+          />
+        )}
       </Section>
 
       <Section title="About">
         <View style={[styles.row, styles.divider, { borderBottomColor: colors.border }]}>
           <View style={styles.rowText}>
             <Text style={[styles.label, { color: colors.text }]}>Hat Trick {APP_VERSION}</Text>
-            <Text style={[styles.detail, { color: colors.muted }]}>
-              {installStatusText(install) ?? updateDetail(status, checking)}
-            </Text>
+            <View style={styles.statusLine}>
+              <Text style={[styles.detail, styles.statusText, { color: colors.muted }]}>
+                {installStatusText(install) ?? updateDetail(status, checking)}
+              </Text>
+              {/* A separate button beside the status, so "What's new" and "Update" stay two focusable controls. */}
+              {status.kind === "available" ? (
+                <Pressable
+                  onPress={() => setNotesOpen(true)}
+                  hitSlop={8}
+                  accessibilityRole="button"
+                  accessibilityLabel={`What's new in version ${status.release.version}`}
+                >
+                  <Text style={[styles.detail, styles.linkText, { color: colors.accent }]}>What's new</Text>
+                </Pressable>
+              ) : (
+                <Pressable
+                  onPress={() => Linking.openURL(RELEASES_URL).catch(() => {})}
+                  hitSlop={8}
+                  accessibilityRole="link"
+                  accessibilityLabel="Release notes"
+                >
+                  <Text style={[styles.detail, styles.linkText, { color: colors.accent }]}>Release notes</Text>
+                </Pressable>
+              )}
+            </View>
           </View>
           {status.kind === "available" && install.kind === "downloading" ? (
             <Pressable
@@ -191,28 +224,39 @@ export default function SettingsScreen() {
         </View>
         <ToggleRow
           label="Check for updates automatically"
-          detail="Asks GitHub for the latest release at most once a day. Nothing is downloaded until you tap Update."
+          detail="Once a day at most, from GitHub. Nothing downloads until you tap Update."
           value={settings.checkForUpdates}
           onChange={(checkForUpdates) => update({ checkForUpdates })}
         />
         <LinkRow label="GitHub repository" detail="peakears/hat-trick" url={REPO_URL} />
-        {status.kind === "available" ? (
-          <Pressable
-            onPress={() => setNotesOpen(true)}
-            accessibilityRole="button"
-            style={[styles.row, styles.divider, { borderBottomColor: colors.border }]}
-          >
-            <View style={styles.rowText}>
-              <Text style={[styles.label, { color: colors.text }]}>What's new in {status.release.version}</Text>
-            </View>
-          </Pressable>
-        ) : (
-          <LinkRow label="Release notes" url={RELEASES_URL} />
-        )}
         <ReleaseNotesModal visible={notesOpen} onClose={() => setNotesOpen(false)} />
+        <Pressable
+          onPress={() => router.push({ pathname: "/welcome", params: { again: "1" } })}
+          accessibilityRole="button"
+          style={[styles.row, styles.divider, { borderBottomColor: colors.border }]}
+        >
+          <View style={styles.rowText}>
+            <Text style={[styles.label, { color: colors.text }]}>Run setup again</Text>
+            <Text style={[styles.detail, { color: colors.muted }]}>
+              Favourite teams, theme and reminders. Your choices stay picked.
+            </Text>
+          </View>
+        </Pressable>
+        <Pressable
+          onPress={() => router.push("/diagnostics")}
+          accessibilityRole="button"
+          style={[styles.row, styles.divider, { borderBottomColor: colors.border }]}
+        >
+          <View style={styles.rowText}>
+            <Text style={[styles.label, { color: colors.text }]}>Diagnostics</Text>
+            <Text style={[styles.detail, { color: colors.muted }]}>
+              Problems loading data. Stays on your phone unless you share it.
+            </Text>
+          </View>
+        </Pressable>
         <LinkRow
           label="Report a problem"
-          detail="Opens a new issue with your app version filled in."
+          detail="Opens a GitHub issue with your app version. To attach the diagnostics log, report from Diagnostics."
           url={reportProblemUrl({ version: APP_VERSION, platform: Platform.OS, osVersion: Platform.Version })}
           last
         />
@@ -220,16 +264,6 @@ export default function SettingsScreen() {
 
       <Text style={[styles.footer, { color: colors.muted }]}>Not affiliated with the NHL or any team.</Text>
     </ScrollView>
-  );
-}
-
-function Section({ title, children }: { title: string; children: ReactNode }) {
-  const colors = useColors();
-  return (
-    <View style={styles.section}>
-      <Text style={[styles.sectionTitle, { color: colors.muted }]}>{title.toUpperCase()}</Text>
-      <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>{children}</View>
-    </View>
   );
 }
 
@@ -275,81 +309,16 @@ function LinkRow({
   );
 }
 
-/** Round swatches for the accent colour, in the shades the current theme uses. */
-function AccentPicker({ value, onChange }: { value: AccentId; onChange: (accent: AccentId) => void }) {
-  const colors = useColors();
-  const scheme = useScheme();
-  return (
-    <View style={styles.row}>
-      <View style={styles.rowText}>
-        <Text style={[styles.label, { color: colors.text }]}>Accent colour</Text>
-        <Text style={[styles.detail, { color: colors.muted }]}>Links, buttons and highlights.</Text>
-        <View style={styles.swatches} accessibilityRole="radiogroup" accessibilityLabel="Accent colour">
-          {ACCENTS.map((accent) => {
-            const selected = accent === value;
-            return (
-              <Pressable
-                key={accent}
-                onPress={() => onChange(accent)}
-                hitSlop={4}
-                accessibilityRole="radio"
-                accessibilityState={{ checked: selected }}
-                accessibilityLabel={ACCENT_LABELS[accent]}
-                style={[styles.swatchRing, { borderColor: selected ? colors.text : "transparent" }]}
-              >
-                <View style={[styles.swatch, { backgroundColor: accentSwatch(accent, scheme) }]}>
-                  {selected && <Ionicons name="checkmark" size={18} color={colors.onAccent} />}
-                </View>
-              </Pressable>
-            );
-          })}
-        </View>
-      </View>
-    </View>
-  );
-}
-
-function ToggleRow({
-  label,
-  detail,
-  value,
-  onChange,
-  last = false,
-}: {
-  label: string;
-  detail?: string;
-  value: boolean;
-  onChange: (value: boolean) => void;
-  last?: boolean;
-}) {
-  const colors = useColors();
-  return (
-    <View
-      style={[styles.row, !last && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border }]}
-    >
-      <View style={styles.rowText}>
-        <Text style={[styles.label, { color: colors.text }]}>{label}</Text>
-        {detail ? <Text style={[styles.detail, { color: colors.muted }]}>{detail}</Text> : null}
-      </View>
-      <Switch value={value} onValueChange={onChange} trackColor={{ true: colors.accent }} accessibilityLabel={label} />
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   content: { padding: 16, gap: 20 },
-  section: { gap: 6 },
-  sectionTitle: { fontSize: 12, fontWeight: "600", letterSpacing: 0.5, marginLeft: 4 },
-  card: { borderRadius: 12, borderWidth: StyleSheet.hairlineWidth, overflow: "hidden" },
   row: { flexDirection: "row", alignItems: "center", paddingHorizontal: 14, paddingVertical: 12, gap: 12 },
   rowText: { flex: 1, gap: 2 },
   label: { fontSize: 16 },
   detail: { fontSize: 13 },
   leadPicker: { flex: 1 },
-  divider: { borderBottomWidth: StyleSheet.hairlineWidth },
+  divider: { borderBottomWidth: DIVIDER },
   linkText: { fontWeight: "600" },
-  swatches: { flexDirection: "row", flexWrap: "wrap", gap: 10, marginTop: 10 },
-  swatchRing: { borderRadius: 999, borderWidth: 2, padding: 2 },
-  swatch: { width: 32, height: 32, borderRadius: 999, alignItems: "center", justifyContent: "center" },
+  statusText: { flexShrink: 1 },
+  statusLine: { flexDirection: "row", flexWrap: "wrap", alignItems: "baseline", columnGap: 8 },
   footer: { textAlign: "center", fontSize: 12, lineHeight: 18 },
 });

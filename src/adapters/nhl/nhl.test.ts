@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { runLeagueAdapterContract } from "../../contract/league-adapter.contract";
 import { NhlAdapter, NhlApiError, NhlResponseError, type AdapterWarning } from ".";
-import { infractionLabel, landingSpecialEvent } from "./mappers";
+import { goalTag, infractionLabel, landingSpecialEvent, nhlVideoUrl } from "./mappers";
 import { RawLandingSchema } from "./raw-types";
 
 // Real responses recorded from api-web.nhle.com on 2026-11-17 (club stats, the Toronto schedule and the landing: 2026-11-20;
@@ -16,6 +16,8 @@ const FIXTURES: [RegExp, string][] = [
   [/\/gamecenter\/2026020342\/boxscore$/, "boxscore-2026020342-live.json"],
   [/\/gamecenter\/2026020333\/boxscore$/, "boxscore-2026020333-final.json"],
   [/\/gamecenter\/2026020333\/landing$/, "landing-2026020333-final.json"], // recorded 2026-11-20
+  [/\/gamecenter\/2026020333\/play-by-play$/, "play-by-play-2026020333-final.json"], // recorded 2026-11-23: LAK 3-0
+  [/\/gamecenter\/2026020338\/play-by-play$/, "play-by-play-2026020338-final.json"], // recorded 2026-11-23: CHI 6-3
   [/\/player\/8474563\/landing$/, "player-8474563-landing.json"], // Drew Doughty (D), recorded 2026-11-20
   [/\/player\/8475311\/landing$/, "player-8475311-landing.json"], // Darcy Kuemper (G), recorded 2026-11-20
   [/\/player-spotlight$/, "player-spotlight.json"], // recorded 2026-11-21
@@ -76,6 +78,7 @@ runLeagueAdapterContract({
   inputs: {
     scoreDates: ["2026-11-17", "2026-11-18"],
     gameIds: ["2026020342", "2026020333"],
+    playGameIds: ["2026020333", "2026020338"],
     leaderQueries: [{}, { category: "goals", limit: 3 }, { category: "savePctg" }, { category: "goalsAgainstAverage" }],
     teamIds: ["TOR"],
     playerIds: ["8474563", "8475311"], // Doughty (D), Kuemper (G)
@@ -269,6 +272,56 @@ describe("NHL adapter", () => {
     });
   });
 
+  describe("videos", () => {
+    it("links a final game's recap and condensed game, and each goal's clip, on nhl.com", async () => {
+      const { videos, goals } = await fixtureAdapter().adapter.getGameDetail("2026020333");
+      expect(videos).toEqual([
+        { kind: "recap", url: "https://www.nhl.com/video/lak-at-bos-recap-6408527036112" },
+        { kind: "condensed", url: "https://www.nhl.com/video/lak-at-bos-condensed-game-6408527438112" },
+      ]);
+      expect(goals![0].videoUrl).toBe(
+        "https://nhl.com/video/lak-bos-zuccarello-scores-goal-against-michael-dipietro-6408520589112",
+      );
+    });
+
+    it("has no game videos while a game is live", async () => {
+      const { videos } = await fixtureAdapter().adapter.getGameDetail("2026020342");
+      expect(videos).toEqual([]);
+    });
+
+    it("drops a video link that is not an nhl.com video page, keeping the rest of the game", async () => {
+      const { adapter } = fixtureAdapter((_url, body) => {
+        const game = body.games?.find((g: any) => g.id === 2026020333);
+        if (!game) return;
+        game.threeMinRecap = "https://evil.example/video/x";
+        game.condensedGame = 42;
+        game.goals[0].highlightClipSharingUrl = "https://nhl.com/video/../../evil";
+      });
+      const { videos, goals } = await adapter.getGameDetail("2026020333");
+      expect(videos).toEqual([]);
+      expect(goals).toHaveLength(3);
+      expect(goals![0].videoUrl).toBeUndefined();
+    });
+
+    it("accepts only whole nhl.com video page URLs", () => {
+      expect(nhlVideoUrl("/video/a-b-1")).toBe("https://www.nhl.com/video/a-b-1");
+      expect(nhlVideoUrl("https://www.nhl.com/video/a-b-1")).toBe("https://www.nhl.com/video/a-b-1");
+      for (const bad of [
+        undefined,
+        "",
+        "/video/",
+        "/video/a/b",
+        "//evil.example/video/a",
+        "http://nhl.com/video/a",
+        "https://nhl.com.evil.example/video/a",
+        "https://nhl.com/video/a?next=https://evil.example",
+        "https://evil.example/https://nhl.com/video/a",
+      ]) {
+        expect(nhlVideoUrl(bad)).toBeUndefined();
+      }
+    });
+  });
+
   describe("goal summary", () => {
     it("lists a final game's goals in the order scored", async () => {
       const { goals } = await fixtureAdapter().adapter.getGameDetail("2026020333");
@@ -307,17 +360,23 @@ describe("NHL adapter", () => {
       expect(goals).toBeDefined();
     });
 
-    it("still returns the game when the scores call fails", async () => {
+    it("still returns the game when the scores call fails, and warns that the goals are left out", async () => {
+      const warnings: AdapterWarning[] = [];
       const adapter = new NhlAdapter({
         fetch: async (input) => {
           const url = String(input);
           if (url.includes("/score/")) throw new TypeError("Network request failed");
           return jsonResponse(fixtureFor(url));
         },
+        onWarning: (w) => warnings.push(w),
       });
       const detail = await adapter.getGameDetail("2026020333");
       expect(detail.game.id).toBe("2026020333");
       expect(detail.goals).toBeUndefined();
+      expect(detail.videos).toBeUndefined();
+      expect(warnings).toHaveLength(1);
+      expect(warnings[0].url).toMatch(/\/score\/\d{4}-\d{2}-\d{2}$/);
+      expect(warnings[0].message).toMatch(/^goals and videos left out: .*Network request failed/);
     });
 
     it("carries the scorer's season goals", async () => {
@@ -467,6 +526,22 @@ describe("NHL adapter", () => {
       const detail = await adapter.getGameDetail("2026020333");
       expect(detail.goals).toHaveLength(3);
       expect(detail.threeStars).toBeUndefined();
+    });
+
+    it("passes a per-request warning handler the failed landing", async () => {
+      const seen: AdapterWarning[] = [];
+      const adapter = new NhlAdapter({
+        fetch: async (input) => {
+          const url = String(input);
+          if (url.endsWith("/landing")) return jsonResponse({ error: "nope" }, 500);
+          return jsonResponse(fixtureFor(url));
+        },
+      });
+      await adapter.getGameDetail("2026020333", { onWarning: (w) => seen.push(w) });
+      expect(seen.map((w) => w.message)).toEqual([
+        expect.stringMatching(/^three stars, penalties and special event left out/),
+      ]);
+      expect(seen[0].url).toBe("https://api-web.nhle.com/v1/gamecenter/2026020333/landing");
     });
 
     it("drops one broken star and keeps the others", async () => {
@@ -698,7 +773,7 @@ describe("NHL adapter", () => {
       const detail = await fixtureAdapter().adapter.getGameDetail("2026020333");
       expect(detail.boxscore.home.map((t) => [t.title, t.rows.length])).toEqual([
         ["Forwards", 12],
-        ["Defense", 6],
+        ["Defence", 6],
         ["Goalies", 2],
       ]);
     });
@@ -773,7 +848,7 @@ describe("NHL adapter", () => {
 
     it("builds Forwards, Defense and Goalies tables, best first", async () => {
       const { stats } = await fixtureAdapter().adapter.getTeam("TOR");
-      expect(stats.map((t) => t.title)).toEqual(["Forwards", "Defense", "Goalies"]);
+      expect(stats.map((t) => t.title)).toEqual(["Forwards", "Defence", "Goalies"]);
       const [forwards, defense, goalies] = stats;
 
       const raw = loadFixture("club-stats-TOR-now.json");
@@ -845,19 +920,22 @@ describe("NHL adapter", () => {
       expect((await fixtureAdapter().adapter.getTeam("TOR")).arena).toBe("Scotiabank Arena");
     });
 
-    it("still returns the stats when the schedule cannot be loaded", async () => {
+    it("still returns the stats when the schedule cannot be loaded, and warns that the games are left out", async () => {
+      const warnings: AdapterWarning[] = [];
       const adapter = new NhlAdapter({
         fetch: async (input) => {
           const url = String(input);
           if (/club-schedule-season/.test(url)) throw new TypeError("Network request failed");
           return jsonResponse(fixtureFor(url));
         },
+        onWarning: (w) => warnings.push(w),
       });
       const detail = await adapter.getTeam("TOR");
       expect(detail.stats.length).toBe(3);
       expect(detail.recent).toBeUndefined();
       expect(detail.upcoming).toBeUndefined();
       expect(detail.arena).toBeUndefined();
+      expect(warnings.map((w) => w.message)).toEqual([expect.stringMatching(/^team games left out: /)]);
     });
 
     it("fails when the club stats cannot be loaded", async () => {
@@ -950,7 +1028,7 @@ describe("NHL adapter", () => {
         "Goals",
         "Assists",
         "Power-play goals",
-        "Faceoff %",
+        "Faceoff win %",
         "Penalty minutes",
       ]);
     });
@@ -979,8 +1057,8 @@ describe("NHL adapter", () => {
 
   describe("API drift", () => {
     it("drops a minor field with the wrong type and warns", async () => {
-      const { adapter, warnings } = fixtureAdapter((_url, body) => {
-        body.playerByGameStats.homeTeam.goalies[1].savePctg = ".905";
+      const { adapter, warnings } = fixtureAdapter((url, body) => {
+        if (url.endsWith("/boxscore")) body.playerByGameStats.homeTeam.goalies[1].savePctg = ".905";
       });
       const detail = await adapter.getGameDetail("2026020333");
       const goalies = detail.boxscore.home.find((t) => t.title === "Goalies")!;
@@ -1000,8 +1078,8 @@ describe("NHL adapter", () => {
     });
 
     it("drops a broken box score row and keeps the rest", async () => {
-      const { adapter, warnings } = fixtureAdapter((_url, body) => {
-        delete body.playerByGameStats.homeTeam.forwards[0].playerId;
+      const { adapter, warnings } = fixtureAdapter((url, body) => {
+        if (url.endsWith("/boxscore")) delete body.playerByGameStats.homeTeam.forwards[0].playerId;
       });
       const detail = await adapter.getGameDetail("2026020333");
       expect(detail.boxscore.home[0].rows).toHaveLength(11);
@@ -1090,6 +1168,101 @@ describe("NHL adapter", () => {
       } finally {
         AbortSignal.timeout = original;
       }
+    });
+  });
+  describe("play-by-play", () => {
+    const plays = async (id: string) => (await fixtureAdapter().adapter.getPlays(id)).plays;
+
+    it("parses both recorded games with no warnings, and asks for one URL", async () => {
+      const { adapter, warnings, urls } = fixtureAdapter();
+      await adapter.getPlays("2026020333");
+      await adapter.getPlays("2026020338");
+      expect(warnings).toEqual([]);
+      expect(urls).toEqual([
+        "https://api-web.nhle.com/v1/gamecenter/2026020333/play-by-play",
+        "https://api-web.nhle.com/v1/gamecenter/2026020338/play-by-play",
+      ]);
+    });
+
+    it("has the game's state and score, and leaves out the period markers", async () => {
+      const { game, plays } = await fixtureAdapter().adapter.getPlays("2026020338");
+      expect(game).toMatchObject({ id: "2026020338", status: "final", away: { score: 3 }, home: { score: 6 } });
+      expect(plays).toHaveLength(300);
+      expect(plays.some((p) => /period|game end/i.test(p.text))).toBe(false);
+    });
+
+    it("words a goal with season totals, assists and the score after it", async () => {
+      const goals = (await plays("2026020338")).filter((p) => p.kind === "score");
+      expect(goals).toHaveLength(9);
+      expect(goals[0]).toEqual({
+        id: "100",
+        period: 1,
+        periodLabel: "1st",
+        time: "03:22",
+        kind: "score",
+        teamId: "TOR",
+        text: "Goal: E. Cowan (8), snap shot. Assists: A. Matthews (18), J. Roslovic (12)",
+        awayScore: 1,
+        homeScore: 0,
+      });
+    });
+
+    it("tags power-play and empty-net goals from the situation code", async () => {
+      const chi = (await plays("2026020338")).filter((p) => p.kind === "score" && p.tag);
+      expect(chi.map((p) => [p.periodLabel, p.time, p.teamId, p.tag])).toEqual([
+        ["2nd", "13:17", "CHI", "Power play"],
+        ["3rd", "09:07", "CHI", "Power play"],
+      ]);
+      const lak = (await plays("2026020333")).filter((p) => p.kind === "score");
+      expect(lak.map((p) => p.tag)).toEqual([undefined, undefined, "Empty net"]);
+    });
+
+    it("names the strength from either side", () => {
+      expect(goalTag("1451", true)).toBe("Power play"); // home 5 on 4
+      expect(goalTag("1451", false)).toBe("Short-handed"); // away scores 4 on 5
+      expect(goalTag("1560", false)).toBe("Empty net"); // home net empty
+      expect(goalTag("0651", true)).toBe("Empty net"); // away net empty
+      expect(goalTag("1551", true)).toBeUndefined();
+      expect(goalTag(undefined, true)).toBeUndefined();
+    });
+
+    it("words penalties, a penalty shot and a delayed penalty", async () => {
+      const all = await plays("2026020333");
+      const penalties = all.filter((p) => p.kind === "penalty").map((p) => [p.teamId, p.text]);
+      expect(penalties.slice(0, 3)).toEqual([
+        ["BOS", "M. Geekie: Roughing, 2 min, drawn by Q. Byfield"],
+        ["LAK", "Q. Byfield: Tripping, 2 min, drawn by C. McAvoy"],
+        ["BOS", "M. Lohrei: Tripping on a breakaway, drawn by Q. Byfield"],
+      ]);
+      expect(all.find((p) => p.text.startsWith("Delayed"))?.text).toBe("Delayed penalty on BOS");
+    });
+
+    it("words shots, misses, blocks (by a teammate too), hits, faceoffs and stoppages", async () => {
+      const texts = (await plays("2026020333")).map((p) => p.text);
+      expect(texts).toContain("Snap shot by M. Lohrei, saved by D. Kuemper");
+      expect(texts).toContain("Missed shot by Q. Byfield (over the crossbar)");
+      expect(texts).toContain("Shot by J. Peterka blocked by teammate E. Lindholm");
+      expect(texts).toContain("M. Eyssimont hit E. Gustafsson");
+      expect(texts).toContain("F. Minten won the faceoff against E. Haula");
+      expect(texts).toContain("Stoppage: icing");
+    });
+
+    it("drops a broken play with a warning and keeps the rest", async () => {
+      const { adapter, warnings } = fixtureAdapter((url, body) => {
+        if (url.endsWith("/play-by-play")) delete body.plays[5].timeInPeriod;
+      });
+      const { plays } = await adapter.getPlays("2026020338");
+      expect(plays).toHaveLength(299);
+      expect(warnings).toHaveLength(1);
+      expect(warnings[0].message).toMatch(/^plays\[5\] dropped/);
+    });
+
+    it("names a play type it does not know after the type", async () => {
+      const { adapter } = fixtureAdapter((url, body) => {
+        if (url.endsWith("/play-by-play")) body.plays[5].typeDescKey = "challenge-review";
+      });
+      const { plays } = await adapter.getPlays("2026020338");
+      expect(plays.find((p) => p.text === "Challenge review")).toMatchObject({ kind: "other" });
     });
   });
 });

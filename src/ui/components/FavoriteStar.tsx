@@ -1,9 +1,9 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Pressable } from "react-native";
 import type { Team } from "../../domain";
-import { isFavorite } from "../favorites";
-import { useSettings } from "../settings-context";
-import { useColors } from "../theme";
+import { isFavorite } from "../team/favorites";
+import { useSettings } from "../settings/settings-context";
+import { useColors } from "../theme/theme";
 
 /** A star that adds a team to the favourites, or removes it. */
 export function FavoriteStar({ team, size = 22 }: { team: Team; size?: number }) {

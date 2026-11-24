@@ -1,8 +1,8 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
 import { Platform, Pressable } from "react-native";
-import { dateToPickerValue, pickerValueToDate } from "../format";
-import { useColors } from "../theme";
+import { dateToPickerValue, pickerValueToDate } from "../common/format";
+import { useColors } from "../theme/theme";
 
 /**
  * Calendar button that opens the native Android date dialog. The dialog follows the app's

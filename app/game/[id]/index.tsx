@@ -3,18 +3,22 @@ import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "r
 import type { Game, GameSide } from "../../../src/domain";
 import { RevealButton } from "../../../src/ui/components/ShieldUi";
 import { SpecialEventTag } from "../../../src/ui/components/SpecialEventTag";
-import { CrashScreen, Empty, ErrorView, Loading, OfflineBanner, UpdatedAt } from "../../../src/ui/components/States";
+import { CrashScreen, Empty, ErrorView, OfflineBanner, UpdatedAt } from "../../../src/ui/components/States";
+import { PageSkeleton } from "../../../src/ui/components/Skeleton";
 import { TeamLogo } from "../../../src/ui/components/TeamLogo";
+import { FlashScore } from "../../../src/ui/components/FlashScore";
 import { GoalSummary } from "../../../src/ui/components/GoalSummary";
+import { PlayByPlayCard } from "../../../src/ui/components/PlayByPlayCard";
 import { PenaltySummary } from "../../../src/ui/components/PenaltySummary";
+import { GameInfoLines } from "../../../src/ui/components/GameInfoLines";
+import { GameVideos } from "../../../src/ui/components/GameVideos";
 import { ThreeStars } from "../../../src/ui/components/ThreeStars";
-import { WhereToWatch } from "../../../src/ui/components/WhereToWatch";
-import { localDate, teamRecord, venueLabel } from "../../../src/ui/format";
-import { eventWeekStart, withSpecialEvents } from "../../../src/ui/special-events";
-import { useSpoilers } from "../../../src/ui/spoiler-context";
-import { LEAGUE, useSportsData } from "../../../src/ui/sports-data-context";
-import { tabular, useColors } from "../../../src/ui/theme";
-import { usePolled } from "../../../src/ui/use-polled";
+import { localDate, teamRecord } from "../../../src/ui/common/format";
+import { eventWeekStart, withSpecialEvents } from "../../../src/ui/scores/special-events";
+import { useSpoilers } from "../../../src/ui/spoilers/spoiler-context";
+import { NHL, useSportsData } from "../../../src/ui/data/sports-data-context";
+import { tabular, useColors } from "../../../src/ui/theme/theme";
+import { usePolled } from "../../../src/ui/data/use-polled";
 
 /** A game page that fails to render keeps the header, so Back still returns to the scores. */
 export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
@@ -27,12 +31,12 @@ export default function GameScreen() {
   const colors = useColors();
   const spoilers = useSpoilers();
   const router = useRouter();
-  const detail = usePolled(`game:${id}`, (o) => sports.getGameDetail(LEAGUE, id, o));
+  const detail = usePolled(`game:${id}`, (o) => sports.getGameDetail(NHL, id, o));
   // Season records come from the standings (shared with the Standings tab's cache). Optional:
   // if standings fail to load, the records are just left out.
-  const standings = usePolled("standings", (o) => sports.getStandings(LEAGUE, o));
+  const standings = usePolled("standings", (o) => sports.getStandings(NHL, o));
 
-  if (detail.loading) return <Loading />;
+  if (detail.loading) return <PageSkeleton />;
   if (!detail.data) {
     return (
       <ErrorView
@@ -43,9 +47,8 @@ export default function GameScreen() {
     );
   }
 
-  const { game, goals, threeStars, penalties } = detail.data;
+  const { game, goals, threeStars, penalties, videos } = detail.data;
   const live = game.status === "live";
-  const venue = venueLabel(game.venue);
   // While hidden: no score, shots, goals, three stars, penalties, box score, and no records (the standings already
   // count a finished game).
   const hidden = spoilers.isHidden(game);
@@ -96,35 +99,53 @@ export default function GameScreen() {
           <RefreshControl refreshing={detail.refreshing} onRefresh={detail.refresh} colors={[colors.accent]} />
         }
       >
-        <View style={[styles.summary, { backgroundColor: colors.card }]}>
-          {team(game.away)}
-          <View style={styles.middle}>
-            {hidden ? (
-              <Text style={[styles.hiddenScore, { color: colors.muted }]}>Score hidden</Text>
-            ) : (
-              <Text style={[styles.score, tabular, { color: colors.text }]}>
-                {game.away.score ?? "-"} – {game.home.score ?? "-"}
+        <View style={[styles.summaryCard, { backgroundColor: colors.card }]}>
+          <View style={styles.summary}>
+            {team(game.away)}
+            <View style={styles.middle}>
+              {hidden ? (
+                <Text style={[styles.hiddenScore, { color: colors.muted }]}>Score hidden</Text>
+              ) : (
+                <View style={styles.scoreRow}>
+                  <FlashScore
+                    value={game.away.score}
+                    live={live}
+                    style={[styles.score, tabular, { color: colors.text }]}
+                  >
+                    {game.away.score ?? "-"}
+                  </FlashScore>
+                  <Text style={[styles.score, { color: colors.text }]}>–</Text>
+                  <FlashScore
+                    value={game.home.score}
+                    live={live}
+                    style={[styles.score, tabular, { color: colors.text }]}
+                  >
+                    {game.home.score ?? "-"}
+                  </FlashScore>
+                </View>
+              )}
+              <Text style={[styles.status, tabular, { color: live ? colors.live : colors.muted }]}>
+                {spoilers.statusLabel(game)}
               </Text>
-            )}
-            <Text style={[styles.status, tabular, { color: live ? colors.live : colors.muted }]}>
-              {spoilers.statusLabel(game)}
-            </Text>
-            {hidden && <RevealButton label="Show score" onPress={() => spoilers.reveal(game.id)} />}
+              {hidden && <RevealButton label="Show score" onPress={() => spoilers.reveal(game.id)} />}
+            </View>
+            {team(game.home)}
           </View>
-          {team(game.home)}
+          {/* Arena and TV channels, one compact line each, instead of a line and a card of their own. */}
+          <GameInfoLines game={game} />
         </View>
 
         <GameEvent game={game} />
 
-        {venue && (
-          <Text style={[styles.venue, { color: colors.muted }]} accessibilityLabel={`Played at ${venue}`}>
-            {venue}
-          </Text>
-        )}
-
-        <WhereToWatch game={game} />
+        {/* Not shielded: the rows name no score or player, and opening a video is the user's choice. */}
+        <GameVideos videos={videos} />
 
         {!hidden && threeStars && <ThreeStars stars={threeStars} />}
+
+        {/* Plays give the score away, so the shield hides the card. Only for a league with a play-by-play. */}
+        {!hidden && (live || game.status === "final") && sports.supports(NHL, "plays") && (
+          <PlayByPlayCard game={game} />
+        )}
 
         {!hidden && goals && <GoalSummary goals={goals} />}
 
@@ -159,7 +180,7 @@ function GameEvent({ game }: { game: Game }) {
   const sports = useSportsData();
   // The league's calendar day is the game's local date for nearly every viewer; the week lookup covers Monday to Sunday.
   const weekStart = eventWeekStart(localDate(new Date(game.startTime)));
-  const events = usePolled(`events:${weekStart}`, (o) => sports.getSpecialEvents(LEAGUE, weekStart, o));
+  const events = usePolled(`events:${weekStart}`, (o) => sports.getSpecialEvents(NHL, weekStart, o));
   const [withEvent] = withSpecialEvents([game], events.data);
   return <SpecialEventTag name={withEvent.specialEvent} style={styles.event} />;
 }
@@ -176,17 +197,10 @@ const styles = StyleSheet.create({
     padding: 14,
     borderRadius: 12,
   },
-  venue: { fontSize: 13, textAlign: "center", marginTop: 10, marginHorizontal: 12 },
   boxScoreLabel: { fontSize: 15, fontWeight: "700" },
   boxScoreHint: { fontSize: 13 },
-  summary: {
-    flexDirection: "row",
-    alignItems: "center",
-    margin: 12,
-    marginBottom: 0,
-    padding: 16,
-    borderRadius: 12,
-  },
+  summaryCard: { margin: 12, marginBottom: 0, padding: 16, borderRadius: 12 },
+  summary: { flexDirection: "row", alignItems: "center" },
   team: { flex: 1, alignItems: "center", gap: 6 },
   teamLink: { alignItems: "center", gap: 6, maxWidth: "100%" },
   teamName: { flexShrink: 1, fontSize: 14, fontWeight: "600" },
@@ -204,6 +218,7 @@ const styles = StyleSheet.create({
   sogValue: { fontSize: 14, fontWeight: "700" },
   sogLabel: { fontSize: 10, fontWeight: "600", letterSpacing: 0.5 },
   middle: { alignItems: "center", paddingHorizontal: 8, gap: 4 },
+  scoreRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   score: { fontSize: 30, fontWeight: "800" },
   hiddenScore: { fontSize: 16, fontWeight: "600" },
   status: { fontSize: 13, fontWeight: "600" },

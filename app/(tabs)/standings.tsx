@@ -2,19 +2,21 @@ import { useRouter } from "expo-router";
 import { Pressable, RefreshControl, SectionList, StyleSheet, Text, View } from "react-native";
 import type { StandingRow } from "../../src/domain";
 import { Segmented } from "../../src/ui/components/Segmented";
-import { ErrorView, Loading, OfflineBanner, UpdatedAt } from "../../src/ui/components/States";
+import { ErrorView, OfflineBanner, UpdatedAt } from "../../src/ui/components/States";
+import { ListSkeleton } from "../../src/ui/components/Skeleton";
 import { TeamLogo } from "../../src/ui/components/TeamLogo";
-import { isFavorite } from "../../src/ui/favorites";
-import { useSettings } from "../../src/ui/settings-context";
-import { LEAGUE, useSportsData } from "../../src/ui/sports-data-context";
+import { isFavorite } from "../../src/ui/team/favorites";
+import { useSettings } from "../../src/ui/settings/settings-context";
+import { useSportsData } from "../../src/ui/data/sports-data-context";
+import { useLeague } from "../../src/ui/data/use-league";
 import {
   availableStandingsViews,
   effectiveStandingsView,
   STANDINGS_VIEW_LABELS,
   standingsSections,
-} from "../../src/ui/standings";
-import { tabular, useColors } from "../../src/ui/theme";
-import { usePolled } from "../../src/ui/use-polled";
+} from "../../src/ui/standings/standings";
+import { tabular, useColors, DIVIDER } from "../../src/ui/theme/theme";
+import { usePolled } from "../../src/ui/data/use-polled";
 
 const NUM_WIDTH = 28;
 
@@ -23,19 +25,20 @@ const COLUMNS: { label: string; width: number; value: (r: StandingRow) => string
   { label: "GP", width: NUM_WIDTH, value: (r) => r.gamesPlayed },
   { label: "W", width: NUM_WIDTH, value: (r) => r.wins },
   { label: "L", width: NUM_WIDTH, value: (r) => r.losses },
-  { label: "OT", width: NUM_WIDTH, value: (r) => r.otLosses },
+  { label: "OTL", width: NUM_WIDTH, value: (r) => r.otLosses },
   { label: "PTS", width: NUM_WIDTH, value: (r) => r.points },
   { label: "STRK", width: 36, value: (r) => r.streak },
 ];
 
 export default function StandingsScreen() {
   const sports = useSportsData();
+  const league = useLeague();
   const colors = useColors();
   const router = useRouter();
   const { settings, update } = useSettings();
-  const standings = usePolled("standings", (o) => sports.getStandings(LEAGUE, o));
+  const standings = usePolled(`${league}:standings`, (o) => sports.getStandings(league, o));
 
-  if (standings.loading) return <Loading />;
+  if (standings.loading) return <ListSkeleton />;
   if (!standings.data && standings.error) {
     return <ErrorView title="Couldn't load standings" error={standings.error} onRetry={standings.refresh} />;
   }
@@ -139,7 +142,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 9,
     gap: 4,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: DIVIDER,
     borderBottomColor: "transparent",
   },
   teamRow: { borderLeftWidth: 3 },

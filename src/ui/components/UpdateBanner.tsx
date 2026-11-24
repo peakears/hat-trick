@@ -1,9 +1,9 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { installStatusText, isBusy } from "../install-update";
-import { useColors } from "../theme";
-import { useUpdate } from "../update-context";
+import { installStatusText, isBusy } from "../updates/install-update";
+import { useColors } from "../theme/theme";
+import { useUpdate } from "../updates/update-context";
 import { ReleaseNotesModal } from "./ReleaseNotesModal";
 
 /**

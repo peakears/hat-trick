@@ -62,11 +62,15 @@ export function gameFreshness(game: Game, now: number): number {
   }
 }
 
-/** A game page: as fresh as its game, but re-checked soon after the final until the three stars arrive. */
+/**
+ * A game page: as fresh as its game, but re-checked soon after the final until the three stars and the recap arrive
+ * (the league posts both some time after the game).
+ */
 export function gameDetailFreshness(detail: GameDetail, now: number): number {
   const { game } = detail;
+  const missing = !detail.threeStars || !detail.videos?.some((v) => v.kind === "recap");
   const waiting =
-    game.status === "final" && !detail.threeStars && now - Date.parse(game.startTime) < FRESHNESS.awaitingStarsWindow;
+    game.status === "final" && missing && now - Date.parse(game.startTime) < FRESHNESS.awaitingStarsWindow;
   return waiting ? Math.min(FRESHNESS.awaitingStars, gameFreshness(game, now)) : gameFreshness(game, now);
 }
 

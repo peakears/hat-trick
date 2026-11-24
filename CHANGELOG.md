@@ -1,5 +1,39 @@
 # Changelog
 
+## [1.11.0](https://github.com/peakears/hat-trick/compare/v1.10.0...v1.11.0) (2026-11-24)
+
+
+### Features
+
+* **app:** add an NHL play-by-play page ([#135](https://github.com/peakears/hat-trick/issues/135)) ([d93a663](https://github.com/peakears/hat-trick/commit/d93a66370b9a40a6eb195844a2d4c9be0a6228e4))
+* **app:** follow favourite teams' live games in an ongoing notification, with goal alerts ([#118](https://github.com/peakears/hat-trick/issues/118)) ([585c25f](https://github.com/peakears/hat-trick/commit/585c25f761228ca3e8e9b6490ac25c0e2cfc77d1))
+
+
+### Bug Fixes
+
+* **app:** keep the live score notification updating when you leave the app ([#138](https://github.com/peakears/hat-trick/issues/138)) ([d516aa9](https://github.com/peakears/hat-trick/commit/d516aa9494403b5439441184e326a2a88aecb226)), closes [#137](https://github.com/peakears/hat-trick/issues/137)
+
+## [1.10.0](https://github.com/peakears/hat-trick/compare/v1.9.0...v1.10.0) (2026-11-23)
+
+
+### Features
+
+* **app:** add a diagnostics log in Settings for API problems ([#117](https://github.com/peakears/hat-trick/issues/117)) ([a303e81](https://github.com/peakears/hat-trick/commit/a303e8123c8557f2e2c95a81a44e03a8cc4edb14)), closes [#113](https://github.com/peakears/hat-trick/issues/113)
+* **app:** first-run setup for favourite teams, theme and reminders ([#121](https://github.com/peakears/hat-trick/issues/121)) ([177a7e4](https://github.com/peakears/hat-trick/commit/177a7e4fe10d32b52bcff0654123db48a5ae4dba)), closes [#120](https://github.com/peakears/hat-trick/issues/120)
+* **app:** flash a live score when it goes up ([#101](https://github.com/peakears/hat-trick/issues/101)) ([351325c](https://github.com/peakears/hat-trick/commit/351325cca34f872f7c17ee7190b774cbf42688ba))
+* **app:** fold the arena and TV channels into the game page's score card ([#111](https://github.com/peakears/hat-trick/issues/111)) ([308029f](https://github.com/peakears/hat-trick/commit/308029f1a62892f66cf3ef47ce1f48818293250f))
+* **app:** open game recaps and goal videos on nhl.com from the game page ([#124](https://github.com/peakears/hat-trick/issues/124)) ([cc2233a](https://github.com/peakears/hat-trick/commit/cc2233a5914e8dd7354e1eb193f9638f79d85349))
+* **app:** show loading placeholders instead of a spinner ([#102](https://github.com/peakears/hat-trick/issues/102)) ([f8c77d9](https://github.com/peakears/hat-trick/commit/f8c77d9f6fda3681a895b268d6dac221860b59ac))
+
+
+### Bug Fixes
+
+* **app:** condense Settings › About, with What's new beside the available version ([#123](https://github.com/peakears/hat-trick/issues/123)) ([cbd5658](https://github.com/peakears/hat-trick/commit/cbd56581c0ec51c0513234a3b60091007de222c8)), closes [#119](https://github.com/peakears/hat-trick/issues/119)
+* **app:** draw every row divider on Android ([#122](https://github.com/peakears/hat-trick/issues/122)) ([1856b11](https://github.com/peakears/hat-trick/commit/1856b11d5b74fc2ae713a4fc26a0fbc9e776acf4))
+* **app:** show the first five penalties, with the rest behind Show more ([#110](https://github.com/peakears/hat-trick/issues/110)) ([eb037c7](https://github.com/peakears/hat-trick/commit/eb037c7678aa00538e6f422dffbe4097f32a7247))
+* **app:** tidy labels (OTL, Wild Card, Faceoff win %, Defence) and hide the unused betting switch ([#126](https://github.com/peakears/hat-trick/issues/126)) ([e73fec3](https://github.com/peakears/hat-trick/commit/e73fec3a287af5aa589886951403f4835887889e))
+* **app:** use the same headings in every Standings view ([#112](https://github.com/peakears/hat-trick/issues/112)) ([8f93f45](https://github.com/peakears/hat-trick/commit/8f93f45225b98077d786166abf23cc948821f8e5))
+
 ## [1.9.0](https://github.com/peakears/hat-trick/compare/v1.8.0...v1.9.0) (2026-11-22)
 
 

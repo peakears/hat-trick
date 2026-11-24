@@ -104,7 +104,7 @@ export const LEADER_LABELS: Record<string, string> = {
   assists: "Assists",
   points: "Points",
   goalsPp: "Power-play goals",
-  faceoffLeaders: "Faceoff %",
+  faceoffLeaders: "Faceoff win %",
   penaltyMins: "Penalty minutes",
   wins: "Wins",
   savePctg: "Save percentage",

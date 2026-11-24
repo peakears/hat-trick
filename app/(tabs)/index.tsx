@@ -3,24 +3,27 @@ import { useMemo, useState } from "react";
 import { Pressable, RefreshControl, SectionList, StyleSheet, Text, View } from "react-native";
 import { DatePickerButton } from "../../src/ui/components/DatePickerButton";
 import { GameCard } from "../../src/ui/components/GameCard";
-import { Empty, ErrorView, Loading, OfflineBanner, UpdatedAt } from "../../src/ui/components/States";
+import { Empty, ErrorView, OfflineBanner, UpdatedAt } from "../../src/ui/components/States";
+import { ScoresSkeleton } from "../../src/ui/components/Skeleton";
 import { ShieldBanner } from "../../src/ui/components/ShieldBanner";
 import { UpdateBanner } from "../../src/ui/components/UpdateBanner";
-import { addDays, dateLabel, groupGamesForScores } from "../../src/ui/format";
-import { useSettings } from "../../src/ui/settings-context";
-import { LEAGUE, useSportsData } from "../../src/ui/sports-data-context";
-import { useColors } from "../../src/ui/theme";
-import { useDebounced } from "../../src/ui/use-debounced";
-import { eventWeekStart, withSpecialEvents } from "../../src/ui/special-events";
-import { usePolled } from "../../src/ui/use-polled";
-import { useDaySwipe } from "../../src/ui/use-swipe";
-import { useScoresToday } from "../../src/ui/use-today";
+import { addDays, dateLabel, groupGamesForScores } from "../../src/ui/common/format";
+import { useSettings } from "../../src/ui/settings/settings-context";
+import { useSportsData } from "../../src/ui/data/sports-data-context";
+import { useLeague } from "../../src/ui/data/use-league";
+import { useColors, DIVIDER } from "../../src/ui/theme/theme";
+import { useDebounced } from "../../src/ui/common/use-debounced";
+import { eventWeekStart, withSpecialEvents } from "../../src/ui/scores/special-events";
+import { usePolled } from "../../src/ui/data/use-polled";
+import { useDaySwipe } from "../../src/ui/scores/use-swipe";
+import { useScoresToday } from "../../src/ui/scores/use-today";
 
 /** How long the date must stay put before its scores are loaded. */
 const DAY_SETTLE_MS = 250;
 
 export default function ScoresScreen() {
   const sports = useSportsData();
+  const league = useLeague();
   const colors = useColors();
   const { settings } = useSettings();
   const today = useScoresToday();
@@ -31,11 +34,11 @@ export default function ScoresScreen() {
   // Swiping or tapping through days quickly only loads the day you stop on, not every one passed.
   const settledDate = useDebounced(date, DAY_SETTLE_MS);
   const switching = settledDate !== date;
-  const scores = usePolled(`scores:${settledDate}`, (o) => sports.getScores(LEAGUE, settledDate, o));
+  const scores = usePolled(`${league}:scores:${settledDate}`, (o) => sports.getScores(league, settledDate, o));
   // Special event tags come from a separate week lookup (the scores do not carry them). Best effort: if it fails,
   // the cards just have no tag.
   const weekStart = eventWeekStart(settledDate);
-  const events = usePolled(`events:${weekStart}`, (o) => sports.getSpecialEvents(LEAGUE, weekStart, o));
+  const events = usePolled(`${league}:events:${weekStart}`, (o) => sports.getSpecialEvents(league, weekStart, o));
   const swipe = useDaySwipe((step) => go(addDays(date, step)));
   // Favourite teams' games first, then live games on top and finished ones below, each group under its own
   // header; regrouped on each poll as games start and end.
@@ -70,7 +73,7 @@ export default function ScoresScreen() {
       <OfflineBanner meta={scores.meta} />
 
       {scores.loading || switching ? (
-        <Loading />
+        <ScoresSkeleton />
       ) : !scores.data && scores.error ? (
         <ErrorView title="Couldn't load scores" error={scores.error} onRetry={scores.refresh} />
       ) : (
@@ -107,7 +110,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingVertical: 10,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: DIVIDER,
   },
   dateCenter: { flexDirection: "row", alignItems: "center", gap: 10 },
   dateText: { fontSize: 17, fontWeight: "600" },

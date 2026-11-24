@@ -92,7 +92,7 @@ export interface StatRow {
 }
 
 export interface StatTable {
-  title: string; // "Forwards", "Defense", "Goalies"
+  title: string; // "Forwards", "Defence", "Goalies"
   columns: StatColumn[];
   rows: StatRow[];
 }
@@ -116,6 +116,15 @@ export interface Goal {
   /** Score right after this goal. */
   homeScore?: number;
   awayScore?: number;
+  /** A web page with the goal's video, opened in the browser. Absent when the league has none. */
+  videoUrl?: string;
+}
+
+/** A video of a whole game, on the league's website. */
+export interface GameVideo {
+  kind: "recap" | "condensed";
+  /** A web page that plays the video, opened in the browser. */
+  url: string;
 }
 
 /** One stat as value and label: "1" + "G", "29" + "saves", ".912" + "SV%". */
@@ -169,6 +178,38 @@ export interface GameDetail {
   threeStars?: GameStar[];
   /** In the order taken. Absent when the league has no penalty list for this game (yet); empty when there were none. */
   penalties?: Penalty[];
+  /** Recap first. Absent or empty until the league posts them (after the game) or when they could not be loaded. */
+  videos?: GameVideo[];
+}
+
+// ---------- Play-by-play ----------
+
+/** What a play is, as far as the play-by-play screen cares: scores and penalties are the key plays. */
+export type PlayKind = "score" | "penalty" | "shot" | "other";
+
+/** One thing that happened in a game, worded by the adapter. */
+export interface Play {
+  /** Unique within the game. */
+  id: string;
+  period: number;
+  periodLabel: string; // "1st", "OT", "SO" - adapter formats it, as for goals
+  time: string; // elapsed in the period, "03:22"
+  kind: PlayKind;
+  /** The team the play belongs to (the scorer's, the shooter's, the one penalized). Absent for a stoppage. */
+  teamId?: string;
+  /** "C. Cowan (8) snap shot, assists: A. Matthews (18), M. Rielly (12)", in the league's terms. */
+  text: string;
+  /** "Power play", "Empty net": how a score was scored, when it was not the usual way. */
+  tag?: string;
+  /** The score right after a scoring play. */
+  homeScore?: number;
+  awayScore?: number;
+}
+
+/** A game's plays, in the order they happened, with the game they belong to (for its state and score). */
+export interface GamePlays {
+  game: Game;
+  plays: Play[];
 }
 
 // ---------- Team page ----------
@@ -176,7 +217,7 @@ export interface GameDetail {
 /** A team's season stats and nearby games, for its team page. */
 export interface TeamDetail {
   teamId: string;
-  /** Season stat tables in display order, best first ("Forwards", "Defense", "Goalies"). Empty before any games. */
+  /** Season stat tables in display order, best first ("Forwards", "Defence", "Goalies"). Empty before any games. */
   stats: StatTable[];
   /** Up to 5 games that have started or finished, newest first. Absent when the schedule could not be loaded. */
   recent?: Game[];
@@ -342,6 +383,32 @@ export interface RequestOptions {
   onWarning?: (warning: AdapterWarning) => void;
 }
 
+/**
+ * Parts of the app a league may not have. An adapter leaves out the method for a feature it does not support
+ * (see FEATURE_METHODS), and the UI hides what leads there: a second league can start with scores, standings and
+ * leaders only.
+ */
+export type LeagueFeature = "specialEvents" | "spotlight" | "gameDetail" | "plays" | "team" | "player";
+
+/** The adapter method behind each optional feature. */
+export const FEATURE_METHODS = {
+  specialEvents: "getSpecialEvents",
+  spotlight: "getSpotlight",
+  gameDetail: "getGameDetail",
+  plays: "getPlays",
+  team: "getTeam",
+  player: "getPlayer",
+} as const satisfies Record<LeagueFeature, keyof LeagueAdapter>;
+
+/** Whether `adapter` has the method for `feature`. */
+export function adapterSupports(adapter: LeagueAdapter, feature: LeagueFeature): boolean {
+  return typeof adapter[FEATURE_METHODS[feature]] === "function";
+}
+
+/**
+ * Every league has scores, standings and leaders; the other methods are optional (LeagueFeature). An optional
+ * method, when present, behaves as described here.
+ */
 export interface LeagueAdapter {
   readonly league: LeagueId;
 
@@ -356,16 +423,19 @@ export interface LeagueAdapter {
    * Special event names for the games in the week starting on `date` (YYYY-MM-DD), by game id. Empty when there are
    * none or the league has no such thing. The scores do not always carry them, so the UI asks for these separately.
    */
-  getSpecialEvents(date: string, options?: RequestOptions): Promise<SpecialEvents>;
+  getSpecialEvents?(date: string, options?: RequestOptions): Promise<SpecialEvents>;
 
   /** The players the league is featuring, in its order. Empty when the league has no such list. */
-  getSpotlight(options?: RequestOptions): Promise<SpotlightEntry[]>;
+  getSpotlight?(options?: RequestOptions): Promise<SpotlightEntry[]>;
 
-  getGameDetail(gameId: string, options?: RequestOptions): Promise<GameDetail>;
+  getGameDetail?(gameId: string, options?: RequestOptions): Promise<GameDetail>;
+
+  /** Every play of a game so far, in order. Empty before the game starts. */
+  getPlays?(gameId: string, options?: RequestOptions): Promise<GamePlays>;
 
   /** A team's season stats and its recent and upcoming games. `teamId` is a Team.id. */
-  getTeam(teamId: string, options?: RequestOptions): Promise<TeamDetail>;
+  getTeam?(teamId: string, options?: RequestOptions): Promise<TeamDetail>;
 
   /** A player's bio, stats and recent games. `playerId` is a Player.id. */
-  getPlayer(playerId: string, options?: RequestOptions): Promise<PlayerDetail>;
+  getPlayer?(playerId: string, options?: RequestOptions): Promise<PlayerDetail>;
 }

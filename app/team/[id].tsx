@@ -1,18 +1,19 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Stack, useLocalSearchParams, useRouter, type ErrorBoundaryProps } from "expo-router";
 import { useState } from "react";
-import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import type { Game, StandingRow, TeamDetail } from "../../src/domain";
 import { FavoriteStar } from "../../src/ui/components/FavoriteStar";
 import { NextGameCard } from "../../src/ui/components/NextGameCard";
 import { StatTableView } from "../../src/ui/components/StatTableView";
-import { CrashScreen, Empty, ErrorView, Loading, OfflineBanner, UpdatedAt } from "../../src/ui/components/States";
+import { CrashScreen, Empty, ErrorView, OfflineBanner, UpdatedAt } from "../../src/ui/components/States";
+import { ListSkeleton, PageSkeleton } from "../../src/ui/components/Skeleton";
 import { SpecialEventTag } from "../../src/ui/components/SpecialEventTag";
 import { TeamLogo } from "../../src/ui/components/TeamLogo";
-import { dateLabel, localDate, recordLabel } from "../../src/ui/format";
-import { pickNextGame, withoutNextGame, type NextGame } from "../../src/ui/next-game";
-import { useSpoilers } from "../../src/ui/spoiler-context";
-import { LEAGUE, useSportsData } from "../../src/ui/sports-data-context";
+import { dateLabel, localDate, recordLabel } from "../../src/ui/common/format";
+import { pickNextGame, withoutNextGame, type NextGame } from "../../src/ui/team/next-game";
+import { useSpoilers } from "../../src/ui/spoilers/spoiler-context";
+import { NHL, useSportsData } from "../../src/ui/data/sports-data-context";
 import {
   findStandingRow,
   goalDifferentialLabel,
@@ -21,10 +22,10 @@ import {
   teamGameLine,
   teamGameSpoken,
   visibleGames,
-} from "../../src/ui/team";
-import { tabular, useColors } from "../../src/ui/theme";
-import { usePolled } from "../../src/ui/use-polled";
-import { useScoresToday } from "../../src/ui/use-today";
+} from "../../src/ui/team/team";
+import { tabular, useColors, DIVIDER } from "../../src/ui/theme/theme";
+import { usePolled } from "../../src/ui/data/use-polled";
+import { useScoresToday } from "../../src/ui/scores/use-today";
 
 /** A team page that fails to render keeps the header, so Back still returns to where you came from. */
 export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
@@ -37,7 +38,7 @@ function recordParts(row: StandingRow): { label: string; value: number }[] {
     { label: "W", value: row.wins },
     { label: "L", value: row.losses },
   ];
-  return row.otLosses === undefined ? parts : [...parts, { label: "OT", value: row.otLosses }];
+  return row.otLosses === undefined ? parts : [...parts, { label: "OTL", value: row.otLosses }];
 }
 
 /** The smaller numbers under the record, skipping any the league does not have. */
@@ -119,7 +120,7 @@ function GamesSection({ title, games, teamId }: { title: string; games?: Game[];
       <Text style={[styles.sectionTitle, { color: colors.muted }]}>{title}</Text>
       <View style={[styles.gamesCard, { backgroundColor: colors.card }]}>
         {shown.map((g, i) => (
-          <View key={g.id} style={i > 0 && { borderTopColor: colors.border, borderTopWidth: StyleSheet.hairlineWidth }}>
+          <View key={g.id} style={i > 0 && { borderTopColor: colors.border, borderTopWidth: DIVIDER }}>
             <CompactGame game={g} teamId={teamId} today={today} />
           </View>
         ))}
@@ -167,7 +168,7 @@ function TeamExtras({
 }) {
   const colors = useColors();
   if (!data) {
-    if (loading) return <ActivityIndicator style={styles.loader} color={colors.accent} />;
+    if (loading) return <ListSkeleton rows={3} />;
     return (
       <View style={[styles.card, styles.errorCard, { backgroundColor: colors.card }]}>
         <Text style={[styles.errorText, { color: colors.text }]}>Couldn't load games and player stats.</Text>
@@ -197,11 +198,11 @@ export default function TeamScreen() {
   const sports = useSportsData();
   const colors = useColors();
   // The standings (same cache entry as the Standings tab) hold everything shown here.
-  const standings = usePolled("standings", (o) => sports.getStandings(LEAGUE, o));
+  const standings = usePolled("standings", (o) => sports.getStandings(NHL, o));
   // Season stats and games are a separate request, so the header above never waits for them.
-  const detail = usePolled(`team:${id}`, (o) => sports.getTeam(LEAGUE, id, o));
+  const detail = usePolled(`team:${id}`, (o) => sports.getTeam(NHL, id, o));
 
-  if (standings.loading) return <Loading />;
+  if (standings.loading) return <PageSkeleton avatar={96} />;
   if (!standings.data) {
     return (
       <ErrorView
@@ -283,10 +284,7 @@ export default function TeamScreen() {
             {splits.map((s, i) => (
               <View
                 key={s.label}
-                style={[
-                  styles.splitRow,
-                  i > 0 && { borderTopColor: colors.border, borderTopWidth: StyleSheet.hairlineWidth },
-                ]}
+                style={[styles.splitRow, i > 0 && { borderTopColor: colors.border, borderTopWidth: DIVIDER }]}
               >
                 <Text style={[styles.splitLabel, { color: colors.muted }]}>{s.label}</Text>
                 <Text style={[styles.splitRecord, tabular, { color: colors.text }]}>{s.record}</Text>
@@ -329,7 +327,7 @@ const styles = StyleSheet.create({
   recordPart: { alignItems: "center" },
   record: { fontSize: 44, fontWeight: "800" },
   recordLabel: { fontSize: 12, fontWeight: "700" },
-  tiles: { flexDirection: "row", alignSelf: "stretch", borderTopWidth: StyleSheet.hairlineWidth, paddingVertical: 12 },
+  tiles: { flexDirection: "row", alignSelf: "stretch", borderTopWidth: DIVIDER, paddingVertical: 12 },
   tile: { flex: 1, alignItems: "center" },
   tileValue: { fontSize: 18, fontWeight: "700" },
   tileLabel: { fontSize: 11, fontWeight: "600", marginTop: 2 },
@@ -362,10 +360,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 4,
     paddingVertical: 8,
-    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopWidth: DIVIDER,
   },
   toggleText: { fontSize: 13, fontWeight: "600" },
-  loader: { marginVertical: 24 },
   errorCard: { padding: 14, gap: 6 },
   errorText: { fontSize: 15, fontWeight: "600" },
   errorDetail: { fontSize: 13 },

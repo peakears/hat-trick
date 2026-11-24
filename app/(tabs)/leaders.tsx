@@ -4,14 +4,16 @@ import { useState } from "react";
 import { Pressable, RefreshControl, SectionList, StyleSheet, Text, View } from "react-native";
 import type { FetchOptions } from "../../src/data";
 import { Segmented } from "../../src/ui/components/Segmented";
-import { ErrorView, Loading, OfflineBanner, UpdatedAt } from "../../src/ui/components/States";
+import { ErrorView, OfflineBanner, UpdatedAt } from "../../src/ui/components/States";
+import { ListSkeleton } from "../../src/ui/components/Skeleton";
 import { TeamLogo } from "../../src/ui/components/TeamLogo";
-import { statValue } from "../../src/ui/format";
-import { LEADERS_MAX, leaderSectionKey, leaderValue, visibleLeaders } from "../../src/ui/leaders";
-import { combineFetched } from "../../src/ui/polling";
-import { LEAGUE, useSportsData } from "../../src/ui/sports-data-context";
-import { tabular, useColors } from "../../src/ui/theme";
-import { usePolled } from "../../src/ui/use-polled";
+import { statValue } from "../../src/ui/common/format";
+import { LEADERS_MAX, leaderSectionKey, leaderValue, visibleLeaders } from "../../src/ui/leaders/leaders";
+import { combineFetched } from "../../src/ui/data/polling";
+import { useSportsData } from "../../src/ui/data/sports-data-context";
+import { useLeague } from "../../src/ui/data/use-league";
+import { tabular, useColors, DIVIDER } from "../../src/ui/theme/theme";
+import { usePolled } from "../../src/ui/data/use-polled";
 
 type Kind = "skaters" | "goalies";
 
@@ -21,16 +23,17 @@ const GOALIE_CATEGORIES = ["wins", "savePctg", "goalsAgainstAverage", "shutouts"
 
 export default function LeadersScreen() {
   const sports = useSportsData();
+  const league = useLeague();
   const colors = useColors();
   const router = useRouter();
   const [kind, setKind] = useState<Kind>("skaters");
   // Categories opened with "Show more". Kept while switching between Skaters and Goalies.
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set());
 
-  const leaders = usePolled(`leaders:${kind}`, async (o: FetchOptions) => {
-    if (kind === "skaters") return sports.getLeaders(LEAGUE, { limit: LEADERS_MAX }, o);
+  const leaders = usePolled(`${league}:leaders:${kind}`, async (o: FetchOptions) => {
+    if (kind === "skaters") return sports.getLeaders(league, { limit: LEADERS_MAX }, o);
     const results = await Promise.all(
-      GOALIE_CATEGORIES.map((category) => sports.getLeaders(LEAGUE, { category, limit: LEADERS_MAX }, o)),
+      GOALIE_CATEGORIES.map((category) => sports.getLeaders(league, { category, limit: LEADERS_MAX }, o)),
     );
     const combined = combineFetched(results);
     return { data: combined.data.flat(), meta: combined.meta };
@@ -76,7 +79,7 @@ export default function LeadersScreen() {
       />
       <OfflineBanner meta={leaders.meta} />
       {leaders.loading ? (
-        <Loading />
+        <ListSkeleton />
       ) : !leaders.data && leaders.error ? (
         <ErrorView title="Couldn't load leaders" error={leaders.error} onRetry={leaders.refresh} />
       ) : (
@@ -159,7 +162,7 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingHorizontal: 12,
     paddingVertical: 8,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: DIVIDER,
   },
   rank: { width: 20, textAlign: "right", fontSize: 13 },
   who: { flex: 1 },

@@ -9,8 +9,11 @@
 import type {
   Game,
   GameDetail,
+  GamePlays,
   LeaderBoard,
   LeaderQuery,
+  LeagueAdapter,
+  LeagueFeature,
   LeagueId,
   RequestOptions,
   Standings,
@@ -19,13 +22,15 @@ import type {
   SpecialEvents,
   SpotlightEntry,
 } from "../domain";
+import { adapterSupports } from "../domain";
 import type { AdapterRegistry } from "../registry";
-import { FRESHNESS, gameDetailFreshness, scoresFreshness, teamFreshness } from "./freshness";
+import { FRESHNESS, gameDetailFreshness, gameFreshness, scoresFreshness, teamFreshness } from "./freshness";
+import type { DiagnosticsLog, NewLogEntry } from "./diagnostics";
 import type { KeyValueStore } from "./store";
 import type { DataMeta, Fetched, FetchOptions } from "./types";
 
 /** Bump when the shape of cached domain data changes, so old entries are ignored. */
-export const CACHE_VERSION = 13;
+export const CACHE_VERSION = 14;
 
 /** Storage keys are prefixed so the cache can share a store with app settings. */
 const PREFIX = "cache:";
@@ -38,11 +43,24 @@ interface CacheEntry<T> {
   warnings: string[];
 }
 
+/** A call for a feature the league's adapter does not have (LeagueFeature). */
+export class UnsupportedFeatureError extends Error {
+  constructor(
+    readonly league: LeagueId,
+    readonly feature: LeagueFeature,
+  ) {
+    super(`${league} has no ${feature}`);
+    this.name = "UnsupportedFeatureError";
+  }
+}
+
 export interface SportsDataOptions {
   registry: AdapterRegistry;
   store: KeyValueStore;
   /** Injectable clock for tests. */
   now?: () => number;
+  /** Receives every adapter warning and failed request (Settings › Diagnostics). */
+  log?: DiagnosticsLog;
 }
 
 interface Resource<T> {
@@ -56,12 +74,14 @@ export class SportsData {
   private readonly registry: AdapterRegistry;
   private readonly store: KeyValueStore;
   private readonly now: () => number;
+  private readonly log?: DiagnosticsLog;
   private readonly inFlight = new Map<string, Promise<Fetched<unknown>>>();
 
   constructor(options: SportsDataOptions) {
     this.registry = options.registry;
     this.store = options.store;
     this.now = options.now ?? Date.now;
+    this.log = options.log;
   }
 
   getScores(league: LeagueId, date: string, options?: FetchOptions): Promise<Fetched<Game[]>> {
@@ -102,65 +122,122 @@ export class SportsData {
     );
   }
 
-  /** Special event names for the week starting on `weekStart`, by game id. */
-  getSpecialEvents(league: LeagueId, weekStart: string, options?: FetchOptions): Promise<Fetched<SpecialEvents>> {
+  /** Special event names for the week starting on `weekStart`, by game id; empty for a league without them. */
+  async getSpecialEvents(league: LeagueId, weekStart: string, options?: FetchOptions): Promise<Fetched<SpecialEvents>> {
+    const key = `${league}:events:${weekStart}`;
+    // A league without them has none: an empty answer, fresh as long as a real one, so Scores needs no special case.
+    if (!this.supports(league, "specialEvents")) {
+      const now = this.now();
+      const meta = {
+        league,
+        key,
+        source: "cache" as const,
+        fetchedAt: new Date(now).toISOString(),
+        staleAt: new Date(now + FRESHNESS.specialEvents).toISOString(),
+        stale: false,
+        warnings: [],
+      };
+      return { data: {}, meta };
+    }
+    const adapter = this.optional(league, "specialEvents");
     return this.get(
       {
         league,
-        key: `${league}:events:${weekStart}`,
-        load: (o) => this.registry.get(league).getSpecialEvents(weekStart, o),
+        key,
+        load: (o) => adapter.getSpecialEvents!(weekStart, o),
         freshFor: () => FRESHNESS.specialEvents,
       },
       options,
     );
   }
 
-  getSpotlight(league: LeagueId, options?: FetchOptions): Promise<Fetched<SpotlightEntry[]>> {
+  async getSpotlight(league: LeagueId, options?: FetchOptions): Promise<Fetched<SpotlightEntry[]>> {
+    const adapter = this.optional(league, "spotlight");
     return this.get(
       {
         league,
         key: `${league}:spotlight`,
-        load: (o) => this.registry.get(league).getSpotlight(o),
+        load: (o) => adapter.getSpotlight!(o),
         freshFor: () => FRESHNESS.spotlight,
       },
       options,
     );
   }
 
-  getGameDetail(league: LeagueId, gameId: string, options?: FetchOptions): Promise<Fetched<GameDetail>> {
+  async getGameDetail(league: LeagueId, gameId: string, options?: FetchOptions): Promise<Fetched<GameDetail>> {
+    const adapter = this.optional(league, "gameDetail");
     return this.get(
       {
         league,
         key: `${league}:game:${gameId}`,
-        load: (o) => this.registry.get(league).getGameDetail(gameId, o),
+        load: (o) => adapter.getGameDetail!(gameId, o),
         freshFor: (detail, now) => gameDetailFreshness(detail, now),
       },
       options,
     );
   }
 
-  getTeam(league: LeagueId, teamId: string, options?: FetchOptions): Promise<Fetched<TeamDetail>> {
+  /**
+   * A game's plays, under a key of their own: the play-by-play is large, so it is only fetched while its screen is
+   * open, not with every poll of the game page. As fresh as the game itself.
+   */
+  async getPlays(league: LeagueId, gameId: string, options?: FetchOptions): Promise<Fetched<GamePlays>> {
+    const adapter = this.optional(league, "plays");
+    return this.get(
+      {
+        league,
+        key: `${league}:plays:${gameId}`,
+        load: (o) => adapter.getPlays!(gameId, o),
+        freshFor: (plays, now) => gameFreshness(plays.game, now),
+      },
+      options,
+    );
+  }
+
+  async getTeam(league: LeagueId, teamId: string, options?: FetchOptions): Promise<Fetched<TeamDetail>> {
+    const adapter = this.optional(league, "team");
     return this.get(
       {
         league,
         key: `${league}:team:${teamId}`,
-        load: (o) => this.registry.get(league).getTeam(teamId, o),
+        load: (o) => adapter.getTeam!(teamId, o),
         freshFor: (detail, now) => teamFreshness(detail, now),
       },
       options,
     );
   }
 
-  getPlayer(league: LeagueId, playerId: string, options?: FetchOptions): Promise<Fetched<PlayerDetail>> {
+  async getPlayer(league: LeagueId, playerId: string, options?: FetchOptions): Promise<Fetched<PlayerDetail>> {
+    const adapter = this.optional(league, "player");
     return this.get(
       {
         league,
         key: `${league}:player:${playerId}`,
-        load: (o) => this.registry.get(league).getPlayer(playerId, o),
+        load: (o) => adapter.getPlayer!(playerId, o),
         freshFor: () => FRESHNESS.player,
       },
       options,
     );
+  }
+
+  /** The leagues the app has, in the order they were registered. */
+  leagues(): LeagueId[] {
+    return this.registry.leagues();
+  }
+
+  /** Whether `league` has `feature` (game pages, team pages, ...); the UI hides what leads to one it lacks. */
+  supports(league: LeagueId, feature: LeagueFeature): boolean {
+    return adapterSupports(this.registry.get(league), feature);
+  }
+
+  /**
+   * The adapter, when it has `feature`. Otherwise UnsupportedFeatureError, before any request or cache read, so a
+   * screen that should not have been reachable fails plainly and nothing reaches the diagnostics log.
+   */
+  private optional(league: LeagueId, feature: LeagueFeature): LeagueAdapter {
+    const adapter = this.registry.get(league);
+    if (!adapterSupports(adapter, feature)) throw new UnsupportedFeatureError(league, feature);
+    return adapter;
   }
 
   /**
@@ -203,10 +280,17 @@ export class SportsData {
 
   private async refresh<T>(resource: Resource<T>, cached: CacheEntry<T> | null): Promise<Fetched<T>> {
     const warnings: string[] = [];
+    const { league, key } = resource;
     let data: T;
     try {
-      data = await resource.load({ onWarning: (w) => warnings.push(w.message) });
+      data = await resource.load({
+        onWarning: (w) => {
+          warnings.push(w.message);
+          this.record({ kind: "warning", league, key, url: w.url, message: w.message });
+        },
+      });
     } catch (err) {
+      this.record({ kind: "error", league, key, url: (err as { url?: string }).url, message: errorText(err) });
       if (!cached) throw err;
       // Offline or API down: show the last known data, flagged as stale.
       return {
@@ -229,6 +313,11 @@ export class SportsData {
       // Storage full or unavailable: still return the fresh data.
     }
     return { data, meta: this.meta(resource, entry, "network") };
+  }
+
+  /** Logs a problem without waiting for the write, so loading data is never slowed or broken by the log. */
+  private record(entry: NewLogEntry): void {
+    this.log?.record(entry).catch(() => {});
   }
 
   private async read<T>(key: string): Promise<CacheEntry<T> | null> {
@@ -254,4 +343,10 @@ export class SportsData {
       warnings: entry.warnings,
     };
   }
+}
+
+/** "NhlApiError: HTTP 503", or the message of a thrown non-Error. */
+function errorText(err: unknown): string {
+  if (err instanceof Error) return err.name && err.name !== "Error" ? `${err.name}: ${err.message}` : err.message;
+  return String(err);
 }

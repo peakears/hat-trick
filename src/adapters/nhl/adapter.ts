@@ -3,7 +3,9 @@ import type {
   AdapterWarning,
   Game,
   GameDetail,
+  GamePlays,
   GameStar,
+  GameVideo,
   Penalty,
   Goal,
   LeaderBoard,
@@ -22,6 +24,7 @@ import {
   mapBoxscoreSide,
   mapClubStats,
   mapGame,
+  mapGameVideos,
   mapGoals,
   mapLeaders,
   landingSpecialEvent,
@@ -31,6 +34,7 @@ import {
   mapPlayerDetail,
   mapTeamSchedule,
   mapPenalties,
+  mapPlayByPlay,
   mapThreeStars,
 } from "./mappers";
 import {
@@ -39,6 +43,7 @@ import {
   RawClubScheduleSchema,
   RawClubStatsSchema,
   RawLandingSchema,
+  RawPlayByPlaySchema,
   RawLeadersResponseSchema,
   RawPlayerLandingSchema,
   RawScheduleSchema,
@@ -111,14 +116,15 @@ export class NhlAdapter implements LeagueAdapter {
   async getGameDetail(gameId: string, options?: RequestOptions): Promise<GameDetail> {
     const raw = await this.fetch(`/gamecenter/${gameId}/boxscore`, RawBoxscoreSchema, options);
     const game = mapGame(raw);
-    const [goals, landing] = await Promise.all([
-      game.status === "scheduled" ? undefined : this.getGoals(raw.id, raw.gameDate, options),
+    const [fromScores, landing] = await Promise.all([
+      game.status === "scheduled" ? undefined : this.getScoreExtras(raw.id, raw.gameDate, options),
       game.status === "final" ? this.getLanding(raw, options) : undefined,
     ]);
     return {
       // The box score has no special event; a final game's landing does (others get it from the week's schedule).
       game: { ...game, specialEvent: game.specialEvent ?? landing?.specialEvent },
-      goals,
+      goals: fromScores?.goals,
+      videos: fromScores?.videos,
       threeStars: landing?.threeStars,
       penalties: landing?.penalties,
       boxscore: {
@@ -129,15 +135,21 @@ export class NhlAdapter implements LeagueAdapter {
   }
 
   /**
-   * The box score has no scoring summary, but the scores response for the game's date does.
-   * Goals are an extra: if this call fails the game page still shows, without them.
+   * The box score has no scoring summary or videos, but the scores response for the game's date has both.
+   * They are an extra: if this call fails the game page still shows, without them.
    */
-  private async getGoals(id: number, date: string | undefined, options?: RequestOptions): Promise<Goal[] | undefined> {
+  private async getScoreExtras(
+    id: number,
+    date: string | undefined,
+    options?: RequestOptions,
+  ): Promise<{ goals?: Goal[]; videos: GameVideo[] } | undefined> {
     if (!date) return undefined;
     try {
       const raw = await this.fetch(`/score/${date}`, RawScoreResponseSchema, options);
-      return mapGoals(raw.games?.find((g) => g.id === id)?.goals);
-    } catch {
+      const game = raw.games?.find((g) => g.id === id);
+      return { goals: mapGoals(game?.goals), videos: mapGameVideos(game) };
+    } catch (err) {
+      this.extraFailed(`/score/${date}`, "goals and videos", err, options);
       return undefined;
     }
   }
@@ -157,9 +169,20 @@ export class NhlAdapter implements LeagueAdapter {
         penalties: mapPenalties(raw.summary?.penalties),
         specialEvent: landingSpecialEvent(raw),
       };
-    } catch {
+    } catch (err) {
+      this.extraFailed(`/gamecenter/${boxscore.id}/landing`, "three stars, penalties and special event", err, options);
       return undefined;
     }
+  }
+
+  /** One request: the play-by-play has the game's state and score as well as its plays. */
+  async getPlays(gameId: string, options?: RequestOptions): Promise<GamePlays> {
+    const raw = await this.fetch(
+      `/gamecenter/${encodeURIComponent(gameId)}/play-by-play`,
+      RawPlayByPlaySchema,
+      options,
+    );
+    return mapPlayByPlay(raw);
   }
 
   async getTeam(teamId: string, options?: RequestOptions): Promise<TeamDetail> {
@@ -187,8 +210,16 @@ export class NhlAdapter implements LeagueAdapter {
         await this.fetch(`/club-schedule-season/${team}/now`, RawClubScheduleSchema, options),
         teamId,
       );
-    } catch {
+    } catch (err) {
+      this.extraFailed(`/club-schedule-season/${team}/now`, "team games", err, options);
       return {};
     }
+  }
+
+  /** A best-effort extra failed: the screen shows without it, and the failure is passed on as a warning. */
+  private extraFailed(path: string, what: string, err: unknown, options?: RequestOptions): void {
+    const onWarning = options?.onWarning ?? this.onWarning;
+    const reason = err instanceof Error ? err.message : String(err);
+    onWarning({ url: `${this.client.baseUrl}${path}`, message: `${what} left out: ${reason}` });
   }
 }
