@@ -21,6 +21,15 @@ export interface Colors {
   bannerText: string;
   /** Dims the screen behind a menu; drawn at SCRIM_OPACITY. */
   scrim: string;
+  /** A panel set into a card or the page (points by period, a segmented control's track): `text` and `muted` read on it. */
+  surfaceSunken: string;
+  /** The circle behind a team's or player's abbreviation when there is no logo or photo; `text` reads on it. */
+  badge: string;
+  /** A selected chip (the league row): a fill in the text colour, with `chipSelectedText` on it. */
+  chipSelected: string;
+  chipSelectedText: string;
+  /** Good news in text: a win streak. */
+  win: string;
 }
 
 /** How strongly `scrim` dims the screen behind a menu. */
@@ -42,6 +51,11 @@ const BASES: Record<Scheme, Base> = {
     banner: "#fef3c7",
     bannerText: "#78350f",
     scrim: "#000000",
+    surfaceSunken: "#eceef1",
+    badge: "#e3e6ea",
+    chipSelected: "#14171a",
+    chipSelectedText: "#ffffff",
+    win: "#15803d",
   },
   dark: {
     background: "#0e0f11",
@@ -54,6 +68,11 @@ const BASES: Record<Scheme, Base> = {
     banner: "#3b2f12",
     bannerText: "#fde68a",
     scrim: "#000000",
+    surfaceSunken: "#16181c",
+    badge: "#2b3038",
+    chipSelected: "#f2f3f5",
+    chipSelectedText: "#0e0f11",
+    win: "#4ade80",
   },
   // Pure black for OLED screens: the page is #000 (those pixels are off), cards are a hair lighter
   // so they still read as cards.
@@ -68,6 +87,11 @@ const BASES: Record<Scheme, Base> = {
     banner: "#2a210c",
     bannerText: "#fde68a",
     scrim: "#000000",
+    surfaceSunken: "#0a0b0d",
+    badge: "#22252b",
+    chipSelected: "#f2f3f5",
+    chipSelectedText: "#000000",
+    win: "#4ade80",
   },
 };
 
@@ -113,6 +137,28 @@ export function colorsFor(scheme: Scheme, accent: AccentId): Colors {
     cache.set(key, colors);
   }
   return colors;
+}
+
+// ---------- League colours ----------
+
+/**
+ * Each league's own colour, used only for small marks that say which league something is: its name over a list of
+ * games, the bars on its leader boards, its standings bands. Never a fill under text. A new league adds a pair
+ * here (palette.test.ts checks it reads on cards, the page and sunken panels); a league without one uses `muted`.
+ */
+const LEAGUE_TINTS: Record<string, { light: string; dark: string }> = {
+  nhl: { light: "#0369a1", dark: "#7dd3fc" },
+  nba: { light: "#b93d0b", dark: "#fb923c" },
+};
+
+/** The leagues that have their own colour. */
+export const TINTED_LEAGUES = Object.keys(LEAGUE_TINTS);
+
+/** The colour that marks `league` in `scheme`. */
+export function leagueTint(league: string, scheme: Scheme): string {
+  const tint = LEAGUE_TINTS[league];
+  if (!tint) return BASES[scheme].muted;
+  return tint[scheme === "light" ? "light" : "dark"];
 }
 
 /** The accent's swatch for the picker: the shade the current scheme uses. */

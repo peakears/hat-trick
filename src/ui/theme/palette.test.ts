@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { ACCENTS, colorsFor, contrastRatio, schemeFor, type Colors, type Scheme } from "./palette";
+import {
+  ACCENTS,
+  colorsFor,
+  contrastRatio,
+  leagueTint,
+  schemeFor,
+  TINTED_LEAGUES,
+  type Colors,
+  type Scheme,
+} from "./palette";
 
 const SCHEMES: Scheme[] = ["light", "dark", "black"];
 const AA_TEXT = 4.5;
@@ -16,6 +25,12 @@ const TEXT_PAIRS: [keyof Colors, keyof Colors][] = [
   ["live", "card"],
   ["bannerText", "banner"],
   ["onAccent", "accent"],
+  ["text", "surfaceSunken"],
+  ["muted", "surfaceSunken"],
+  ["text", "badge"],
+  ["chipSelectedText", "chipSelected"],
+  ["win", "background"],
+  ["win", "card"],
 ];
 
 describe("palette contrast (WCAG AA)", () => {
@@ -38,6 +53,30 @@ describe("palette contrast (WCAG AA)", () => {
       expect(contrastRatio(colors.cardBorder, colors.card)).toBeGreaterThan(contrastRatio(colors.border, colors.card));
     });
   }
+
+  for (const scheme of SCHEMES) {
+    it(`${scheme}: every league colour reads on the page, cards and sunken panels`, () => {
+      const colors = colorsFor(scheme, "blue");
+      for (const league of TINTED_LEAGUES) {
+        const tint = leagueTint(league, scheme);
+        for (const bg of ["background", "card", "surfaceSunken"] as const) {
+          const ratio = contrastRatio(tint, colors[bg]);
+          expect(ratio, `${league} ${tint} on ${bg}: ${ratio.toFixed(2)}:1`).toBeGreaterThanOrEqual(AA_TEXT);
+        }
+      }
+    });
+  }
+
+  it("gives a league without a colour of its own the muted text colour", () => {
+    expect(leagueTint("mlb", "dark")).toBe(colorsFor("dark", "blue").muted);
+  });
+
+  it("gives each league its own colour in every scheme", () => {
+    for (const scheme of SCHEMES) {
+      const tints = TINTED_LEAGUES.map((l) => leagueTint(l, scheme));
+      expect(new Set(tints).size).toBe(tints.length);
+    }
+  });
 
   it("uses every colour as #rrggbb", () => {
     for (const scheme of SCHEMES) {

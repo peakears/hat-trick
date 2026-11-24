@@ -91,7 +91,7 @@ Adding a league means writing a new adapter that implements `LeagueAdapter` and 
 
 ### Tech stack
 
-- **App:** [Expo](https://expo.dev/) and React Native, written in TypeScript, with [Expo Router](https://docs.expo.dev/router/introduction/) for screens.
+- **App:** [Expo](https://expo.dev/) and React Native, written in TypeScript, with [Expo Router](https://docs.expo.dev/router/introduction/) for screens. Scores are set in [Barlow Semi Condensed](https://github.com/jpt/barlow) (SIL Open Font License), bundled with the app.
 - **Data:** [zod](https://zod.dev/) validates the responses of the unofficial NHL API, AsyncStorage holds the on-device cache and settings, and expo-image draws team logos and player photos.
 - **Tests and tooling:** [vitest](https://vitest.dev/) (tests run on recorded API responses, never the live API), Prettier, and commitlint with husky for Conventional Commits.
 - **Releases:** GitHub Actions builds the APKs, and release-please keeps the release PR and changelog.
@@ -163,4 +163,4 @@ Hat Trick is free, with no ads or paid features. If you enjoy it, you can [buy m
 
 ## License
 
-[MIT](LICENSE)
+[MIT](LICENSE). The bundled Barlow Semi Condensed font is under the [SIL Open Font License 1.1](https://openfontlicense.org).
