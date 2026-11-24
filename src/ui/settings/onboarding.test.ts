@@ -34,6 +34,11 @@ describe("steps", () => {
     expect(ONBOARDING_STEPS[ONBOARDING_STEPS.length - 1]).toBe("done");
   });
 
+  it("asks about notifications right after the teams, and the look last", () => {
+    expect(nextStep("teams")).toBe("notifications");
+    expect(nextStep("look")).toBe("done");
+  });
+
   it("walks forward and back through every step", () => {
     const forward = [];
     for (let s: (typeof ONBOARDING_STEPS)[number] | null = "welcome"; s; s = nextStep(s)) forward.push(s);
@@ -45,7 +50,7 @@ describe("steps", () => {
 
   it("skips the league step when the app has a single league", () => {
     const one = stepsFor(1);
-    expect(one).toEqual(["welcome", "teams", "look", "options", "done"]);
+    expect(one).toEqual(["welcome", "teams", "notifications", "options", "look", "done"]);
     expect(nextStep("welcome", one)).toBe("teams");
     expect(previousStep("teams", one)).toBe("welcome");
     expect(stepsFor(2)).toEqual([...ONBOARDING_STEPS]);
@@ -54,9 +59,9 @@ describe("steps", () => {
   it("counts progress only over the steps with choices", () => {
     expect(stepProgress("welcome")).toBeNull();
     expect(stepProgress("done")).toBeNull();
-    expect(stepProgress("leagues")).toEqual({ index: 0, total: 4 });
-    expect(stepProgress("options")).toEqual({ index: 3, total: 4 });
-    expect(stepProgress("teams", stepsFor(1))).toEqual({ index: 0, total: 3 });
+    expect(stepProgress("leagues")).toEqual({ index: 0, total: 5 });
+    expect(stepProgress("look")).toEqual({ index: 4, total: 5 });
+    expect(stepProgress("teams", stepsFor(1))).toEqual({ index: 0, total: 4 });
   });
 });
 

@@ -19,20 +19,31 @@ import { TeamLogo } from "./TeamLogo";
  * card has the team's logo and name (from the Standings tab's cached standings, so no extra request once that tab
  * has loaded; the abbreviation until then), opening its team page, then a labelled switch for this team's game start
  * reminders and one for its live scores, and a Remove button. A switch stays in place, greyed out with a hint, while
- * its main switch in Settings is off, so the page never changes shape.
+ * its main switch is off, so the page never changes shape.
+ *
+ * `inSetup`: first-run setup's Notifications step, under its main switches. The hints point "above", the cards sit
+ * flush in the step's own padding, and the empty state points back to the team step.
  */
-export function FavoriteTeamsList() {
+export function FavoriteTeamsList({ inSetup = false }: { inSetup?: boolean }) {
   const colors = useColors();
   const { settings } = useSettings();
   const leagues = leaguesWithFavorites(settings.favoriteTeams);
 
   if (leagues.length === 0) {
     return (
-      <View style={[styles.card, styles.empty, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+      <View
+        style={[
+          styles.card,
+          styles.empty,
+          inSetup && styles.flush,
+          { backgroundColor: colors.card, borderColor: colors.cardBorder },
+        ]}
+      >
         <Text style={[styles.emptyTitle, { color: colors.text }]}>No favourite teams yet</Text>
         <Text style={[styles.hint, { color: colors.muted }]}>
-          Star a team on its team page. Their games show first on Scores, and each team can have reminders and live
-          scores.
+          {inSetup
+            ? "Go back a step to pick teams. Reminders and live scores are for their games."
+            : "Star a team on its team page. Their games show first on Scores, and each team can have reminders and live scores."}
         </Text>
       </View>
     );
@@ -40,17 +51,19 @@ export function FavoriteTeamsList() {
   return (
     <>
       {leagues.map((league) => (
-        <LeagueFavorites key={league} league={league} />
+        <LeagueFavorites key={league} league={league} inSetup={inSetup} />
       ))}
-      <Text style={[styles.footnote, { color: colors.muted }]}>
-        Star a team on its team page to add it. Their games show first on Scores.
-      </Text>
+      {!inSetup && (
+        <Text style={[styles.footnote, { color: colors.muted }]}>
+          Star a team on its team page to add it. Their games show first on Scores.
+        </Text>
+      )}
     </>
   );
 }
 
 /** One league's favourites. Its own component, so each league reads its own standings (one usePolled each). */
-function LeagueFavorites({ league }: { league: LeagueId }) {
+function LeagueFavorites({ league, inSetup }: { league: LeagueId; inSetup: boolean }) {
   const colors = useColors();
   const scheme = useScheme();
   const sports = useSportsData();
@@ -60,20 +73,20 @@ function LeagueFavorites({ league }: { league: LeagueId }) {
 
   return (
     <View style={styles.league}>
-      <View style={styles.leagueHead} accessible accessibilityRole="header">
+      <View style={[styles.leagueHead, inSetup && styles.leagueHeadFlush]} accessible accessibilityRole="header">
         <Text style={[styles.leagueAbbrev, { color: leagueTint(league, scheme) }]}>{league.toUpperCase()}</Text>
         <Text style={[styles.leagueName, { color: colors.muted }]}>{sports.leagueName(league)}</Text>
       </View>
       {ids.map((id) => {
         const row = findStandingRow(standings.data, id);
         const team: Team = row?.team ?? { id, league, name: id, abbrev: id };
-        return <FavoriteCard key={id} team={team} />;
+        return <FavoriteCard key={id} team={team} inSetup={inSetup} />;
       })}
     </View>
   );
 }
 
-function FavoriteCard({ team }: { team: Team }) {
+function FavoriteCard({ team, inSetup }: { team: Team; inSetup: boolean }) {
   const colors = useColors();
   const router = useRouter();
   const sports = useSportsData();
@@ -84,7 +97,9 @@ function FavoriteCard({ team }: { team: Team }) {
   const set = (kind: AlertKind, on: boolean) => update({ teamAlerts: setAlert(settings.teamAlerts, key, kind, on) });
 
   return (
-    <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+    <View
+      style={[styles.card, inSetup && styles.flush, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}
+    >
       <View style={[styles.head, { borderBottomColor: colors.border }]}>
         <Pressable
           onPress={opens ? () => router.push(teamRoute(team)) : undefined}
@@ -113,7 +128,7 @@ function FavoriteCard({ team }: { team: Team }) {
         detail={
           settings.remindersEnabled
             ? "A notification before their games."
-            : "Turn on Game start reminders in Settings first."
+            : `Turn on Game start reminders ${inSetup ? "above" : "in Settings"} first.`
         }
         value={settings.remindersEnabled && alertsOn(settings.teamAlerts, key, "reminders")}
         onChange={(on) => set("reminders", on)}
@@ -126,7 +141,7 @@ function FavoriteCard({ team }: { team: Team }) {
             ? "Available in the installed Android app (not in Expo Go)."
             : settings.liveScores
               ? "The score and scoring alerts during their games."
-              : "Turn on Live scores in Settings first."
+              : `Turn on Live scores ${inSetup ? "above" : "in Settings"} first.`
         }
         value={liveAvailable && settings.liveScores && alertsOn(settings.teamAlerts, key, "live")}
         onChange={(on) => set("live", on)}
@@ -165,5 +180,8 @@ const styles = StyleSheet.create({
   empty: { padding: 16, gap: 6, marginTop: 16 },
   emptyTitle: { fontSize: 16, fontWeight: "600" },
   hint: { fontSize: 13 },
+  // In setup: the step already has its own side padding.
+  flush: { marginHorizontal: 0 },
+  leagueHeadFlush: { marginHorizontal: 4 },
   footnote: { fontSize: 12, marginHorizontal: 16, marginTop: 4, marginBottom: 24 },
 });
