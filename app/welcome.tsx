@@ -16,6 +16,7 @@ import {
 } from "../src/ui/components/SettingsRows";
 import { TeamGridSkeleton } from "../src/ui/components/Skeleton";
 import { TeamLogo } from "../src/ui/components/TeamLogo";
+import { FavoriteTeamsList } from "../src/ui/components/FavoriteTeamsList";
 import { favoritesFor, favoritesLabel, isFavorite } from "../src/ui/team/favorites";
 import {
   followedFavorites,
@@ -143,8 +144,9 @@ export default function WelcomeScreen() {
           <ScrollView contentContainerStyle={styles.content}>
             {step === "welcome" && <WelcomeStep />}
             {step === "leagues" && <LeaguesStep />}
-            {step === "look" && <LookStep />}
+            {step === "notifications" && <NotificationsStep />}
             {step === "options" && <OptionsStep />}
+            {step === "look" && <LookStep />}
             {step === "done" && <DoneStep />}
           </ScrollView>
         )}
@@ -369,7 +371,12 @@ function LookStep() {
 
 const LEAD_OPTIONS = REMINDER_LEADS.map((n) => ({ value: String(n), label: `${n} min` }));
 
-function OptionsStep() {
+/**
+ * Notifications for the teams just picked: the main switches for game start reminders and live scores, then each
+ * team with its own switches, the same cards as Settings › Favourite teams (FavoriteTeamsList), so a team can be
+ * left out of either.
+ */
+function NotificationsStep() {
   const colors = useColors();
   const { settings, update } = useSettings();
   const { setReminders, setLiveScores, permissionDenied } = useReminderToggle();
@@ -377,7 +384,10 @@ function OptionsStep() {
   const liveAvailable = liveTrackingAvailable();
   return (
     <>
-      <StepHeading title="Game options" detail="All off unless you turn them on." />
+      <StepHeading
+        title="Notifications"
+        detail="Both off unless you turn them on. Then choose which of your teams each one covers."
+      />
       <Section title="Notifications">
         <ToggleRow
           label="Game start reminders"
@@ -409,6 +419,25 @@ function OptionsStep() {
           last
         />
       </Section>
+      {favorites > 0 && (
+        <Text
+          style={[settingsStyles.sectionTitle, styles.teamsTitle, { color: colors.muted }]}
+          accessibilityRole="header"
+        >
+          YOUR TEAMS
+        </Text>
+      )}
+      <FavoriteTeamsList inSetup />
+    </>
+  );
+}
+
+function OptionsStep() {
+  const colors = useColors();
+  const { settings, update } = useSettings();
+  return (
+    <>
+      <StepHeading title="Game options" detail="Off unless you turn it on." />
       <Section title="Spoilers">
         <ToggleRow
           label="Spoiler shield"
@@ -498,6 +527,7 @@ const styles = StyleSheet.create({
   tileLabel: { fontSize: 13, fontWeight: "600" },
   leagueAbbrev: { fontSize: 12, fontWeight: "700", letterSpacing: 0.5 },
   locked: { opacity: 0.55 },
+  teamsTitle: { marginBottom: -12 },
   footer: { paddingHorizontal: 16, paddingTop: 12, borderTopWidth: DIVIDER },
   primary: { borderRadius: 12, paddingVertical: 14, alignItems: "center" },
   primaryText: { fontSize: 16, fontWeight: "700" },

@@ -6,7 +6,8 @@ import { favoriteLeague } from "../team/favorites";
  * Every step, in order. Add a step here and give it a view in `app/welcome.tsx`; navigation and the progress dots
  * follow the list `stepsFor` gives.
  */
-export const ONBOARDING_STEPS = ["welcome", "leagues", "teams", "look", "options", "done"] as const;
+// Notifications follow the teams they are for; the look comes last, after the choices about games.
+export const ONBOARDING_STEPS = ["welcome", "leagues", "teams", "notifications", "options", "look", "done"] as const;
 export type OnboardingStep = (typeof ONBOARDING_STEPS)[number];
 
 /** The steps for an app with `leagueCount` leagues: with one, there is no league to pick. */
