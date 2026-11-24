@@ -57,9 +57,11 @@ let channelsReady = false;
 async function channels(k: Kit): Promise<void> {
   if (channelsReady) return;
   const notifee = k.default;
-  // Quiet and low: the score changes all game long and must never buzz. Goals get their own loud channel.
+  // Quiet and low: the score changes all game long and must never buzz. Alerts (goals, late lead changes, overtime,
+  // finals) get their own loud channel. Only the names people see are neutral: the ids stay, so phones keep the
+  // settings they gave each channel.
   await notifee.createChannel({ id: ONGOING_CHANNEL, name: "Live scores", importance: k.AndroidImportance.LOW });
-  await notifee.createChannel({ id: ALERT_CHANNEL, name: "Goals and finals", importance: k.AndroidImportance.HIGH });
+  await notifee.createChannel({ id: ALERT_CHANNEL, name: "Scoring alerts", importance: k.AndroidImportance.HIGH });
   channelsReady = true;
 }
 
@@ -100,7 +102,7 @@ export async function stopOngoing(): Promise<void> {
   await k.default.cancelNotification(ONGOING_ID);
 }
 
-/** A goal or final notification; a tap opens the game. */
+/** An alert (a goal, a late lead change, overtime, the final); a tap opens the game. `gameId` is its followKey. */
 export async function postAlert(alert: Alert, gameId: string): Promise<void> {
   const k = load();
   if (!k) return;

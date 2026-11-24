@@ -48,6 +48,7 @@ function game(status: GameStatus, startTime: string, id = "1"): Game {
 class FakeAdapter implements LeagueAdapter {
   readonly league = "test";
   readonly name = "Test League";
+  readonly gameStartTerm = "Opening whistle";
   calls = 0;
   games: Game[] = [game("live", "2026-11-17T22:00:00Z")];
   fail: Error | null = null;
@@ -499,6 +500,9 @@ describe("SportsData with optional features", () => {
   it("lists its leagues and says which features each has", () => {
     expect(data.leagues()).toEqual(["test", "core"]);
     expect(data.leagueName("core")).toBe("Core League");
+    // A league without its own word for the start of a game gets the neutral one.
+    expect(data.gameStartTerm("core")).toBe("Game start");
+    expect(data.gameStartTerm("test")).toBe("Opening whistle");
     for (const feature of ["specialEvents", "spotlight", "gameDetail", "plays", "team", "player"] as const) {
       expect(data.supports("test", feature), feature).toBe(true);
       expect(data.supports("core", feature), feature).toBe(false);

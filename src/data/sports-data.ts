@@ -16,6 +16,7 @@ import type {
   LeagueFeature,
   LeaderGroup,
   LeagueId,
+  LiveAlertRule,
   RequestOptions,
   Standings,
   PlayerDetail,
@@ -229,6 +230,16 @@ export class SportsData {
   /** The league's full name ("National Hockey League"), for the league row. */
   leagueName(league: LeagueId): string {
     return this.registry.get(league).name;
+  }
+
+  /** What the league's live score notifications announce (LiveAlertRule); each score if it does not say. */
+  liveAlerts(league: LeagueId): LiveAlertRule {
+    return this.registry.get(league).liveAlerts ?? { kind: "eachScore" };
+  }
+
+  /** The league's word for the start of a game ("Puck drop", "Tip-off"), for reminders; "Game start" if it has none. */
+  gameStartTerm(league: LeagueId): string {
+    return this.registry.get(league).gameStartTerm?.trim() || "Game start";
   }
 
   /** The leagues the app has, in the order they were registered. */

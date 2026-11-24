@@ -485,10 +485,25 @@ export function adapterSupports(adapter: LeagueAdapter, feature: LeagueFeature):
  * Every league has scores, standings and leaders; the other methods are optional (LeagueFeature). An optional
  * method, when present, behaves as described here.
  */
+/**
+ * What a league's live score notifications announce, besides the final.
+ * - eachScore: every score, with the scorer from the game page's goal list (hockey's goals).
+ * - lateLeadChanges: a change of lead from the last regulation period on, and the start of each overtime (for a
+ *   sport that scores too often to announce each score). Read from the scores alone, so no game page is loaded.
+ */
+export type LiveAlertRule = { kind: "eachScore" } | { kind: "lateLeadChanges"; regulationPeriods: number };
+
 export interface LeagueAdapter {
   readonly league: LeagueId;
   /** The league's full name, read out for its button in the league row ("National Hockey League"). */
   readonly name: string;
+  /**
+   * The sport's word for the start of a game, capitalized, as a reminder's title begins: "Puck drop", "Tip-off".
+   * Absent: "Game start".
+   */
+  readonly gameStartTerm?: string;
+  /** Which moments of a followed game get a notification (LiveAlertRule). Absent: each score. */
+  readonly liveAlerts?: LiveAlertRule;
 
   /** All games on a league calendar date, YYYY-MM-DD. */
   getScores(date: string, options?: RequestOptions): Promise<Game[]>;

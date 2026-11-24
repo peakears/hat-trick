@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { normalizeFavorites } from "../team/favorites";
+import type { TeamAlerts } from "../notifications/team-alerts";
 import type { KeyValueStore } from "../../data";
 import { TV_REGIONS, type TvRegionPreference } from "../game/broadcasts";
 import { ACCENTS, type AccentId } from "../theme/palette";
@@ -49,6 +50,8 @@ export interface Settings {
   league: string;
   /** Scores shows every league's games (the league row's "All"), rather than `league`'s alone. */
   scoresAllLeagues: boolean;
+  /** Per favourite, the notifications switched off for it (team-alerts.ts); every other favourite gets them all. */
+  teamAlerts: TeamAlerts;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -69,6 +72,7 @@ export const DEFAULT_SETTINGS: Settings = {
   onboardingComplete: false,
   league: "nhl",
   scoresAllLeagues: true,
+  teamAlerts: {},
 };
 
 export const SETTINGS_KEY = "settings:v1";
@@ -96,6 +100,17 @@ const schema = z.object({
   onboardingComplete: z.boolean().catch(true),
   league: z.string().min(1).catch(DEFAULT_SETTINGS.league),
   scoresAllLeagues: z.boolean().catch(DEFAULT_SETTINGS.scoresAllLeagues),
+  // A team's entry that cannot be read is dropped (its alerts come back on), never the whole setting.
+  teamAlerts: z
+    .record(
+      z.string(),
+      z
+        .object({ reminders: z.literal(false).optional(), live: z.literal(false).optional() })
+        .transform((a): TeamAlerts[string] => a)
+        .catch({}),
+    )
+    .transform((alerts) => Object.fromEntries(Object.entries(alerts).filter(([, a]) => Object.keys(a).length > 0)))
+    .catch({}),
 });
 
 /** Defaults for someone who has used the app before but whose stored settings are unreadable. */
