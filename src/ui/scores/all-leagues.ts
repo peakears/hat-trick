@@ -42,8 +42,9 @@ export function daySummary(games: readonly Game[]): string {
 
 /**
  * The "All" list: "Your teams" (favourites' games from every league, live first) when there are any, then one
- * section per league in the app's order with the rest of its games. A league is always listed, so a failed or empty
- * day says so under its heading. `favorites` are the stored `league:team` keys.
+ * section per league in the app's order with the rest of its games, its summary counting those. A league whose games
+ * are all in "Your teams" gets no section; any other league is listed, so a failed or empty day says so under its
+ * heading. `favorites` are the stored `league:team` keys.
  */
 export function allLeaguesSections(days: readonly LeagueDay[], favorites: readonly string[]): AllLeaguesSection[] {
   const isFavoriteGame = (g: Game) => involvesFavorite(g, favoritesFor(g.league, favorites));
@@ -54,6 +55,8 @@ export function allLeaguesSections(days: readonly LeagueDay[], favorites: readon
   for (const day of days) {
     const games = day.games ?? [];
     const rest = sortGamesForScores(games.filter((g) => !isFavoriteGame(g)));
+    // Every game of the day is up in "Your teams": a heading here would have nothing under it.
+    if (games.length > 0 && rest.length === 0) continue;
     const note = !day.games
       ? day.failed
         ? `Couldn't load ${day.league.toUpperCase()} scores. Pull down to try again.`
@@ -65,7 +68,8 @@ export function allLeaguesSections(days: readonly LeagueDay[], favorites: readon
       key: `league:${day.league}`,
       title: day.league.toUpperCase(),
       league: day.league,
-      summary: daySummary(games) || undefined,
+      // What is listed under the heading: games already up in "Your teams" are not counted again.
+      summary: daySummary(rest) || undefined,
       note,
       data: rest,
     });

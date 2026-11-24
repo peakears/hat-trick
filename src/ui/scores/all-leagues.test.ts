@@ -45,8 +45,24 @@ describe("All view", () => {
     expect(sections[0].data.map((g) => g.id)).toEqual(["3", "1"]);
     expect(sections[1].data.map((g) => g.id)).toEqual(["2"]);
     expect(sections[2].data.map((g) => g.id)).toEqual(["4"]);
-    // The summary counts the league's whole day, favourites included.
-    expect(sections[1].summary).toBe("1 live · 1 final");
+    // The summary counts what is listed under it: the Leafs' final is up in "Your teams".
+    expect(sections[1].summary).toBe("1 live");
+  });
+
+  it("leaves out a league whose every game is up in Your teams, so no heading stands alone", () => {
+    // The NHL's only game is the Oilers' (a favourite): it shows under Your teams, and no "NHL 1 upcoming" heading
+    // with nothing under it.
+    const oilers = [game("nhl", "1", "scheduled", "VGK", "EDM", 0)];
+    const sections = allLeaguesSections(
+      [
+        { league: "nhl", games: oilers, failed: false },
+        { league: "nba", games: nba, failed: false },
+      ],
+      ["nhl:EDM"],
+    );
+    expect(sections.map((s) => s.key)).toEqual(["favorites", "league:nba"]);
+    expect(sections[0].data.map((g) => g.id)).toEqual(["1"]);
+    expect(sections[1].summary).toBe("1 live · 1 upcoming");
   });
 
   it("keeps a league that failed or has no games, with a note, and shows the others", () => {
