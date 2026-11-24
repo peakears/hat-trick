@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import type {
   Game,
   GameDetail,
+  GamePlays,
   GameStatus,
   LeaderBoard,
   LeagueAdapter,
@@ -79,6 +80,9 @@ class FakeAdapter implements LeagueAdapter {
   }
   getGameDetail(_id: string, options?: RequestOptions): Promise<GameDetail> {
     return this.run(() => ({ game: this.games[0], boxscore: { home: [], away: [] } }), options);
+  }
+  getPlays(_id: string, options?: RequestOptions): Promise<GamePlays> {
+    return this.run(() => ({ game: this.games[0], plays: [] }), options);
   }
   getTeam(teamId: string, options?: RequestOptions): Promise<TeamDetail> {
     return this.run(() => ({ teamId, stats: [], recent: [], upcoming: [] }), options);
@@ -318,10 +322,12 @@ describe("SportsData", () => {
     await data.getLeaders("test");
     await data.getLeaders("test", { category: "goals", limit: 5 });
     await data.getGameDetail("test", "42");
+    await data.getPlays("test", "42");
     expect((await store.keys()).sort()).toEqual([
       "cache:test:game:42",
       "cache:test:leaders:default:default",
       "cache:test:leaders:goals:5",
+      "cache:test:plays:42",
       "cache:test:scores:2026-11-17",
       "cache:test:scores:2026-11-18",
       "cache:test:standings",
@@ -493,7 +499,7 @@ describe("SportsData with optional features", () => {
   it("lists its leagues and says which features each has", () => {
     expect(data.leagues()).toEqual(["test", "core"]);
     expect(data.leagueName("core")).toBe("Core League");
-    for (const feature of ["specialEvents", "spotlight", "gameDetail", "team", "player"] as const) {
+    for (const feature of ["specialEvents", "spotlight", "gameDetail", "plays", "team", "player"] as const) {
       expect(data.supports("test", feature), feature).toBe(true);
       expect(data.supports("core", feature), feature).toBe(false);
     }
@@ -501,6 +507,7 @@ describe("SportsData with optional features", () => {
 
   it("fails a call for a missing feature before any request, and logs nothing", async () => {
     await expect(data.getGameDetail("core", "1")).rejects.toBeInstanceOf(UnsupportedFeatureError);
+    await expect(data.getPlays("core", "1")).rejects.toBeInstanceOf(UnsupportedFeatureError);
     await expect(data.getTeam("core", "AAA")).rejects.toThrow("core has no team");
     await expect(data.getPlayer("core", "1")).rejects.toBeInstanceOf(UnsupportedFeatureError);
     await expect(data.getSpotlight("core")).rejects.toBeInstanceOf(UnsupportedFeatureError);

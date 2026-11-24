@@ -1,4 +1,7 @@
 import type {
+  GamePlays,
+  Play,
+  PlayKind,
   Broadcast,
   BroadcastMarket,
   Game,
@@ -70,6 +73,8 @@ import type {
   RawStandingsResponse,
   RawTeam,
   RawThreeStar,
+  RawPlay,
+  RawPlayByPlay,
 } from "./raw-types";
 
 // Team ids are the three-letter abbreviation everywhere, because the
@@ -844,4 +849,175 @@ export function mapSpotlight(raw: RawSpotlight): SpotlightEntry[] {
     team: { id: p.teamTriCode, league: LEAGUE, name: p.teamTriCode, abbrev: p.teamTriCode, logoUrl: p.teamLogo },
     sweaterNumber: p.sweaterNumber,
   }));
+}
+
+// ---------- Play-by-play ----------
+
+/** Shot types as the play-by-play words them; others have their hyphens turned into spaces. */
+const SHOT_TYPES: Record<string, string> = {
+  wrist: "wrist shot",
+  snap: "snap shot",
+  slap: "slapshot",
+  backhand: "backhand",
+  "tip-in": "tip-in",
+  deflected: "deflection",
+  "wrap-around": "wraparound",
+  poke: "poke",
+  bat: "batted puck",
+  "between-legs": "between-the-legs shot",
+  cradle: "lacrosse-style shot",
+};
+
+/** Why a shot missed or play stopped, where the words need more than the hyphens turned into spaces. */
+const REASONS: Record<string, string> = {
+  "hit-crossbar": "hit the crossbar",
+  "hit-left-post": "hit the left post",
+  "hit-right-post": "hit the right post",
+  "above-crossbar": "over the crossbar",
+  "goalie-stopped-after-sog": "goalie froze the puck",
+  "puck-in-netting": "puck in the netting",
+  "puck-in-crowd": "puck in the crowd",
+  "puck-in-benches": "puck in the bench",
+  "puck-frozen": "puck frozen",
+  "tv-timeout": "TV timeout",
+  "home-timeout": "home team timeout",
+  "visitor-timeout": "away team timeout",
+  "net-dislodged-defensive-skater": "net dislodged",
+  "net-dislodged-offensive-skater": "net dislodged",
+};
+
+const words = (key: string) => key.replace(/-/g, " ").trim();
+const shotLabel = (key: string | undefined) => (key ? (SHOT_TYPES[key] ?? words(key)) : "shot");
+const reasonLabel = (key: string) => REASONS[key] ?? words(key);
+const capital = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
+
+/**
+ * How a goal was scored, when not at even strength, from the play's situation code (away goalie, away skaters,
+ * home skaters, home goalie; "1451" is the home team on a 5 on 4 power play).
+ */
+export function goalTag(situation: string | undefined, scoredByHome: boolean): string | undefined {
+  const m = /^(\d)(\d)(\d)(\d)$/.exec(situation ?? "");
+  if (!m) return undefined;
+  const [awayGoalie, awaySkaters, homeSkaters, homeGoalie] = m.slice(1).map(Number);
+  const [own, other, otherGoalie] = scoredByHome
+    ? [homeSkaters, awaySkaters, awayGoalie]
+    : [awaySkaters, homeSkaters, homeGoalie];
+  if (otherGoalie === 0) return "Empty net";
+  if (own > other) return "Power play";
+  if (own < other) return "Short-handed";
+  return undefined;
+}
+
+/**
+ * A game's plays in the order they happened, worded for the play-by-play screen. Period markers are left out (the
+ * screen groups plays by period); an unknown kind of play is kept, named after its type.
+ */
+export function mapPlayByPlay(raw: RawPlayByPlay): GamePlays {
+  const game = mapGame(raw);
+  const names = new Map<number, string>();
+  for (const r of raw.rosterSpots ?? []) names.set(r.playerId, shortName(r) ?? r.lastName.default);
+  const name = (id: number | undefined) => (id === undefined ? undefined : names.get(id));
+  const teams = new Map<number, string>();
+  if (raw.homeTeam.id !== undefined) teams.set(raw.homeTeam.id, raw.homeTeam.abbrev);
+  if (raw.awayTeam.id !== undefined) teams.set(raw.awayTeam.id, raw.awayTeam.abbrev);
+
+  const plays: Play[] = [];
+  for (const p of [...(raw.plays ?? [])].sort((a, b) => a.sortOrder - b.sortOrder)) {
+    const worded = playText(p, name, teams);
+    if (!worded) continue;
+    const d = p.details;
+    const teamId = d?.eventOwnerTeamId === undefined ? undefined : teams.get(d.eventOwnerTeamId);
+    const play: Play = {
+      id: String(p.eventId),
+      period: p.periodDescriptor.number,
+      periodLabel: periodLabel(p.periodDescriptor.number, p.periodDescriptor),
+      time: p.timeInPeriod,
+      kind: worded.kind,
+      text: worded.text,
+    };
+    // Optional fields only when known, so the plays survive the cache's JSON round trip unchanged.
+    if (teamId !== undefined) play.teamId = teamId;
+    if (worded.kind === "score") {
+      if (d?.homeScore !== undefined) play.homeScore = d.homeScore;
+      if (d?.awayScore !== undefined) play.awayScore = d.awayScore;
+      const tag =
+        p.periodDescriptor.periodType === "SO" ? undefined : goalTag(p.situationCode, teamId === raw.homeTeam.abbrev);
+      if (tag) play.tag = tag;
+    }
+    plays.push(play);
+  }
+  return { game, plays };
+}
+
+const MARKERS = new Set(["period-start", "period-end", "game-end", "shootout-complete"]);
+
+function playText(
+  p: RawPlay,
+  name: (id: number | undefined) => string | undefined,
+  teams: Map<number, string>,
+): { kind: PlayKind; text: string } | undefined {
+  if (MARKERS.has(p.typeDescKey)) return undefined;
+  const d = p.details ?? {};
+  const team = d.eventOwnerTeamId === undefined ? undefined : teams.get(d.eventOwnerTeamId);
+  const who = (id: number | undefined) => name(id) ?? "Unknown player";
+  const total = (n: number | undefined) => (n === undefined ? "" : ` (${n})`);
+  switch (p.typeDescKey) {
+    case "goal": {
+      const assists = [
+        d.assist1PlayerId === undefined ? undefined : `${who(d.assist1PlayerId)}${total(d.assist1PlayerTotal)}`,
+        d.assist2PlayerId === undefined ? undefined : `${who(d.assist2PlayerId)}${total(d.assist2PlayerTotal)}`,
+      ].filter((a): a is string => a !== undefined);
+      const how = d.shotType ? `, ${shotLabel(d.shotType)}` : "";
+      const help =
+        p.periodDescriptor.periodType === "SO"
+          ? ""
+          : assists.length
+            ? `. Assists: ${assists.join(", ")}`
+            : ". Unassisted";
+      return { kind: "score", text: `Goal: ${who(d.scoringPlayerId)}${total(d.scoringPlayerTotal)}${how}${help}` };
+    }
+    case "shot-on-goal": {
+      const saved = name(d.goalieInNetId);
+      return {
+        kind: "shot",
+        text: `${capital(shotLabel(d.shotType))} by ${who(d.shootingPlayerId)}${saved ? `, saved by ${saved}` : ""}`,
+      };
+    }
+    case "missed-shot":
+      return {
+        kind: "shot",
+        text: `Missed shot by ${who(d.shootingPlayerId)}${d.reason ? ` (${reasonLabel(d.reason)})` : ""}`,
+      };
+    case "blocked-shot": {
+      // The play is the shooting team's; "teammate-blocked" means the shot hit one of their own.
+      const teammate = d.reason === "teammate-blocked" ? "teammate " : "";
+      return {
+        kind: "shot",
+        text: `Shot by ${who(d.shootingPlayerId)} blocked by ${teammate}${who(d.blockingPlayerId)}`,
+      };
+    }
+    case "failed-shot-attempt":
+      return { kind: "shot", text: `Shootout attempt by ${who(d.shootingPlayerId)}, no goal` };
+    case "penalty": {
+      const infraction = d.descKey ? infractionLabel(d.descKey) : "Penalty";
+      const minutes = d.duration ? `, ${d.duration} min` : "";
+      const by = name(d.committedByPlayerId) ?? team ?? "Unknown player";
+      const drawn = name(d.drawnByPlayerId);
+      return { kind: "penalty", text: `${by}: ${infraction}${minutes}${drawn ? `, drawn by ${drawn}` : ""}` };
+    }
+    case "delayed-penalty":
+      return { kind: "other", text: team ? `Delayed penalty on ${team}` : "Delayed penalty" };
+    case "hit":
+      return { kind: "other", text: `${who(d.hittingPlayerId)} hit ${who(d.hitteePlayerId)}` };
+    case "faceoff":
+      return { kind: "other", text: `${who(d.winningPlayerId)} won the faceoff against ${who(d.losingPlayerId)}` };
+    case "giveaway":
+      return { kind: "other", text: `Giveaway by ${who(d.playerId)}` };
+    case "takeaway":
+      return { kind: "other", text: `Takeaway by ${who(d.playerId)}` };
+    case "stoppage":
+      return { kind: "other", text: d.reason ? `Stoppage: ${reasonLabel(d.reason)}` : "Stoppage" };
+    default:
+      return { kind: "other", text: capital(words(p.typeDescKey)) };
+  }
 }

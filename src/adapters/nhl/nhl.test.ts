@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { runLeagueAdapterContract } from "../../contract/league-adapter.contract";
 import { NhlAdapter, NhlApiError, NhlResponseError, type AdapterWarning } from ".";
-import { infractionLabel, landingSpecialEvent, nhlVideoUrl } from "./mappers";
+import { goalTag, infractionLabel, landingSpecialEvent, nhlVideoUrl } from "./mappers";
 import { RawLandingSchema } from "./raw-types";
 
 // Real responses recorded from api-web.nhle.com on 2026-11-17 (club stats, the Toronto schedule and the landing: 2026-11-20;
@@ -16,6 +16,8 @@ const FIXTURES: [RegExp, string][] = [
   [/\/gamecenter\/2026020342\/boxscore$/, "boxscore-2026020342-live.json"],
   [/\/gamecenter\/2026020333\/boxscore$/, "boxscore-2026020333-final.json"],
   [/\/gamecenter\/2026020333\/landing$/, "landing-2026020333-final.json"], // recorded 2026-11-20
+  [/\/gamecenter\/2026020333\/play-by-play$/, "play-by-play-2026020333-final.json"], // recorded 2026-11-23: LAK 3-0
+  [/\/gamecenter\/2026020338\/play-by-play$/, "play-by-play-2026020338-final.json"], // recorded 2026-11-23: CHI 6-3
   [/\/player\/8474563\/landing$/, "player-8474563-landing.json"], // Drew Doughty (D), recorded 2026-11-20
   [/\/player\/8475311\/landing$/, "player-8475311-landing.json"], // Darcy Kuemper (G), recorded 2026-11-20
   [/\/player-spotlight$/, "player-spotlight.json"], // recorded 2026-11-21
@@ -76,6 +78,7 @@ runLeagueAdapterContract({
   inputs: {
     scoreDates: ["2026-11-17", "2026-11-18"],
     gameIds: ["2026020342", "2026020333"],
+    playGameIds: ["2026020333", "2026020338"],
     leaderQueries: [{}, { category: "goals", limit: 3 }, { category: "savePctg" }, { category: "goalsAgainstAverage" }],
     teamIds: ["TOR"],
     playerIds: ["8474563", "8475311"], // Doughty (D), Kuemper (G)
@@ -1167,6 +1170,101 @@ describe("NHL adapter", () => {
       } finally {
         AbortSignal.timeout = original;
       }
+    });
+  });
+  describe("play-by-play", () => {
+    const plays = async (id: string) => (await fixtureAdapter().adapter.getPlays(id)).plays;
+
+    it("parses both recorded games with no warnings, and asks for one URL", async () => {
+      const { adapter, warnings, urls } = fixtureAdapter();
+      await adapter.getPlays("2026020333");
+      await adapter.getPlays("2026020338");
+      expect(warnings).toEqual([]);
+      expect(urls).toEqual([
+        "https://api-web.nhle.com/v1/gamecenter/2026020333/play-by-play",
+        "https://api-web.nhle.com/v1/gamecenter/2026020338/play-by-play",
+      ]);
+    });
+
+    it("has the game's state and score, and leaves out the period markers", async () => {
+      const { game, plays } = await fixtureAdapter().adapter.getPlays("2026020338");
+      expect(game).toMatchObject({ id: "2026020338", status: "final", away: { score: 3 }, home: { score: 6 } });
+      expect(plays).toHaveLength(300);
+      expect(plays.some((p) => /period|game end/i.test(p.text))).toBe(false);
+    });
+
+    it("words a goal with season totals, assists and the score after it", async () => {
+      const goals = (await plays("2026020338")).filter((p) => p.kind === "score");
+      expect(goals).toHaveLength(9);
+      expect(goals[0]).toEqual({
+        id: "100",
+        period: 1,
+        periodLabel: "1st",
+        time: "03:22",
+        kind: "score",
+        teamId: "TOR",
+        text: "Goal: E. Cowan (8), snap shot. Assists: A. Matthews (18), J. Roslovic (12)",
+        awayScore: 1,
+        homeScore: 0,
+      });
+    });
+
+    it("tags power-play and empty-net goals from the situation code", async () => {
+      const chi = (await plays("2026020338")).filter((p) => p.kind === "score" && p.tag);
+      expect(chi.map((p) => [p.periodLabel, p.time, p.teamId, p.tag])).toEqual([
+        ["2nd", "13:17", "CHI", "Power play"],
+        ["3rd", "09:07", "CHI", "Power play"],
+      ]);
+      const lak = (await plays("2026020333")).filter((p) => p.kind === "score");
+      expect(lak.map((p) => p.tag)).toEqual([undefined, undefined, "Empty net"]);
+    });
+
+    it("names the strength from either side", () => {
+      expect(goalTag("1451", true)).toBe("Power play"); // home 5 on 4
+      expect(goalTag("1451", false)).toBe("Short-handed"); // away scores 4 on 5
+      expect(goalTag("1560", false)).toBe("Empty net"); // home net empty
+      expect(goalTag("0651", true)).toBe("Empty net"); // away net empty
+      expect(goalTag("1551", true)).toBeUndefined();
+      expect(goalTag(undefined, true)).toBeUndefined();
+    });
+
+    it("words penalties, a penalty shot and a delayed penalty", async () => {
+      const all = await plays("2026020333");
+      const penalties = all.filter((p) => p.kind === "penalty").map((p) => [p.teamId, p.text]);
+      expect(penalties.slice(0, 3)).toEqual([
+        ["BOS", "M. Geekie: Roughing, 2 min, drawn by Q. Byfield"],
+        ["LAK", "Q. Byfield: Tripping, 2 min, drawn by C. McAvoy"],
+        ["BOS", "M. Lohrei: Tripping on a breakaway, drawn by Q. Byfield"],
+      ]);
+      expect(all.find((p) => p.text.startsWith("Delayed"))?.text).toBe("Delayed penalty on BOS");
+    });
+
+    it("words shots, misses, blocks (by a teammate too), hits, faceoffs and stoppages", async () => {
+      const texts = (await plays("2026020333")).map((p) => p.text);
+      expect(texts).toContain("Snap shot by M. Lohrei, saved by D. Kuemper");
+      expect(texts).toContain("Missed shot by Q. Byfield (over the crossbar)");
+      expect(texts).toContain("Shot by J. Peterka blocked by teammate E. Lindholm");
+      expect(texts).toContain("M. Eyssimont hit E. Gustafsson");
+      expect(texts).toContain("F. Minten won the faceoff against E. Haula");
+      expect(texts).toContain("Stoppage: icing");
+    });
+
+    it("drops a broken play with a warning and keeps the rest", async () => {
+      const { adapter, warnings } = fixtureAdapter((url, body) => {
+        if (url.endsWith("/play-by-play")) delete body.plays[5].timeInPeriod;
+      });
+      const { plays } = await adapter.getPlays("2026020338");
+      expect(plays).toHaveLength(299);
+      expect(warnings).toHaveLength(1);
+      expect(warnings[0].message).toMatch(/^plays\[5\] dropped/);
+    });
+
+    it("names a play type it does not know after the type", async () => {
+      const { adapter } = fixtureAdapter((url, body) => {
+        if (url.endsWith("/play-by-play")) body.plays[5].typeDescKey = "challenge-review";
+      });
+      const { plays } = await adapter.getPlays("2026020338");
+      expect(plays.find((p) => p.text === "Challenge review")).toMatchObject({ kind: "other" });
     });
   });
 });

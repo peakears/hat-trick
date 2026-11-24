@@ -16,6 +16,10 @@ export function boxScoreRoute(game: { id: string; league: LeagueId }) {
   return { pathname: "/game/[id]/box-score", params: { id: game.id, league: game.league } } as const;
 }
 
+export function playsRoute(game: { id: string; league: LeagueId }) {
+  return { pathname: "/game/[id]/plays", params: { id: game.id, league: game.league } } as const;
+}
+
 export function teamRoute(team: { id: string; league: LeagueId }) {
   return { pathname: "/team/[id]", params: { id: team.id, league: team.league } } as const;
 }

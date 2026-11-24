@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.11.0](https://github.com/peakears/hat-trick/compare/v1.10.0...v1.11.0) (2026-11-24)
+
+
+### Features
+
+* **app:** add an NHL play-by-play page ([#135](https://github.com/peakears/hat-trick/issues/135)) ([d93a663](https://github.com/peakears/hat-trick/commit/d93a66370b9a40a6eb195844a2d4c9be0a6228e4))
+* **app:** follow favourite teams' live games in an ongoing notification, with goal alerts ([#118](https://github.com/peakears/hat-trick/issues/118)) ([585c25f](https://github.com/peakears/hat-trick/commit/585c25f761228ca3e8e9b6490ac25c0e2cfc77d1))
+
+
+### Bug Fixes
+
+* **app:** keep the live score notification updating when you leave the app ([#138](https://github.com/peakears/hat-trick/issues/138)) ([d516aa9](https://github.com/peakears/hat-trick/commit/d516aa9494403b5439441184e326a2a88aecb226)), closes [#137](https://github.com/peakears/hat-trick/issues/137)
+
 ## [1.10.0](https://github.com/peakears/hat-trick/compare/v1.9.0...v1.10.0) (2026-11-23)
 
 

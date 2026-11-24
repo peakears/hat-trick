@@ -75,10 +75,11 @@ runLeagueAdapterContract({
   inputs: {
     scoreDates: ["2026-11-22", "2026-11-24"],
     leaderQueries: [{}, { category: "offensive.avgPoints", limit: 3 }, { category: "defensive.avgBlocks" }],
-    // Not built yet: special events and spotlight.
+    // Not built yet: special events, spotlight and play-by-play.
     gameIds: ["401910032", "401909314"],
     teamIds: ["DEN"],
     playerIds: ["3936299", "4065813"],
+    playGameIds: [],
     specialEventDates: [],
   },
 });

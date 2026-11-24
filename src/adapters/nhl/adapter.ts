@@ -3,6 +3,7 @@ import type {
   AdapterWarning,
   Game,
   GameDetail,
+  GamePlays,
   GameStar,
   GameVideo,
   Penalty,
@@ -33,6 +34,7 @@ import {
   mapPlayerDetail,
   mapTeamSchedule,
   mapPenalties,
+  mapPlayByPlay,
   mapThreeStars,
 } from "./mappers";
 import {
@@ -41,6 +43,7 @@ import {
   RawClubScheduleSchema,
   RawClubStatsSchema,
   RawLandingSchema,
+  RawPlayByPlaySchema,
   RawLeadersResponseSchema,
   RawPlayerLandingSchema,
   RawScheduleSchema,
@@ -175,6 +178,16 @@ export class NhlAdapter implements LeagueAdapter {
       this.extraFailed(`/gamecenter/${boxscore.id}/landing`, "three stars, penalties and special event", err, options);
       return undefined;
     }
+  }
+
+  /** One request: the play-by-play has the game's state and score as well as its plays. */
+  async getPlays(gameId: string, options?: RequestOptions): Promise<GamePlays> {
+    const raw = await this.fetch(
+      `/gamecenter/${encodeURIComponent(gameId)}/play-by-play`,
+      RawPlayByPlaySchema,
+      options,
+    );
+    return mapPlayByPlay(raw);
   }
 
   async getTeam(teamId: string, options?: RequestOptions): Promise<TeamDetail> {
