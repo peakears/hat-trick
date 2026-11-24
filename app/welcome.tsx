@@ -178,7 +178,7 @@ function TeamsStep() {
   const colors = useColors();
   const sports = useSportsData();
   const { settings } = useSettings();
-  const standings = usePolled("standings", (o) => sports.getStandings(NHL, o));
+  const standings = usePolled(`${NHL}:standings`, (o) => sports.getStandings(NHL, o));
   const groups = teamsByDivision(standings.data);
   const count = settings.favoriteTeams.length;
 

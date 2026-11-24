@@ -49,8 +49,8 @@ export default function DiagnosticsScreen() {
   return (
     <View style={styles.screen}>
       <Text style={[styles.intro, { color: colors.muted }]}>
-        Problems the app had loading data from the NHL: fields it did not understand and requests that failed. Nothing
-        here leaves your phone unless you share it.
+        Problems the app had loading scores and stats from the leagues' data sources: fields it did not understand and
+        requests that failed. Nothing here leaves your phone unless you share it.
       </Text>
       <View style={styles.actions}>
         <Action label="Report a problem" onPress={report} />
