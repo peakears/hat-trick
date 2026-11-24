@@ -231,6 +231,11 @@ export class SportsData {
     return this.registry.get(league).name;
   }
 
+  /** The league's word for the start of a game ("Puck drop", "Tip-off"), for reminders; "Game start" if it has none. */
+  gameStartTerm(league: LeagueId): string {
+    return this.registry.get(league).gameStartTerm?.trim() || "Game start";
+  }
+
   /** The leagues the app has, in the order they were registered. */
   leagues(): LeagueId[] {
     return this.registry.leagues();

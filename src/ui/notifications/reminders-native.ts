@@ -79,7 +79,7 @@ export async function applyReminders(planned: readonly Reminder[]): Promise<void
   for (const r of schedule) {
     await Notifications.scheduleNotificationAsync({
       identifier: r.id,
-      content: { title: r.title, body: r.body, data: { gameId: r.gameId } },
+      content: { title: r.title, body: r.body, data: { gameId: r.gameId, league: r.league } },
       trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: r.fireAt, channelId: CHANNEL_ID },
     });
   }

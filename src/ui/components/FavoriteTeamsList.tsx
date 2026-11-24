@@ -6,7 +6,7 @@ import type { LeagueId, Team } from "../../domain";
 import { teamRoute } from "../common/routes";
 import { useSportsData } from "../data/sports-data-context";
 import { usePolled } from "../data/use-polled";
-import { alertsOn, notificationsCover, setAlert, type AlertKind } from "../notifications/team-alerts";
+import { alertsOn, alertsCover, setAlert, type AlertKind } from "../notifications/team-alerts";
 import { useSettings } from "../settings/settings-context";
 import { favoriteKey, favoritesFor, leaguesWithFavorites } from "../team/favorites";
 import { findStandingRow } from "../team/team";
@@ -63,7 +63,7 @@ function LeagueFavorites({
   const { settings } = useSettings();
   const standings = usePolled(`${league}:standings`, (o) => sports.getStandings(league, o));
   const ids = favoritesFor(league, settings.favoriteTeams);
-  const covered = notificationsCover(league);
+  const liveCovered = alertsCover(league, "live");
 
   return (
     <View style={[!first && styles.leagueGap]}>
@@ -79,13 +79,13 @@ function LeagueFavorites({
             key={id}
             team={team}
             last={i === ids.length - 1}
-            reminders={covered && settings.remindersEnabled}
-            live={covered && liveAvailable && settings.liveScores}
+            reminders={alertsCover(league, "reminders") && settings.remindersEnabled}
+            live={liveCovered && liveAvailable && settings.liveScores}
           />
         );
       })}
-      {!covered && (settings.remindersEnabled || settings.liveScores) && (
-        <Text style={[styles.note, { color: colors.muted }]}>Reminders and live scores are NHL only for now.</Text>
+      {!liveCovered && liveAvailable && settings.liveScores && (
+        <Text style={[styles.note, { color: colors.muted }]}>Live scores are NHL only for now.</Text>
       )}
     </View>
   );

@@ -489,6 +489,11 @@ export interface LeagueAdapter {
   readonly league: LeagueId;
   /** The league's full name, read out for its button in the league row ("National Hockey League"). */
   readonly name: string;
+  /**
+   * The sport's word for the start of a game, capitalized, as a reminder's title begins: "Puck drop", "Tip-off".
+   * Absent: "Game start".
+   */
+  readonly gameStartTerm?: string;
 
   /** All games on a league calendar date, YYYY-MM-DD. */
   getScores(date: string, options?: RequestOptions): Promise<Game[]>;

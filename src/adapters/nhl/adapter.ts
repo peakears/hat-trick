@@ -63,6 +63,7 @@ export interface NhlAdapterOptions extends NhlClientOptions {
 export class NhlAdapter implements LeagueAdapter {
   readonly league = LEAGUE;
   readonly name = "National Hockey League";
+  readonly gameStartTerm = "Puck drop";
   readonly leaderGroups = [
     { id: "skaters", label: "Skaters" },
     { id: "goalies", label: "Goalies", categories: GOALIE_LEADER_CATEGORIES },

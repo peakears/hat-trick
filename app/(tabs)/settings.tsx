@@ -95,9 +95,9 @@ export default function SettingsScreen() {
           detail={
             permissionDenied
               ? "Notifications are blocked. Allow them for Hat Trick in your phone's settings, then try again."
-              : favoritesFor(NHL, settings.favoriteTeams).length === 0
-                ? "A notification before your favourite teams' games (NHL for now). Star a team first."
-                : "A notification before your favourite teams' games (NHL for now). Choose teams under Favourite teams."
+              : settings.favoriteTeams.length === 0
+                ? "A notification before your favourite teams' games. Star a team first."
+                : "A notification before your favourite teams' games. Choose teams under Favourite teams."
           }
           value={settings.remindersEnabled}
           onChange={setReminders}
