@@ -18,7 +18,10 @@ import { TeamGridSkeleton } from "../src/ui/components/Skeleton";
 import { TeamLogo } from "../src/ui/components/TeamLogo";
 import { favoritesFor, favoritesLabel, isFavorite } from "../src/ui/team/favorites";
 import {
+  followedFavorites,
   followedLeagues,
+  keptLeagues,
+  keptNote,
   leaguesSentence,
   liveHint,
   nextStep,
@@ -53,6 +56,11 @@ export default function WelcomeScreen() {
   const sports = useSportsData();
   // With a single league there is no "Which leagues do you follow?" step.
   const steps = stepsFor(sports.leagues().length);
+  // Favourites in leagues setup has as followed: a team kept from an unfollowed league does not count as picked.
+  const followedCount = followedFavorites(
+    settings.favoriteTeams,
+    followedLeagues(settings, useLeague(), sports.leagues()),
+  ).length;
   const [step, setStep] = useState<OnboardingStep>("welcome");
   const back = previousStep(step, steps);
   const next = nextStep(step, steps);
@@ -93,7 +101,7 @@ export default function WelcomeScreen() {
       ? "Get started"
       : step === "done"
         ? "Done"
-        : step === "teams" && settings.favoriteTeams.length === 0
+        : step === "teams" && followedCount === 0
           ? "Skip for now"
           : "Next";
 
@@ -208,13 +216,16 @@ function LeaguesStep() {
       <Section title="Leagues">
         {available.map((id, i) => {
           const on = followed.includes(id);
+          // The last followed league cannot be turned off: say so, rather than a checkbox that does nothing.
+          const locked = on && followed.length === 1;
           return (
             <Pressable
               key={id}
               onPress={() => update(toggleFollowedLeague(followed, id, available, league))}
               accessibilityRole="checkbox"
-              accessibilityState={{ checked: on }}
+              accessibilityState={{ checked: on, disabled: locked }}
               accessibilityLabel={sports.leagueName(id)}
+              accessibilityHint={locked ? "Follow another league first to turn this one off." : undefined}
               style={[
                 settingsStyles.row,
                 i < available.length - 1 && settingsStyles.divider,
@@ -229,6 +240,7 @@ function LeaguesStep() {
                 name={on ? "checkmark-circle" : "ellipse-outline"}
                 size={26}
                 color={on ? colors.accent : colors.muted}
+                style={locked && styles.locked}
               />
             </Pressable>
           );
@@ -252,7 +264,8 @@ function TeamsStep() {
   const league = followed.includes(picked) ? picked : followed[0];
   const standings = usePolled(`${league}:standings`, (o) => sports.getStandings(league, o));
   const groups = teamsByDivision(standings.data);
-  const count = settings.favoriteTeams.length;
+  // Only the followed leagues' teams: favourites kept from an unfollowed league are not on this step.
+  const count = followedFavorites(settings.favoriteTeams, followed).length;
 
   return (
     <ScrollView contentContainerStyle={styles.teamsContent}>
@@ -389,7 +402,7 @@ function OptionsStep() {
         {/* As in Settings: asks for the notification permission when switched on, and needs a team to follow. */}
         <ToggleRow
           label="Live scores"
-          detail={liveHint(favorites, liveAvailable, permissionDenied)}
+          detail={liveHint(favorites, liveAvailable, permissionDenied, settings.spoilerShield)}
           value={liveAvailable && settings.liveScores}
           onChange={setLiveScores}
           disabled={!liveAvailable || (favorites === 0 && !settings.liveScores)}
@@ -424,8 +437,12 @@ function OptionsStep() {
 
 function DoneStep() {
   const colors = useColors();
+  const sports = useSportsData();
   const { settings } = useSettings();
-  const teams = settings.favoriteTeams;
+  const followed = followedLeagues(settings, useLeague(), sports.leagues());
+  // The followed leagues' teams; teams in a league unfollowed here are kept, and the note says so.
+  const teams = followedFavorites(settings.favoriteTeams, followed);
+  const kept = keptNote(keptLeagues(settings.favoriteTeams, followed));
   return (
     <View style={styles.centered}>
       <View style={[styles.badge, { backgroundColor: colors.accent }]}>
@@ -439,6 +456,7 @@ function DoneStep() {
             : "Star a team any time on its team page. Everything else is in Settings."
         }
       />
+      {kept && <Text style={[styles.subtitle, styles.centerText, { color: colors.muted }]}>{kept}</Text>}
     </View>
   );
 }
@@ -479,6 +497,7 @@ const styles = StyleSheet.create({
   },
   tileLabel: { fontSize: 13, fontWeight: "600" },
   leagueAbbrev: { fontSize: 12, fontWeight: "700", letterSpacing: 0.5 },
+  locked: { opacity: 0.55 },
   footer: { paddingHorizontal: 16, paddingTop: 12, borderTopWidth: DIVIDER },
   primary: { borderRadius: 12, paddingVertical: 14, alignItems: "center" },
   primaryText: { fontSize: 16, fontWeight: "700" },

@@ -5,7 +5,10 @@ import { RawStandingsResponseSchema } from "../../adapters/nhl/raw-types";
 import type { Standings } from "../../domain";
 import {
   ONBOARDING_STEPS,
+  followedFavorites,
   followedLeagues,
+  keptLeagues,
+  keptNote,
   leaguesSentence,
   liveHint,
   nextStep,
@@ -142,5 +145,21 @@ describe("leagues", () => {
     expect(liveHint(2, true, true)).toMatch(/blocked/);
     expect(liveHint(0, true, false)).toMatch(/favourite team first/);
     expect(liveHint(1, true, false)).toMatch(/scoring alerts/);
+  });
+
+  it("says scoring alerts are held back while the spoiler shield is on, as Settings does", () => {
+    expect(liveHint(1, true, false, true)).toMatch(/No scores or scoring alerts while the spoiler shield is on/);
+  });
+
+  it("counts only the followed leagues' teams, and keeps the others with a note", () => {
+    const favorites = ["nhl:TOR", "nba:BOS", "MTL"]; // a bare id is the NHL's
+    expect(followedFavorites(favorites, ["nhl"])).toEqual(["nhl:TOR", "MTL"]);
+    expect(followedFavorites(favorites, ["nhl", "nba"])).toEqual(favorites);
+    expect(keptLeagues(favorites, ["nhl"])).toEqual(["nba"]);
+    expect(keptLeagues(favorites, ["nhl", "nba"])).toEqual([]);
+    expect(keptNote(["nba"])).toBe(
+      "Your NBA teams are kept, with their reminders and live scores. Remove them in Settings › Favourite teams.",
+    );
+    expect(keptNote([])).toBeUndefined();
   });
 });

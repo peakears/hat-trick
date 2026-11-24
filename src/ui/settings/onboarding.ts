@@ -1,5 +1,6 @@
 // First-run setup (issue #120). Pure: step order and the team picker's groups, tested in onboarding.test.ts.
 import type { LeagueId, Standings, Team } from "../../domain";
+import { favoriteLeague } from "../team/favorites";
 
 /**
  * Every step, in order. Add a step here and give it a view in `app/welcome.tsx`; navigation and the progress dots
@@ -92,12 +93,41 @@ export function reminderHint(favoriteCount: number, permissionDenied: boolean): 
     : `A notification before your ${favoriteCount} teams' games.`;
 }
 
-/** What the live scores switch in setup says: like reminders, it follows favourite teams. */
-export function liveHint(favoriteCount: number, available: boolean, permissionDenied: boolean): string {
+/**
+ * What the live scores switch in setup says: like reminders, it follows favourite teams. The spoiler shield (on the
+ * same step) holds back scoring alerts, so with it on the hint says so, as Settings does.
+ */
+export function liveHint(
+  favoriteCount: number,
+  available: boolean,
+  permissionDenied: boolean,
+  spoilerShield = false,
+): string {
   if (!available) return "Available in the installed Android app (not in Expo Go).";
   if (permissionDenied) return "Notifications are blocked. Allow them for Hat Trick in your phone's settings.";
   if (favoriteCount === 0) return "Pick a favourite team first. Live scores follow their games.";
-  return "Their score in a notification during their games, even with the app closed, and scoring alerts.";
+  return spoilerShield
+    ? "Their game in a notification, even with the app closed. No scores or scoring alerts while the spoiler shield is on."
+    : "Their score in a notification during their games, even with the app closed, and scoring alerts.";
+}
+
+/** The favourites (keys) in the leagues setup has as followed: what its team step counts and Done lists. */
+export function followedFavorites(favorites: readonly string[], followed: readonly LeagueId[]): string[] {
+  return favorites.filter((key) => followed.includes(favoriteLeague(key)));
+}
+
+/**
+ * The leagues with favourites that are not followed: unfollowing a league in setup keeps its teams (and their
+ * reminders and live scores), and Done says so. In the order their first favourite was picked.
+ */
+export function keptLeagues(favorites: readonly string[], followed: readonly LeagueId[]): LeagueId[] {
+  return [...new Set(favorites.map(favoriteLeague))].filter((l) => !followed.includes(l));
+}
+
+/** "Your NBA teams are kept, with their reminders and live scores." for Done, or nothing with none kept. */
+export function keptNote(leagues: readonly LeagueId[]): string | undefined {
+  if (leagues.length === 0) return undefined;
+  return `Your ${leaguesSentence(leagues.map((l) => l.toUpperCase()))} teams are kept, with their reminders and live scores. Remove them in Settings › Favourite teams.`;
 }
 
 export interface TeamGroup {
