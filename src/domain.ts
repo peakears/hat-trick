@@ -75,8 +75,9 @@ export interface Game {
   /** The league's name for a special game or series it is part of: "Winter Classic", "Original 6 Series". */
   specialEvent?: string;
   /**
-   * Each team's score in each period played so far, in order (a shootout is one more, worth one to the winner).
-   * Live and final games only; absent when the league does not say, or when the periods do not add up to the score.
+   * Each team's score in each period, in order (a shootout is one more, worth one to the winner). A live game lists
+   * every regulation period, the ones not played yet with null scores; overtime appears once it is played. Live and
+   * final games only; absent when the league does not say, or when the periods do not add up to the score.
    */
   periods?: PeriodScore[];
   /** The game's standout player so far (most points), worded by the adapter. Live and final games only. */
@@ -85,8 +86,9 @@ export interface Game {
 
 export interface PeriodScore {
   label: string; // "Q1", "2nd", "OT", "SO" - adapter formats it
-  away: number;
-  home: number;
+  /** Null for a regulation period not played yet: a live game lists all of them, shown as "-". */
+  away: number | null;
+  home: number | null;
 }
 
 export interface GameStandout {
@@ -201,6 +203,29 @@ export interface GameDetail {
   penalties?: Penalty[];
   /** Recap first. Absent or empty until the league posts them (after the game) or when they could not be loaded. */
   videos?: GameVideo[];
+  /** The teams side by side (shooting, rebounds, ...), in the league's order. Absent when the league has none. */
+  teamStats?: TeamStatLine[];
+  /** Each team's top performer so far, away first. Absent when the league names its own (three stars). */
+  performers?: GamePerformer[];
+  /** Fans in the building, once the league reports it (usually after the game). */
+  attendance?: number;
+}
+
+export interface TeamStatLine {
+  label: string; // "Field goal %", "Rebounds" - adapter words it
+  /** As shown: "53%", "47". */
+  away: string;
+  home: string;
+  /** The same as numbers, for the bar that compares them. Absent when they do not compare as numbers. */
+  awayValue?: number;
+  homeValue?: number;
+}
+
+export interface GamePerformer {
+  teamId: string;
+  player: Player;
+  /** What they did, worded by the adapter: "45 PTS, 5 REB, 7 AST". */
+  line: string;
 }
 
 // ---------- Play-by-play ----------

@@ -3,20 +3,21 @@ import { StyleSheet, Text, View } from "react-native";
 import type { Game } from "../../domain";
 import { channelsFor, channelsLabel, watchHeading } from "../game/broadcasts";
 import { venueLabel } from "../common/format";
+import { attendanceLabel } from "../game/game-page";
 import { useColors, DIVIDER } from "../theme/theme";
 import { useTvRegion } from "../game/use-tv-region";
 
 /**
  * The bottom of the game page's score card: where the game is played and every TV channel for the viewer's country,
  * one compact line each behind a small icon. National channels are bold; a team's own feed shows the team in
- * brackets. Renders nothing when neither is known.
+ * brackets. The attendance follows the arena once the league reports it. Renders nothing when none is known.
  */
-export function GameInfoLines({ game }: { game: Game }) {
+export function GameInfoLines({ game, attendance }: { game: Game; attendance?: number }) {
   const colors = useColors();
   const region = useTvRegion();
   const venue = venueLabel(game.venue);
   const channels = channelsFor(game, region);
-  if (!venue && channels.length === 0) return null;
+  if (!venue && channels.length === 0 && attendance === undefined) return null;
 
   return (
     <View style={[styles.box, { borderTopColor: colors.border }]}>
@@ -26,6 +27,12 @@ export function GameInfoLines({ game }: { game: Game }) {
           <Text style={[styles.text, { color: colors.muted }]} numberOfLines={1}>
             {venue}
           </Text>
+        </View>
+      )}
+      {attendance !== undefined && (
+        <View style={styles.line} accessible accessibilityLabel={`Attendance ${attendanceLabel(attendance)}`}>
+          <Ionicons name="people-outline" size={14} color={colors.muted} style={styles.icon} />
+          <Text style={[styles.text, { color: colors.muted }]}>Attendance {attendanceLabel(attendance)}</Text>
         </View>
       )}
       {channels.length > 0 && (

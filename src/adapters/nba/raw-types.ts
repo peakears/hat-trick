@@ -212,9 +212,32 @@ export const RawSummarySchema = z.object({
       )
       .min(1),
   }),
-  /** `players` is absent before tip-off. */
-  boxscore: minor(z.object({ players: lenientArray(RawBoxscoreTeamSchema, "boxscore.players") }), "boxscore"),
-  gameInfo: minor(z.object({ venue: minor(RawVenueSchema, "gameInfo.venue") }), "gameInfo"),
+  /**
+   * `players` is absent before tip-off. `teams` is each team's game totals by `name` ("fieldGoalPct": "53",
+   * "totalRebounds": "47"; verified on 2026-11-23, final and live); before tip-off it holds season averages instead,
+   * which the mapper does not read.
+   */
+  boxscore: minor(
+    z.object({
+      players: lenientArray(RawBoxscoreTeamSchema, "boxscore.players"),
+      teams: lenientArray(
+        z.object({
+          team: z.object({ abbreviation: z.string().min(1) }),
+          statistics: lenientArray(
+            z.object({ name: z.string(), displayValue: z.string() }),
+            "boxscore.teams.statistics",
+          ),
+        }),
+        "boxscore.teams",
+      ),
+    }),
+    "boxscore",
+  ),
+  /** `attendance` is 0 or absent until the league reports it (seen on a final game, not a live one). */
+  gameInfo: minor(
+    z.object({ venue: minor(RawVenueSchema, "gameInfo.venue"), attendance: minor(z.number(), "gameInfo.attendance") }),
+    "gameInfo",
+  ),
 });
 export type RawSummary = z.output<typeof RawSummarySchema>;
 export type RawBoxscoreTeam = z.output<typeof RawBoxscoreTeamSchema>;

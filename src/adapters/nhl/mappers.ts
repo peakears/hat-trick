@@ -35,7 +35,7 @@ import type {
   PenaltyKind,
   Venue,
 } from "../../domain";
-import { periodsMatchingScore } from "../periods";
+import { periodsMatchingScore, withUpcomingPeriods } from "../periods";
 import {
   GOALIE_COLUMNS,
   LEADER_LABELS,
@@ -227,7 +227,7 @@ function goalPeriods(raw: RawGame, game: Game): PeriodScore[] | undefined {
         : { periodType: period <= maxRegulation ? "REG" : "OT", maxRegulationPeriods: maxRegulation };
     const label = periodLabel(period, descriptor);
     if (descriptor.periodType === "SO") {
-      const sum = (side: "away" | "home") => periods.reduce((total, p) => total + p[side], 0);
+      const sum = (side: "away" | "home") => periods.reduce((total, p) => total + (p[side] ?? 0), 0);
       const away = (game.away.score ?? 0) - sum("away");
       const home = (game.home.score ?? 0) - sum("home");
       if (away + home !== 1 || away < 0 || home < 0) return undefined;
@@ -241,7 +241,11 @@ function goalPeriods(raw: RawGame, game: Game): PeriodScore[] | undefined {
       home: inPeriod.filter((g) => g.teamAbbrev === raw.homeTeam.abbrev).length,
     });
   }
-  return periodsMatchingScore(periods, game.away, game.home);
+  const checked = periodsMatchingScore(periods, game.away, game.home);
+  if (!checked || game.status !== "live") return checked;
+  return withUpcomingPeriods(checked, maxRegulation, (n) =>
+    periodLabel(n, { periodType: "REG", maxRegulationPeriods: maxRegulation }),
+  );
 }
 
 /**
