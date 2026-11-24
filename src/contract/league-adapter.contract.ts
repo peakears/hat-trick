@@ -165,6 +165,9 @@ export function runLeagueAdapterContract(options: ContractOptions): void {
     it("reports its league id and name", () => {
       expect(makeAdapter().league).toBe(league);
       expectNonEmptyString(makeAdapter().name, "name");
+      // Optional, but a reminder's title starts with it, so not a blank one.
+      const term = makeAdapter().gameStartTerm;
+      if (term !== undefined) expectNonEmptyString(term.trim(), "gameStartTerm");
     });
 
     describe("getScores", () => {

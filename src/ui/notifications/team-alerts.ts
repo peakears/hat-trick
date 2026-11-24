@@ -34,11 +34,11 @@ export function pruneAlerts(alerts: TeamAlerts, favorites: readonly string[]): T
 }
 
 /**
- * The leagues reminders and live scores cover so far: the NHL (the rest is #132). One place to widen, so Settings
- * shows per-team switches only where they do something.
+ * Whether `kind` works for `league` yet: reminders do for every league; live scores only for the NHL so far (the
+ * rest is #132). One place to widen, so Settings shows per-team switches only where they do something.
  */
-const NOTIFICATION_LEAGUES: readonly string[] = ["nhl"];
+const LIVE_LEAGUES: readonly string[] = ["nhl"];
 
-export function notificationsCover(league: string): boolean {
-  return NOTIFICATION_LEAGUES.includes(league);
+export function alertsCover(league: string, kind: AlertKind): boolean {
+  return kind === "reminders" || LIVE_LEAGUES.includes(league);
 }

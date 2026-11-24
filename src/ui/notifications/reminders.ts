@@ -1,9 +1,9 @@
-import type { Game } from "../../domain";
-import { involvesFavorite } from "../team/favorites";
+import type { Game, LeagueId } from "../../domain";
+import { favoritesFor, involvesFavorite } from "../team/favorites";
 import { gameStatusLabel } from "../common/format";
 
 /**
- * Puck drop reminders: which local notifications should exist, and how to get from what is
+ * Game start reminders: which local notifications should exist, and how to get from what is
  * scheduled now to that plan. Pure (no React Native or notification-library imports), so it is
  * unit tested; `use-reminders.ts` does the actual scheduling.
  */
@@ -12,9 +12,10 @@ import { gameStatusLabel } from "../common/format";
 export const REMINDER_ID_PREFIX = "puckdrop:";
 
 export interface Reminder {
-  /** `puckdrop:<game id>`: one reminder per game, so a changed start time replaces the old one. */
+  /** One reminder per game (reminderId), so a changed start time replaces the old one. */
   id: string;
   gameId: string;
+  league: LeagueId;
   /** When the notification fires, epoch milliseconds. */
   fireAt: number;
   title: string;
@@ -27,33 +28,42 @@ export interface ScheduledReminder {
   fireAt: number;
 }
 
-export function reminderId(gameId: string): string {
-  return `${REMINDER_ID_PREFIX}${gameId}`;
+/**
+ * `puckdrop:<game id>` for the NHL (the ids reminders had before there was another league, so reminders already
+ * scheduled on phones are still recognised), `puckdrop:<league>:<game id>` for every other league. The prefix keeps
+ * its old name for the same reason.
+ */
+export function reminderId(league: LeagueId, gameId: string): string {
+  return league === "nhl" ? `${REMINDER_ID_PREFIX}${gameId}` : `${REMINDER_ID_PREFIX}${league}:${gameId}`;
 }
 
 /**
  * The reminders to have scheduled: one for each upcoming game that involves a favourite team and
  * whose reminder time is still in the future, soonest first. Games that are live, final or
- * postponed get none.
+ * postponed get none. `favorites` are `league:team` keys, matched in each game's own league; `startTerm` is the
+ * league's word for the start ("Puck drop", "Tip-off").
  */
 export function planReminders(
   games: readonly Game[],
   favorites: readonly string[],
   leadMinutes: number,
   now: number,
+  startTerm: (league: LeagueId) => string,
 ): Reminder[] {
   const byGame = new Map<string, Reminder>();
   for (const game of games) {
-    if (game.status !== "scheduled" || !involvesFavorite(game, favorites)) continue;
+    if (game.status !== "scheduled" || !involvesFavorite(game, favoritesFor(game.league, favorites))) continue;
     const start = Date.parse(game.startTime);
     if (Number.isNaN(start)) continue;
     const fireAt = start - leadMinutes * 60_000;
     if (fireAt <= now) continue;
-    byGame.set(game.id, {
-      id: reminderId(game.id),
+    const id = reminderId(game.league, game.id);
+    byGame.set(id, {
+      id,
       gameId: game.id,
+      league: game.league,
       fireAt,
-      title: `Puck drop in ${leadMinutes} minutes`,
+      title: `${startTerm(game.league)} in ${leadMinutes} minutes`,
       body: `${game.away.team.name} at ${game.home.team.name}, ${gameStatusLabel(game)}`,
     });
   }
