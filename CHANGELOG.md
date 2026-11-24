@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.12.0](https://github.com/peakears/hat-trick/compare/v1.11.0...v1.12.0) (2026-11-24)
+
+
+### Features
+
+* **app:** add the NBA: scores, standings, leaders, and game, team and player pages ([#140](https://github.com/peakears/hat-trick/issues/140)) ([e3e7e20](https://github.com/peakears/hat-trick/commit/e3e7e2053d57c23e1b2e96033e50d095c13ec26f))
+* **app:** choose notifications per team in first-run setup, and pick the look last ([#166](https://github.com/peakears/hat-trick/issues/166)) ([98bd557](https://github.com/peakears/hat-trick/commit/98bd557a8ed43acf2aaec16e03d9aff733d89306))
+* **app:** redesign the app for more than one league ([#163](https://github.com/peakears/hat-trick/issues/163)) ([d990a90](https://github.com/peakears/hat-trick/commit/d990a9077baacd0d2abd7595190d574eab2d16c8))
+
 ## [1.11.0](https://github.com/peakears/hat-trick/compare/v1.10.0...v1.11.0) (2026-11-24)
 
 
