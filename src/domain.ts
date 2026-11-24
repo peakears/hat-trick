@@ -201,6 +201,29 @@ export interface GameDetail {
   penalties?: Penalty[];
   /** Recap first. Absent or empty until the league posts them (after the game) or when they could not be loaded. */
   videos?: GameVideo[];
+  /** The teams side by side (shooting, rebounds, ...), in the league's order. Absent when the league has none. */
+  teamStats?: TeamStatLine[];
+  /** Each team's top performer so far, away first. Absent when the league names its own (three stars). */
+  performers?: GamePerformer[];
+  /** Fans in the building, once the league reports it (usually after the game). */
+  attendance?: number;
+}
+
+export interface TeamStatLine {
+  label: string; // "Field goal %", "Rebounds" - adapter words it
+  /** As shown: "53%", "47". */
+  away: string;
+  home: string;
+  /** The same as numbers, for the bar that compares them. Absent when they do not compare as numbers. */
+  awayValue?: number;
+  homeValue?: number;
+}
+
+export interface GamePerformer {
+  teamId: string;
+  player: Player;
+  /** What they did, worded by the adapter: "45 PTS, 5 REB, 7 AST". */
+  line: string;
 }
 
 // ---------- Play-by-play ----------

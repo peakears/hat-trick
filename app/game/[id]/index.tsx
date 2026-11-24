@@ -11,6 +11,9 @@ import { GoalSummary } from "../../../src/ui/components/GoalSummary";
 import { PlayByPlayCard } from "../../../src/ui/components/PlayByPlayCard";
 import { PenaltySummary } from "../../../src/ui/components/PenaltySummary";
 import { GameInfoLines } from "../../../src/ui/components/GameInfoLines";
+import { PeriodTable } from "../../../src/ui/components/PeriodTable";
+import { TeamStatsCard } from "../../../src/ui/components/TeamStatsCard";
+import { TopPerformers } from "../../../src/ui/components/TopPerformers";
 import { GameVideos } from "../../../src/ui/components/GameVideos";
 import { ThreeStars } from "../../../src/ui/components/ThreeStars";
 import { localDate, teamRecord } from "../../../src/ui/common/format";
@@ -53,7 +56,7 @@ export default function GameScreen() {
     );
   }
 
-  const { game, goals, threeStars, penalties, videos } = detail.data;
+  const { game, goals, threeStars, penalties, videos, teamStats, performers, attendance } = detail.data;
   const live = game.status === "live";
   // While hidden: no score, shots, goals, three stars, penalties, box score, and no records (the standings already
   // count a finished game).
@@ -139,10 +142,15 @@ export default function GameScreen() {
             {team(game.home)}
           </View>
           {/* Arena and TV channels, one compact line each, instead of a line and a card of their own. */}
-          <GameInfoLines game={game} />
+          <GameInfoLines game={game} attendance={attendance} />
         </View>
 
         <GameEvent game={game} />
+
+        {/* Each period's score, the top performers and the team stats all give the score away: shielded. */}
+        {!hidden && <PeriodTable game={game} />}
+        {!hidden && performers && <TopPerformers performers={performers} />}
+        {!hidden && teamStats && <TeamStatsCard game={game} stats={teamStats} />}
 
         {/* Not shielded: the rows name no score or player, and opening a video is the user's choice. */}
         <GameVideos videos={videos} />

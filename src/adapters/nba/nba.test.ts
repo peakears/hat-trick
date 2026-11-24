@@ -352,7 +352,80 @@ describe("NBA adapter", () => {
         home: { team: expect.objectContaining({ id: "CHI", name: "Chicago Bulls" }), score: 145 },
         away: { team: expect.objectContaining({ id: "DEN", name: "Denver Nuggets" }), score: 151 },
         venue: { name: "United Center", city: "Chicago" },
+        periods: [
+          { label: "Q1", away: 33, home: 31 },
+          { label: "Q2", away: 39, home: 39 },
+          { label: "Q3", away: 33, home: 25 },
+          { label: "Q4", away: 26, home: 36 },
+          { label: "OT", away: 20, home: 14 },
+        ],
       });
+    });
+
+    it("compares the teams, names each team's top performer, and gives the attendance", async () => {
+      const detail = await fixtureAdapter().adapter.getGameDetail("401910032");
+      expect(detail.teamStats?.map((s) => s.label)).toEqual([
+        "Field goal %",
+        "3-point %",
+        "Free throw %",
+        "Rebounds",
+        "Assists",
+        "Turnovers",
+        "Points in the paint",
+        "Fast break points",
+        "Largest lead",
+      ]);
+      expect(detail.teamStats?.[0]).toEqual({
+        label: "Field goal %",
+        away: "53%",
+        home: "52%",
+        awayValue: 53,
+        homeValue: 52,
+      });
+      expect(detail.teamStats?.find((s) => s.label === "Points in the paint")).toMatchObject({
+        away: "66",
+        home: "48",
+      });
+      expect(detail.performers).toEqual([
+        {
+          teamId: "DEN",
+          player: expect.objectContaining({ name: "Jamal Murray", teamId: "DEN" }),
+          line: "45 PTS, 5 REB, 7 AST",
+        },
+        {
+          teamId: "CHI",
+          player: expect.objectContaining({ name: "Buddy Hield", teamId: "CHI" }),
+          line: "33 PTS, 7 REB, 6 AST",
+        },
+      ]);
+      expect(detail.attendance).toBe(19360);
+    });
+
+    it("has team stats and performers live, but no attendance yet, and none of them before tip-off", async () => {
+      const live = await fixtureAdapter().adapter.getGameDetail("401910043");
+      expect(live.teamStats?.length).toBeGreaterThan(5);
+      expect(live.performers?.map((p) => p.teamId)).toEqual(["LAC", "HOU"]);
+      expect(live.game.periods?.map((p) => p.label)).toEqual(["Q1", "Q2", "Q3", "Q4"]);
+      expect(live.attendance).toBeUndefined();
+      // Before tip-off `boxscore.teams` holds season averages: not shown as the game's.
+      const pre = await fixtureAdapter().adapter.getGameDetail("401909314");
+      expect([pre.teamStats, pre.performers, pre.game.periods, pre.attendance]).toEqual([
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+      ]);
+    });
+
+    it("still shows the game page when the team totals are missing or a stat is not a number", async () => {
+      const { adapter } = fixtureAdapter((url, body) => {
+        if (!url.includes("summary")) return;
+        delete body.boxscore.teams[1];
+        body.boxscore.teams = body.boxscore.teams.filter(Boolean);
+      });
+      const detail = await adapter.getGameDetail("401910032");
+      expect(detail.teamStats).toBeUndefined();
+      expect(detail.boxscore.away.length).toBeGreaterThan(0);
     });
 
     it("splits each box score into starters and bench, with ESPN's columns, leaving out who did not play", async () => {

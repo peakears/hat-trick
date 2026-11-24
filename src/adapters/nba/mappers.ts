@@ -4,12 +4,14 @@ import type {
   Game,
   GameClock,
   GameDetail,
+  GamePerformer,
   GameSide,
   GameStandout,
   GameStatus,
   LeaderBoard,
   LeaderEntry,
   PeriodScore,
+  Player,
   PlayerBio,
   PlayerDetail,
   PlayerGameLine,
@@ -24,6 +26,7 @@ import type {
   StatTable,
   Team,
   TeamDetail,
+  TeamStatLine,
 } from "../../domain";
 import { periodsMatchingScore } from "../periods";
 import {
@@ -32,6 +35,7 @@ import {
   PLAYER_GAME_COLUMNS,
   PLAYER_LAST_GAMES,
   PLAYER_SEASON_COLUMNS,
+  TEAM_GAME_STATS,
   TEAM_GAMES_SHOWN,
   TEAM_STAT_COLUMNS,
 } from "./constants";
@@ -345,6 +349,63 @@ export function mapLeaderBoard(raw: RawLeaders, category: string, label: string,
  * One team's box score as two tables, starters then bench, with ESPN's columns in its order. Players who did not
  * play are left out (their stats are empty), as is a table with nobody in it.
  */
+type RawBoxscoreAthlete = NonNullable<RawBoxscoreTeam["statistics"][number]["athletes"]>[number]["athlete"];
+
+function boxscorePlayer(a: RawBoxscoreAthlete, teamId: string): Player {
+  return {
+    id: a.id,
+    league: LEAGUE,
+    name: a.displayName,
+    teamId,
+    position: a.position?.abbreviation,
+    headshotUrl: a.headshot?.href,
+  };
+}
+
+/** A team's top scorer in the box score so far: "45 PTS, 5 REB, 7 AST". Undefined before anyone has played. */
+function topPerformer(raw: RawBoxscoreTeam | undefined): GamePerformer | undefined {
+  const group = raw?.statistics[0];
+  if (!raw || !group) return undefined;
+  const at = (key: string) => group.keys.indexOf(key);
+  const [pts, reb, ast] = [at("points"), at("rebounds"), at("assists")];
+  if (pts < 0) return undefined;
+  let best: { athlete: RawBoxscoreAthlete; stats: string[] } | undefined;
+  for (const a of group.athletes ?? []) {
+    if (a.didNotPlay || a.stats.length === 0) continue;
+    if (!best || Number(a.stats[pts]) > Number(best.stats[pts])) best = a;
+  }
+  if (!best) return undefined;
+  const stats = best.stats;
+  const parts = [`${stats[pts]} PTS`, reb >= 0 && `${stats[reb]} REB`, ast >= 0 && `${stats[ast]} AST`];
+  return {
+    teamId: raw.team.abbreviation,
+    player: boxscorePlayer(best.athlete, raw.team.abbreviation),
+    line: parts.filter(Boolean).join(", "),
+  };
+}
+
+type RawSummaryTeamStats = NonNullable<NonNullable<RawSummary["boxscore"]>["teams"]>[number];
+
+/** The teams side by side, live or final (before tip-off the summary has season averages there instead). */
+function teamGameStats(away: RawSummaryTeamStats | undefined, home: RawSummaryTeamStats | undefined): TeamStatLine[] {
+  if (!away || !home) return [];
+  const value = (t: RawSummaryTeamStats, name: string) => t.statistics?.find((s) => s.name === name)?.displayValue;
+  const lines: TeamStatLine[] = [];
+  for (const [name, label, percent] of TEAM_GAME_STATS) {
+    const [a, h] = [value(away, name), value(home, name)];
+    if (a === undefined || h === undefined) continue;
+    const [av, hv] = [Number(a), Number(h)];
+    const numbers = Number.isFinite(av) && Number.isFinite(hv);
+    lines.push({
+      label,
+      away: percent ? `${a}%` : a,
+      home: percent ? `${h}%` : h,
+      ...(numbers ? { awayValue: av, homeValue: hv } : {}),
+    });
+  }
+  return lines;
+}
+
 export function mapBoxscoreTeam(raw: RawBoxscoreTeam | undefined): StatTable[] {
   const group = raw?.statistics[0];
   if (!raw || !group) return [];
@@ -359,17 +420,7 @@ export function mapBoxscoreTeam(raw: RawBoxscoreTeam | undefined): StatTable[] {
       const v = a.stats[i];
       if (v !== undefined && v !== "" && v !== "--") values[key] = v;
     });
-    const row: StatRow = {
-      player: {
-        id: a.athlete.id,
-        league: LEAGUE,
-        name: a.athlete.displayName,
-        teamId: raw.team.abbreviation,
-        position: a.athlete.position?.abbreviation,
-        headshotUrl: a.athlete.headshot?.href,
-      },
-      values,
-    };
+    const row: StatRow = { player: boxscorePlayer(a.athlete, raw.team.abbreviation), values };
     (a.starter ? starters : bench).push(row);
   }
   return [
@@ -397,10 +448,36 @@ export function mapSummary(raw: RawSummary): GameDetail {
     })),
     raw.gameInfo?.venue,
   );
+  const started = game.status === "live" || game.status === "final";
+  if (started) {
+    const points = (homeAway: "home" | "away") =>
+      competition.competitors.find((c) => c.homeAway === homeAway)?.linescores ?? [];
+    const [away, home] = [points("away"), points("home")];
+    if (away.length === home.length) {
+      const scored = away.map((a, i) => ({
+        label: periodLabel(i + 1),
+        away: Number(a.displayValue),
+        home: Number(home[i].displayValue),
+      }));
+      const checked = periodsMatchingScore(scored, game.away, game.home);
+      if (checked) game.periods = checked;
+    }
+  }
   const team = (id: string) => raw.boxscore?.players?.find((p) => p.team.abbreviation === id);
+  const totals = (id: string) => raw.boxscore?.teams?.find((t) => t.team.abbreviation === id);
+  const performers = started
+    ? [topPerformer(team(game.away.team.id)), topPerformer(team(game.home.team.id))].filter(
+        (p): p is GamePerformer => p !== undefined,
+      )
+    : [];
+  const teamStats = started ? teamGameStats(totals(game.away.team.id), totals(game.home.team.id)) : [];
+  const attendance = raw.gameInfo?.attendance;
   return compact({
     game,
     boxscore: { home: mapBoxscoreTeam(team(game.home.team.id)), away: mapBoxscoreTeam(team(game.away.team.id)) },
+    teamStats: teamStats.length > 0 ? teamStats : undefined,
+    performers: performers.length > 0 ? performers : undefined,
+    attendance: attendance && attendance > 0 ? attendance : undefined,
   });
 }
 

@@ -70,3 +70,19 @@ export const PLAYER_GAME_COLUMNS = [
 
 /** Games in the player page's last games table, as for the NHL. */
 export const PLAYER_LAST_GAMES = 5;
+
+/**
+ * The game page's team stats, from the summary's `boxscore.teams` (stat name, label, shown as a percentage). In the
+ * order shown; a stat a team lacks leaves its line out.
+ */
+export const TEAM_GAME_STATS: [name: string, label: string, percent: boolean][] = [
+  ["fieldGoalPct", "Field goal %", true],
+  ["threePointFieldGoalPct", "3-point %", true],
+  ["freeThrowPct", "Free throw %", true],
+  ["totalRebounds", "Rebounds", false],
+  ["assists", "Assists", false],
+  ["turnovers", "Turnovers", false],
+  ["pointsInPaint", "Points in the paint", false],
+  ["fastBreakPoints", "Fast break points", false],
+  ["largestLead", "Largest lead", false],
+];

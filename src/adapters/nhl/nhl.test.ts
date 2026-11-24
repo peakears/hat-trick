@@ -255,6 +255,16 @@ describe("NHL adapter", () => {
       ]);
     });
 
+    it("gives the game each period's goals from the scores, and no team stats or performers (it has three stars)", async () => {
+      const detail = await fixtureAdapter().adapter.getGameDetail("2026020333");
+      expect(detail.game.periods).toEqual([
+        { label: "1st", away: 1, home: 0 },
+        { label: "2nd", away: 1, home: 0 },
+        { label: "3rd", away: 1, home: 0 },
+      ]);
+      expect([detail.teamStats, detail.performers, detail.attendance]).toEqual([undefined, undefined, undefined]);
+    });
+
     it("includes the channels in the box score's game", async () => {
       const { game } = await fixtureAdapter().adapter.getGameDetail("2026020333");
       expect(game.broadcasts?.map((b) => b.network)).toEqual(["ABTV", "NESN"]);
@@ -419,6 +429,7 @@ describe("NHL adapter", () => {
       expect(detail.game.id).toBe("2026020333");
       expect(detail.goals).toBeUndefined();
       expect(detail.videos).toBeUndefined();
+      expect(detail.game.periods).toBeUndefined();
       expect(warnings).toHaveLength(1);
       expect(warnings[0].url).toMatch(/\/score\/\d{4}-\d{2}-\d{2}$/);
       expect(warnings[0].message).toMatch(/^goals and videos left out: .*Network request failed/);
