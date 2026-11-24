@@ -31,6 +31,11 @@ export function favoritesFor(league: LeagueId, favorites: readonly string[]): st
   return favorites.map(parseKey).flatMap((k) => (k.league === league ? [k.teamId] : []));
 }
 
+/** A favourite key's league ("nba:BOS" is the NBA's; a bare id from an older version is the NHL's). */
+export function favoriteLeague(key: string): LeagueId {
+  return parseKey(key).league;
+}
+
 /** The leagues that have a favourite, in the order their first one was picked. */
 export function leaguesWithFavorites(favorites: readonly string[]): LeagueId[] {
   return [...new Set(favorites.map((key) => parseKey(key).league))];

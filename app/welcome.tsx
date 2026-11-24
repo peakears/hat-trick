@@ -18,17 +18,28 @@ import { TeamGridSkeleton } from "../src/ui/components/Skeleton";
 import { TeamLogo } from "../src/ui/components/TeamLogo";
 import { favoritesFor, favoritesLabel, isFavorite } from "../src/ui/team/favorites";
 import {
+  followedFavorites,
+  followedLeagues,
+  keptLeagues,
+  keptNote,
+  leaguesSentence,
+  liveHint,
   nextStep,
   previousStep,
   reminderHint,
   stepProgress,
+  stepsFor,
   teamsByDivision,
+  toggleFollowedLeague,
   type OnboardingStep,
 } from "../src/ui/settings/onboarding";
+import { useLeague } from "../src/ui/data/use-league";
+import { liveTrackingAvailable } from "../src/ui/notifications/live-tracker-native";
+import { leagueTint } from "../src/ui/theme/palette";
 import { REMINDER_LEADS, type ReminderLead } from "../src/ui/settings/settings";
 import { useSettings } from "../src/ui/settings/settings-context";
-import { NHL, useSportsData } from "../src/ui/data/sports-data-context";
-import { useColors, DIVIDER } from "../src/ui/theme/theme";
+import { useSportsData } from "../src/ui/data/sports-data-context";
+import { useColors, useScheme, DIVIDER } from "../src/ui/theme/theme";
 import { usePolled } from "../src/ui/data/use-polled";
 
 /**
@@ -42,9 +53,17 @@ export default function WelcomeScreen() {
   const insets = useSafeAreaInsets();
   const { settings, update } = useSettings();
   const rerun = useLocalSearchParams<{ again?: string }>().again === "1";
+  const sports = useSportsData();
+  // With a single league there is no "Which leagues do you follow?" step.
+  const steps = stepsFor(sports.leagues().length);
+  // Favourites in leagues setup has as followed: a team kept from an unfollowed league does not count as picked.
+  const followedCount = followedFavorites(
+    settings.favoriteTeams,
+    followedLeagues(settings, useLeague(), sports.leagues()),
+  ).length;
   const [step, setStep] = useState<OnboardingStep>("welcome");
-  const back = previousStep(step);
-  const next = nextStep(step);
+  const back = previousStep(step, steps);
+  const next = nextStep(step, steps);
 
   // Leave only once `onboardingComplete` is in state: navigating in the same tick as the update could let the tabs
   // layout render with the old value and redirect straight back here.
@@ -76,13 +95,13 @@ export default function WelcomeScreen() {
     Animated.timing(opacity, { toValue: 1, duration: 200, useNativeDriver: true }).start();
   }, [step, opacity]);
 
-  const progress = stepProgress(step);
+  const progress = stepProgress(step, steps);
   const primaryLabel =
     step === "welcome"
       ? "Get started"
       : step === "done"
         ? "Done"
-        : step === "teams" && settings.favoriteTeams.length === 0
+        : step === "teams" && followedCount === 0
           ? "Skip for now"
           : "Next";
 
@@ -123,6 +142,7 @@ export default function WelcomeScreen() {
         ) : (
           <ScrollView contentContainerStyle={styles.content}>
             {step === "welcome" && <WelcomeStep />}
+            {step === "leagues" && <LeaguesStep />}
             {step === "look" && <LookStep />}
             {step === "options" && <OptionsStep />}
             {step === "done" && <DoneStep />}
@@ -157,6 +177,8 @@ function StepHeading({ title, detail }: { title: string; detail: string }) {
 
 function WelcomeStep() {
   const colors = useColors();
+  const sports = useSportsData();
+  const leagues = leaguesSentence(sports.leagues().map((l) => l.toUpperCase()));
   return (
     <View style={styles.centered}>
       <View style={[styles.badge, { backgroundColor: colors.accent }]}>
@@ -164,7 +186,7 @@ function WelcomeStep() {
       </View>
       <StepHeading
         title="Welcome to Hat Trick"
-        detail="NHL scores, standings, leaders and box scores. Free and open source, with no account and no ads, and your settings stay on your phone."
+        detail={`${leagues} scores, standings, leaders and box scores. Free and open source, with no account and no ads, and your settings stay on your phone.`}
       />
       <Text style={[styles.subtitle, styles.centerText, { color: colors.muted }]}>
         A few quick choices and you're in. You can change all of them later in Settings.
@@ -173,14 +195,77 @@ function WelcomeStep() {
   );
 }
 
-/** Tap teams to star them. The list is the Standings tab's cache entry, so this also loads that tab. */
+/**
+ * "Which leagues do you follow?": one row per league. More than one followed sets Scores to All, one shows that
+ * league alone (onboarding.ts); the last one cannot be turned off.
+ */
+function LeaguesStep() {
+  const colors = useColors();
+  const scheme = useScheme();
+  const sports = useSportsData();
+  const league = useLeague();
+  const { settings, update } = useSettings();
+  const available = sports.leagues();
+  const followed = followedLeagues(settings, league, available);
+  return (
+    <>
+      <StepHeading
+        title="Which leagues do you follow?"
+        detail="Scores shows their games together. You can switch to one league any time, at the top of each tab."
+      />
+      <Section title="Leagues">
+        {available.map((id, i) => {
+          const on = followed.includes(id);
+          // The last followed league cannot be turned off: say so, rather than a checkbox that does nothing.
+          const locked = on && followed.length === 1;
+          return (
+            <Pressable
+              key={id}
+              onPress={() => update(toggleFollowedLeague(followed, id, available, league))}
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: on, disabled: locked }}
+              accessibilityLabel={sports.leagueName(id)}
+              accessibilityHint={locked ? "Follow another league first to turn this one off." : undefined}
+              style={[
+                settingsStyles.row,
+                i < available.length - 1 && settingsStyles.divider,
+                { borderBottomColor: colors.border },
+              ]}
+            >
+              <View style={settingsStyles.rowText}>
+                <Text style={[styles.leagueAbbrev, { color: leagueTint(id, scheme) }]}>{id.toUpperCase()}</Text>
+                <Text style={[settingsStyles.label, { color: colors.text }]}>{sports.leagueName(id)}</Text>
+              </View>
+              <Ionicons
+                name={on ? "checkmark-circle" : "ellipse-outline"}
+                size={26}
+                color={on ? colors.accent : colors.muted}
+                style={locked && styles.locked}
+              />
+            </Pressable>
+          );
+        })}
+      </Section>
+    </>
+  );
+}
+
+/**
+ * Tap teams to star them, in each followed league (a switch at the top with more than one). The list is the
+ * Standings tab's cache entry for that league, so this also loads that tab.
+ */
 function TeamsStep() {
   const colors = useColors();
   const sports = useSportsData();
+  const current = useLeague();
   const { settings } = useSettings();
-  const standings = usePolled(`${NHL}:standings`, (o) => sports.getStandings(NHL, o));
+  const followed = followedLeagues(settings, current, sports.leagues());
+  const [picked, setPicked] = useState(followed[0]);
+  const league = followed.includes(picked) ? picked : followed[0];
+  const standings = usePolled(`${league}:standings`, (o) => sports.getStandings(league, o));
   const groups = teamsByDivision(standings.data);
-  const count = settings.favoriteTeams.length;
+  // Only the followed leagues' teams: favourites kept from an unfollowed league are not on this step.
+  const count = followedFavorites(settings.favoriteTeams, followed).length;
 
   return (
     <ScrollView contentContainerStyle={styles.teamsContent}>
@@ -194,13 +279,19 @@ function TeamsStep() {
           }
         />
       </View>
+      {followed.length > 1 && (
+        <Segmented
+          options={followed.map((id) => ({ value: id, label: id.toUpperCase() }))}
+          value={league}
+          onChange={setPicked}
+        />
+      )}
       {standings.loading ? (
         <TeamGridSkeleton />
       ) : groups.length === 0 ? (
         <View style={[styles.padded, styles.errorBox]}>
           <Text style={[styles.subtitle, { color: colors.text }]}>
-            Couldn't load the teams. Check your connection, or skip this step and star teams later from the Standings
-            tab.
+            Couldn't load the teams. Check your connection, or skip this step and star teams later on their team pages.
           </Text>
           <Pressable onPress={standings.refresh} accessibilityRole="button" hitSlop={8}>
             <Text style={[styles.link, { color: colors.accent }]}>Try again</Text>
@@ -230,10 +321,10 @@ function TeamsStep() {
 function TeamTile({ team }: { team: Team }) {
   const colors = useColors();
   const { settings, toggleFavoriteTeam } = useSettings();
-  const picked = isFavorite(favoritesFor(NHL, settings.favoriteTeams), team.id);
+  const picked = isFavorite(favoritesFor(team.league, settings.favoriteTeams), team.id);
   return (
     <Pressable
-      onPress={() => toggleFavoriteTeam(NHL, team.id)}
+      onPress={() => toggleFavoriteTeam(team.league, team.id)}
       accessibilityRole="checkbox"
       accessibilityState={{ checked: picked }}
       accessibilityLabel={team.name}
@@ -281,12 +372,13 @@ const LEAD_OPTIONS = REMINDER_LEADS.map((n) => ({ value: String(n), label: `${n}
 function OptionsStep() {
   const colors = useColors();
   const { settings, update } = useSettings();
-  const { setReminders, permissionDenied } = useReminderToggle();
+  const { setReminders, setLiveScores, permissionDenied } = useReminderToggle();
   const favorites = settings.favoriteTeams.length;
+  const liveAvailable = liveTrackingAvailable();
   return (
     <>
       <StepHeading title="Game options" detail="All off unless you turn them on." />
-      <Section title="Reminders">
+      <Section title="Notifications">
         <ToggleRow
           label="Game start reminders"
           detail={reminderHint(favorites, permissionDenied)}
@@ -294,10 +386,9 @@ function OptionsStep() {
           onChange={setReminders}
           // Only asks for the notification permission when switched on, and only with a team to remind about.
           disabled={favorites === 0 && !settings.remindersEnabled}
-          last={!settings.remindersEnabled}
         />
         {settings.remindersEnabled && (
-          <View style={settingsStyles.row}>
+          <View style={[settingsStyles.row, settingsStyles.divider, { borderBottomColor: colors.border }]}>
             <Text style={[settingsStyles.label, { color: colors.text }]}>Remind me</Text>
             <View style={styles.flex}>
               <Segmented
@@ -308,6 +399,15 @@ function OptionsStep() {
             </View>
           </View>
         )}
+        {/* As in Settings: asks for the notification permission when switched on, and needs a team to follow. */}
+        <ToggleRow
+          label="Live scores"
+          detail={liveHint(favorites, liveAvailable, permissionDenied, settings.spoilerShield)}
+          value={liveAvailable && settings.liveScores}
+          onChange={setLiveScores}
+          disabled={!liveAvailable || (favorites === 0 && !settings.liveScores)}
+          last
+        />
       </Section>
       <Section title="Spoilers">
         <ToggleRow
@@ -337,8 +437,12 @@ function OptionsStep() {
 
 function DoneStep() {
   const colors = useColors();
+  const sports = useSportsData();
   const { settings } = useSettings();
-  const teams = settings.favoriteTeams;
+  const followed = followedLeagues(settings, useLeague(), sports.leagues());
+  // The followed leagues' teams; teams in a league unfollowed here are kept, and the note says so.
+  const teams = followedFavorites(settings.favoriteTeams, followed);
+  const kept = keptNote(keptLeagues(settings.favoriteTeams, followed));
   return (
     <View style={styles.centered}>
       <View style={[styles.badge, { backgroundColor: colors.accent }]}>
@@ -349,9 +453,10 @@ function DoneStep() {
         detail={
           teams.length > 0
             ? `Following ${favoritesLabel(teams)}. Change this or anything else in Settings.`
-            : "Star a team any time from Standings or a game page. Everything else is in Settings."
+            : "Star a team any time on its team page. Everything else is in Settings."
         }
       />
+      {kept && <Text style={[styles.subtitle, styles.centerText, { color: colors.muted }]}>{kept}</Text>}
     </View>
   );
 }
@@ -391,6 +496,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   tileLabel: { fontSize: 13, fontWeight: "600" },
+  leagueAbbrev: { fontSize: 12, fontWeight: "700", letterSpacing: 0.5 },
+  locked: { opacity: 0.55 },
   footer: { paddingHorizontal: 16, paddingTop: 12, borderTopWidth: DIVIDER },
   primary: { borderRadius: 12, paddingVertical: 14, alignItems: "center" },
   primaryText: { fontSize: 16, fontWeight: "700" },
