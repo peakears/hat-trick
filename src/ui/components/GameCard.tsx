@@ -10,11 +10,12 @@ import { useSettings } from "../settings/settings-context";
 import { useSpoilers } from "../spoilers/spoiler-context";
 import { tabular, useColors, useScheme } from "../theme/theme";
 import { leagueTint } from "../theme/palette";
-import { scoreFont, scoreFontSemiBold } from "../theme/fonts";
+import { scoreFont } from "../theme/fonts";
 import { useTvRegion } from "../game/use-tv-region";
 import { showLiveDetail, standoutText } from "../scores/game-card";
 import { ChannelLine } from "./ChannelLine";
 import { FlashScore } from "./FlashScore";
+import { PeriodTable } from "./PeriodTable";
 import { RevealButton } from "./ShieldUi";
 import { SpecialEventTag } from "./SpecialEventTag";
 import { TeamLogo } from "./TeamLogo";
@@ -117,39 +118,7 @@ export function GameCard({ game, showLeague = false }: { game: Game; showLeague?
       {detail && (
         // Each period's score and the standout, live only. Part of the card's spoken label, so hidden from readers.
         <View style={styles.detail} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
-          {game.periods && game.periods.length > 0 && (
-            <View style={[styles.periods, { backgroundColor: colors.surfaceSunken }]}>
-              <View style={styles.periodColumn}>
-                <Text style={[styles.periodHead, { color: colors.muted }]}> </Text>
-                <Text style={[styles.periodTeam, { color: colors.text }]}>{game.away.team.abbrev}</Text>
-                <Text style={[styles.periodTeam, { color: colors.text }]}>{game.home.team.abbrev}</Text>
-              </View>
-              {game.periods.map((p, i) => (
-                <View key={`${p.label}-${i}`} style={[styles.periodColumn, styles.periodValues]}>
-                  <Text style={[styles.periodHead, { color: colors.muted }]}>{p.label}</Text>
-                  {/* A period not played yet shows "-". */}
-                  <Text
-                    style={[
-                      styles.periodValue,
-                      scoreFontSemiBold,
-                      { color: p.away === null ? colors.muted : colors.text },
-                    ]}
-                  >
-                    {p.away ?? "-"}
-                  </Text>
-                  <Text
-                    style={[
-                      styles.periodValue,
-                      scoreFontSemiBold,
-                      { color: p.home === null ? colors.muted : colors.text },
-                    ]}
-                  >
-                    {p.home ?? "-"}
-                  </Text>
-                </View>
-              ))}
-            </View>
-          )}
+          <PeriodTable game={game} compact />
           {standout && (
             <Text numberOfLines={1} style={[styles.standout, { color: colors.text }]}>
               <Text style={{ color: colors.muted }}>Top performer · </Text>
@@ -192,13 +161,6 @@ const styles = StyleSheet.create({
   liveDot: { fontSize: 11, fontWeight: "700" },
   league: { fontSize: 11, fontWeight: "700", letterSpacing: 0.5, marginBottom: -4 },
   detail: { gap: 8, paddingHorizontal: 14, paddingBottom: 12 },
-  periods: { flexDirection: "row", borderRadius: 10, paddingVertical: 8, paddingHorizontal: 10, gap: 4 },
-  periodColumn: { gap: 3, minWidth: 40 },
-  periodValues: { flex: 1, alignItems: "center", minWidth: 0 },
-  // One line height for every row, so the team names line up with their numbers.
-  periodHead: { fontSize: 11, lineHeight: 16, fontWeight: "600" },
-  periodTeam: { fontSize: 12, lineHeight: 18, fontWeight: "700" },
-  periodValue: { fontSize: 14, lineHeight: 18 },
   standout: { fontSize: 13 },
   statusText: { fontSize: 13, fontWeight: "600", textAlign: "center" },
 });
