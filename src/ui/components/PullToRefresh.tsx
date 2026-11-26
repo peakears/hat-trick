@@ -1,4 +1,4 @@
-import { RefreshControl } from "react-native";
+import { RefreshControl, type RefreshControlProps } from "react-native";
 import { useHaptic } from "../haptics/use-haptic";
 import { useColors } from "../theme/theme";
 
@@ -6,16 +6,19 @@ import { useColors } from "../theme/theme";
  * Pull to refresh for a ScrollView, FlatList or SectionList (`refreshControl={<PullToRefresh ... />}`): the spinner
  * in the accent colour on the card colour (so it matches dark and pure black), and a light tap when the pull is let
  * go. Every screen uses this rather than `RefreshControl`.
+ *
+ * Every other prop is passed on: on Android the scroll view clones this element and hands it the list itself as
+ * `children`, with a `style`, so dropping them leaves the screen blank (only a device shows it; iOS does not nest).
  */
-export function PullToRefresh({ refreshing, onRefresh }: { refreshing: boolean; onRefresh: () => void }) {
+export function PullToRefresh({ onRefresh, ...rest }: RefreshControlProps) {
   const colors = useColors();
   const haptic = useHaptic();
   return (
     <RefreshControl
-      refreshing={refreshing}
+      {...rest}
       onRefresh={() => {
         haptic("refresh");
-        onRefresh();
+        onRefresh?.();
       }}
       colors={[colors.accent]}
       progressBackgroundColor={colors.card}
