@@ -204,6 +204,7 @@ describe("team records", () => {
     expect(recordLabel({ wins: 13, losses: 7, otLosses: 1 })).toBe("13-7-1");
     expect(recordLabel({ wins: 12, losses: 8, otLosses: 0 })).toBe("12-8-0");
     expect(recordLabel({ wins: 30, losses: 12 })).toBe("30-12");
+    expect(recordLabel({ wins: 9, losses: 1, ties: 1 })).toBe("9-1-1");
   });
 
   it("finds a team's record in any standings group", () => {

@@ -28,6 +28,8 @@ const COLUMNS: { label: string; width: number; value: (r: StandingRow) => string
   { label: "W", width: NUM_WIDTH, value: (r) => r.wins },
   { label: "L", width: NUM_WIDTH, value: (r) => r.losses },
   { label: "OTL", width: NUM_WIDTH, value: (r) => r.otLosses },
+  // Football: ties.
+  { label: "T", width: NUM_WIDTH, value: (r) => r.ties },
   { label: "PTS", width: NUM_WIDTH, value: (r) => r.points },
   // Basketball: win percentage (".647") and games behind the conference leader ("-" for the leader).
   { label: "PCT", width: 40, value: (r) => (r.winPercent === undefined ? undefined : statValue(r.winPercent)) },

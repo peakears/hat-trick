@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { NhlAdapter } from "../../adapters/nhl";
 import { NbaAdapter } from "../../adapters/nba";
+import { NflAdapter } from "../../adapters/nfl";
 import { DiagnosticsLog, SportsData } from "../../data";
 import type { LeagueId } from "../../domain";
 import { AdapterRegistry } from "../../registry";
@@ -29,6 +30,7 @@ export function getServices(): Services {
     const registry = new AdapterRegistry();
     registry.register(new NhlAdapter());
     registry.register(new NbaAdapter());
+    registry.register(new NflAdapter());
     const store = new AsyncStorageStore();
     const log = new DiagnosticsLog(store);
     services = { data: new SportsData({ registry, store, log }), log, store };

@@ -1,6 +1,6 @@
 # Hat Trick
 
-A clean, open-source sports scores app for Android: the NHL, with the NBA on its way, and more leagues later.
+A clean, open-source sports scores app for Android: the NHL and the NBA, with the NFL on its way, and more leagues later.
 
 Everything runs on your device: the app talks to public sports APIs directly, with no backend server to host.
 
@@ -24,7 +24,8 @@ Everything runs on your device: the app talks to public sports APIs directly, wi
 - **Update notice:** a banner when a newer release is available, checked at most once a day (switchable). Tap **Update** in the banner (or in **Settings > About**) and the app downloads the new APK into its own private cache, checks its size and checksum, and opens Android's installer; you tap Install. You can cancel the download, and one that stops for 30 seconds is given up. The file is deleted afterwards, so nothing piles up in your Downloads folder. If that fails, **Open in browser** is the fallback. **Settings > About** shows the version with the release notes beside it (**What's new** when an update is waiting), and a "Report a problem" link that opens a GitHub issue with your app version filled in.
 - **Works offline** with the last data it fetched. Live games refresh about every 20 seconds while the app is open.
 - **NBA:** scores, standings (by division, conference or league, with win percentage and games behind; the Conference view lists each conference by seed, with the playoff, play-in and out bands marked) stat leaders (points, rebounds, assists, steals, blocks and 3-pointers per game), game pages (score, arena and a box score with starters and bench) team pages (record, win percentage, games back, home, road and last 10, recent and upcoming games, and the roster's season stats) and player pages (bio, draft, this season's averages, last five games, career, and every season, regular season and playoffs). Switch leagues with the row of league buttons at the top of Scores, Standings and Leaders; the app remembers your pick. On Scores each button shows how many games that league has on the day, with a red dot when one is live, and **All** (the default) lists every league's games for the day: your teams first, then each league under its own heading.
-- No account, no ads, no tracking: the app talks only to the NHL's public API, ESPN's public API (for the NBA, only while you look at NBA data) and GitHub (the update notice, and the update itself when you tap Update). The diagnostics log stays on your phone unless you share it.
+- **NFL** (in progress): scores (each quarter's score while live), standings (by division, conference or league, with ties and win percentage; the Conference view lists each conference by seed, with the seven playoff spots marked) and stat leaders (Offence: passing, rushing and receiving yards and touchdowns, passer rating and receptions; Defence: sacks, tackles and interceptions). Game, team and player pages are still to come.
+- No account, no ads, no tracking: the app talks only to the NHL's public API, ESPN's public API (for the NBA and the NFL, only while you look at their data) and GitHub (the update notice, and the update itself when you tap Update). The diagnostics log stays on your phone unless you share it.
 
 ## Install
 
@@ -36,7 +37,7 @@ Each [release](https://github.com/peakears/hat-trick/releases) has an APK attach
 
 Android may warn that the app is from an unknown developer, because it is not from the Play Store. That is expected for a sideloaded app.
 
-The app contacts only the NHL's public API (for NHL data), ESPN's public API (for NBA data, only when you pick the NBA) and GitHub (once a day, to see whether a newer release exists; you can turn this off in Settings). The app only downloads an update when you tap Update, only from this project's GitHub releases, and Android's installer accepts it only if it is signed with the same release key.
+The app contacts only the NHL's public API (for NHL data), ESPN's public API (for NBA and NFL data, only when you pick those leagues) and GitHub (once a day, to see whether a newer release exists; you can turn this off in Settings). The app only downloads an update when you tap Update, only from this project's GitHub releases, and Android's installer accepts it only if it is signed with the same release key.
 
 Every pull request also gets a test APK, under **Artifacts** on its CI run. For a branch with no pull request, open **Actions**, pick **Test APK (manual)**, click **Run workflow** and choose the branch. Test APKs are signed with a different key than releases, so Android will not install one over a release (or the other way round): uninstall first.
 
@@ -85,7 +86,7 @@ league adapters -> domain model -> on-device cache -> app UI
 - `src/ui/`: React Native pieces shared by screens, one folder per feature (data and polling, settings, scores, game, standings, notifications, updates and more) plus shared components
 - `app/`: the screens, using [Expo Router](https://docs.expo.dev/router/introduction/) (one file per route): the Scores, Standings, Leaders and Settings tabs, and the game page
 
-Settings (including favourite teams) are stored on the device, separately from cached data. Game start reminders are local notifications scheduled on the device. Live scores are checked by the app itself, from the same NHL API, while a followed game is on. The TV country is read from the phone's region setting, with no location permission and no network request. NBA data comes from ESPN's public API, and only while you look at it. The only other network request is the daily update check against GitHub. Videos are not played by the app: tapping one opens nhl.com's own page in a browser tab, only for nhl.com video links.
+Settings (including favourite teams) are stored on the device, separately from cached data. Game start reminders are local notifications scheduled on the device. Live scores are checked by the app itself, from the same NHL API, while a followed game is on. The TV country is read from the phone's region setting, with no location permission and no network request. NBA and NFL data come from ESPN's public API, and only while you look at them. The only other network request is the daily update check against GitHub. Videos are not played by the app: tapping one opens nhl.com's own page in a browser tab, only for nhl.com video links.
 
 Adding a league means writing a new adapter that implements `LeagueAdapter` and passes the shared contract tests in `src/contract/`. Nothing above it changes: see [Adding a league](#adding-a-league) for the steps.
 
@@ -107,7 +108,7 @@ Planned (each links to its issue):
 - [Betting odds](https://github.com/peakears/hat-trick/issues/7), if a usable source exists (off by default)
 - [More customization](https://github.com/peakears/hat-trick/issues/53) in Settings (colours, what each game card shows)
 - [Alternate app icons](https://github.com/peakears/hat-trick/issues/9), picked in Settings
-- [More leagues](https://github.com/peakears/hat-trick/issues/8) (NFL; golf later)
+- [More leagues](https://github.com/peakears/hat-trick/issues/8) (the NFL is in progress; [golf](https://github.com/peakears/hat-trick/issues/167) next)
 
 See the [changelog](CHANGELOG.md) for what changed in each release.
 
@@ -183,7 +184,7 @@ Every adapter must pass [`src/contract/league-adapter.contract.ts`](src/contract
 These are the places a league differs. Each is a field the adapter fills, never a check in a screen:
 
 - **Periods:** `Game.clock.label` and `PeriodScore.label` are worded by the adapter ("Q1", "2nd", "OT"). A live game lists every regulation period, with `null` scores for the ones not played yet.
-- **Standings:** fill only the columns the league has (`points`, `otLosses`, `winPercent`, `gamesBehind`); empty columns are hidden. `conferenceRank` and `conferenceBands` mark seeds and what they mean (the NBA's playoffs, play-in and out). `wildCardSpots` and `wildCardRank` turn on the Wild Card view.
+- **Standings:** fill only the columns the league has (`points`, `otLosses`, `ties`, `winPercent`, `gamesBehind`); empty columns are hidden. `conferenceRank` and `conferenceBands` mark seeds and what they mean (the NBA's playoffs, play-in and out). `wildCardSpots` and `wildCardRank` turn on the Wild Card view.
 - **Leaders:** `leaderGroups` splits boards into choices (the NHL's Skaters and Goalies). Each board's `format` and `decimals` say how to show its values. Send each board best first, and the app works out whether lower is better.
 - **Game page:** `teamStats`, `performers` (each team's top performer, for a league without three stars) and `standout` (the top performer on a live Scores card), with their lines worded by the adapter ("31 PTS, 8 REB", "2 G, 1 A").
 - **Box scores and team stats:** `StatTable` columns are the adapter's, so any sport's stats fit.
@@ -228,7 +229,7 @@ Never commit the keystore (`*.keystore` is in `.gitignore`). Releases are create
 
 ## Disclaimer
 
-This project is not affiliated with, endorsed by, or connected to the National Hockey League, the National Basketball Association, ESPN or any team. NHL, NBA and team names and logos are trademarks of their respective owners, and player photos belong to the NHL, the NBA or ESPN. The app uses unofficial public APIs (`api-web.nhle.com` and ESPN's) that may change or stop working without notice. The repository contains no league logos, player photos or other trademarked assets; these images are loaded from the API at runtime.
+This project is not affiliated with, endorsed by, or connected to the National Hockey League, the National Basketball Association, the National Football League, ESPN or any team. NHL, NBA, NFL and team names and logos are trademarks of their respective owners, and player photos belong to the NHL, the NBA, the NFL or ESPN. The app uses unofficial public APIs (`api-web.nhle.com` and ESPN's) that may change or stop working without notice. The repository contains no league logos, player photos or other trademarked assets; these images are loaded from the API at runtime.
 
 This is a free, non-commercial project for personal use.
 

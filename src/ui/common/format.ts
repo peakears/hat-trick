@@ -147,9 +147,10 @@ export function venueLabel(venue: Venue | undefined): string | undefined {
   return venue.city ? `${venue.name} · ${venue.city}` : venue.name;
 }
 
-/** A season record: "W-L-OT" when the league has OT losses (hockey), otherwise "W-L". */
-export function recordLabel(row: Pick<StandingRow, "wins" | "losses" | "otLosses">): string {
-  return row.otLosses === undefined ? `${row.wins}-${row.losses}` : `${row.wins}-${row.losses}-${row.otLosses}`;
+/** A season record: "W-L-OT" when the league has OT losses (hockey), "W-L-T" with ties (football), otherwise "W-L". */
+export function recordLabel(row: Pick<StandingRow, "wins" | "losses" | "otLosses" | "ties">): string {
+  const third = row.otLosses ?? row.ties;
+  return third === undefined ? `${row.wins}-${row.losses}` : `${row.wins}-${row.losses}-${third}`;
 }
 
 /**

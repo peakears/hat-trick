@@ -170,6 +170,7 @@ export function colorsFor(scheme: Scheme, accent: AccentId): Colors {
 const LEAGUE_TINTS: Record<string, { light: string; dark: string }> = {
   nhl: { light: "#0369a1", dark: "#7dd3fc" },
   nba: { light: "#b93d0b", dark: "#fb923c" },
+  nfl: { light: "#166534", dark: "#4ade80" },
 };
 
 /** The leagues that have their own colour. */

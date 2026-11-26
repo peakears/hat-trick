@@ -339,6 +339,7 @@ export interface RecordSplit {
   wins: number;
   losses: number;
   otLosses?: number; // hockey only
+  ties?: number; // football only
   goalsFor?: number;
   goalsAgainst?: number;
 }
@@ -351,6 +352,7 @@ export interface StandingRow {
   wins: number;
   losses: number;
   otLosses?: number; // hockey only
+  ties?: number; // football only
   points?: number;
   /** Share of games won, 0-1 (basketball standings sort by it). */
   winPercent?: number;
