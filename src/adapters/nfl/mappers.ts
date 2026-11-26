@@ -3,20 +3,44 @@
 import type {
   Game,
   GameClock,
+  GameDetail,
+  GamePerformer,
   GameSide,
   GameStatus,
   LeaderBoard,
   LeaderEntry,
   PeriodScore,
+  Play,
+  Player,
   RecordSplit,
   StandingRow,
   Standings,
   StandingsGroup,
+  StatColumn,
+  StatRow,
+  StatTable,
   Team,
+  TeamStatLine,
 } from "../../domain";
 import { periodsMatchingScore, withUpcomingPeriods } from "../periods";
-import { CONFERENCE_BANDS, LEAGUE, QUARTERS } from "./constants";
-import type { RawEvent, RawLeaders, RawScoreboard, RawStandings, RawStandingsEntry } from "./raw-types";
+import {
+  BOX_SCORE_TABLES,
+  CONFERENCE_BANDS,
+  LEAGUE,
+  PERFORMER_CATEGORIES,
+  QUARTERS,
+  TEAM_GAME_STATS,
+} from "./constants";
+import type {
+  RawBoxscoreTeam,
+  RawEvent,
+  RawLeaders,
+  RawScoreboard,
+  RawStandings,
+  RawStandingsEntry,
+  RawSummary,
+  RawTeamLeaders,
+} from "./raw-types";
 
 /** Drops undefined fields (minor data that was missing), so results survive the cache's JSON round trip. */
 export function compact<T>(value: T): T {
@@ -40,7 +64,8 @@ export function periodLabel(period: number): string {
 /** ESPN's status names that mean the game will not be played as scheduled. */
 const NOT_PLAYED = new Set(["STATUS_POSTPONED", "STATUS_CANCELED", "STATUS_SUSPENDED"]);
 
-type RawStatus = RawEvent["status"];
+/** A status as the scoreboard sends it; the summary's header has the same, with period and clock only while live. */
+type RawStatus = Pick<RawEvent["status"], "type"> & { period?: number; displayClock?: string };
 type RawCompetitor = RawEvent["competitions"][number]["competitors"][number];
 
 function gameStatus(status: RawStatus): GameStatus {
@@ -56,7 +81,7 @@ function gameStatus(status: RawStatus): GameStatus {
 }
 
 /** While live: the quarter and its clock; halftime and the end of a quarter have no running clock. */
-function gameClock({ period, displayClock, type }: RawStatus): GameClock {
+function gameClock({ period = 0, displayClock, type }: RawStatus): GameClock {
   const label = periodLabel(period);
   if (type.name === "STATUS_HALFTIME") return { period, label: "Halftime" };
   if (type.name === "STATUS_END_PERIOD") return { period, label: `End ${label}` };
@@ -229,4 +254,178 @@ export function mapLeaderBoard(
   // Competition ranking: ties share a rank, the next distinct value skips ahead (1, 2, 2, 4).
   shown.forEach((e, i) => (e.rank = i > 0 && e.value === shown[i - 1].value ? shown[i - 1].rank : i + 1));
   return compact({ category, label, decimals, entries: shown });
+}
+
+// ---------- Game page ----------
+
+type RawSummaryCompetitor = RawSummary["header"]["competitions"][number]["competitors"][number];
+
+function player(
+  a: { id: string; displayName: string; headshot?: { href: string }; position?: { abbreviation: string } },
+  teamId: string,
+): Player {
+  return {
+    id: a.id,
+    league: LEAGUE,
+    name: a.displayName,
+    teamId,
+    position: a.position?.abbreviation,
+    headshotUrl: a.headshot?.href,
+  };
+}
+
+/**
+ * One team's box score: a table per stat group (BOX_SCORE_TABLES), ESPN's columns in its order. "--" is ESPN's
+ * blank and is left out (shown as "-"); a table with nobody in it is left out.
+ */
+export function mapBoxscoreTeam(raw: RawBoxscoreTeam | undefined): StatTable[] {
+  if (!raw) return [];
+  const tables: StatTable[] = [];
+  for (const [group, title] of BOX_SCORE_TABLES) {
+    const stats = raw.statistics?.find((g) => g.name === group);
+    if (!stats) continue;
+    const columns: StatColumn[] = stats.keys.map((key, i) => ({ key, label: stats.labels[i] ?? key }));
+    const rows: StatRow[] = (stats.athletes ?? []).map((a) => {
+      const values: Record<string, string> = {};
+      stats.keys.forEach((key, i) => {
+        const v = a.stats[i];
+        if (v !== undefined && v !== "" && v !== "--") values[key] = v;
+      });
+      return { player: player(a.athlete, raw.team.abbreviation), values };
+    });
+    if (rows.length > 0) tables.push({ title, columns, rows });
+  }
+  return tables;
+}
+
+type RawSummaryTeamStats = NonNullable<NonNullable<RawSummary["boxscore"]>["teams"]>[number];
+
+/** The teams side by side, live or final (before kickoff the summary has season averages there instead). */
+function teamGameStats(away: RawSummaryTeamStats | undefined, home: RawSummaryTeamStats | undefined): TeamStatLine[] {
+  if (!away || !home) return [];
+  const value = (t: RawSummaryTeamStats, name: string) => t.statistics?.find((s) => s.name === name)?.displayValue;
+  const lines: TeamStatLine[] = [];
+  for (const [name, label] of TEAM_GAME_STATS) {
+    const [a, h] = [value(away, name), value(home, name)];
+    if (a === undefined || h === undefined) continue;
+    // Only plain numbers compare with a bar: "2-8" and "19:20" are shown as they are.
+    const numeric = /^\d+$/.test(a) && /^\d+$/.test(h);
+    lines.push({ label, away: a, home: h, ...(numeric ? { awayValue: Number(a), homeValue: Number(h) } : {}) });
+  }
+  return lines;
+}
+
+/** A team's top performer: of its passing, rushing and receiving leaders, whoever gained the most yards. */
+function topPerformer(raw: RawTeamLeaders | undefined): GamePerformer | undefined {
+  if (!raw) return undefined;
+  let best: { line: string; value: number; athlete: Parameters<typeof player>[0] } | undefined;
+  for (const name of PERFORMER_CATEGORIES) {
+    const leader = raw.leaders?.find((c) => c.name === name)?.leaders?.[0];
+    if (leader && (!best || leader.value > best.value)) {
+      best = { line: leader.displayValue, value: leader.value, athlete: leader.athlete };
+    }
+  }
+  if (!best) return undefined;
+  const teamId = raw.team.abbreviation;
+  return { teamId, player: player(best.athlete, teamId), line: best.line };
+}
+
+/** "Field Goal" to "Field goal": the scoring type as a tag. */
+function scoringTag(name: string | undefined): string | undefined {
+  if (!name) return undefined;
+  return name.charAt(0) + name.slice(1).toLowerCase();
+}
+
+function scoringPlays(raw: RawSummary): Play[] {
+  return (raw.scoringPlays ?? []).map((p) => ({
+    id: p.id,
+    period: p.period.number,
+    periodLabel: periodLabel(p.period.number),
+    time: p.clock.displayValue,
+    kind: "score",
+    teamId: p.team.abbreviation,
+    text: p.text.trim(),
+    tag: scoringTag(p.scoringType?.displayName),
+    awayScore: p.awayScore,
+    homeScore: p.homeScore,
+  }));
+}
+
+/** Each quarter's points, from the header's linescores (one per quarter started), while live or final. */
+function summaryPeriods(game: Game, competitors: RawSummaryCompetitor[]): PeriodScore[] | undefined {
+  if (game.status !== "live" && game.status !== "final") return undefined;
+  const lines = (homeAway: "home" | "away") => competitors.find((c) => c.homeAway === homeAway)?.linescores ?? [];
+  const [away, home] = [lines("away"), lines("home")];
+  if (away.length !== home.length) return undefined;
+  const list = away.map((a, i) => ({
+    label: periodLabel(i + 1),
+    away: Number(a.displayValue),
+    home: Number(home[i].displayValue),
+  }));
+  if (list.some((p) => !Number.isFinite(p.away) || !Number.isFinite(p.home))) return undefined;
+  const checked = periodsMatchingScore(list, game.away, game.home);
+  return checked && game.status === "live" ? withUpcomingPeriods(checked, QUARTERS, periodLabel) : checked;
+}
+
+/** The game page from one summary: score card, box score, team stats, top performers and scoring plays. */
+export function mapSummary(raw: RawSummary): GameDetail {
+  const competition = raw.header.competitions[0];
+  const status: RawStatus = {
+    ...competition.status,
+    // A final game's header has no period: count the quarters played (5 is overtime).
+    period: competition.status.period ?? Math.max(0, ...competition.competitors.map((c) => c.linescores?.length ?? 0)),
+  };
+  const state = gameStatus(status);
+  const side = (homeAway: "home" | "away"): GameSide => {
+    const c = competition.competitors.find((x) => x.homeAway === homeAway);
+    if (!c) throw new Error(`game ${raw.header.id} has no ${homeAway} team`);
+    const score = c.score === undefined ? NaN : Number(c.score);
+    return {
+      team: {
+        id: c.team.abbreviation,
+        league: LEAGUE,
+        name: c.team.displayName,
+        abbrev: c.team.abbreviation,
+        logoUrl: c.team.logos?.[0]?.href,
+      },
+      score: state === "scheduled" || state === "postponed" || !Number.isFinite(score) ? null : score,
+      // As in the domain: the record before the game, so only while it has not started.
+      record: state === "scheduled" ? c.record?.find((r) => r.type === "total")?.summary : undefined,
+    };
+  };
+  const game: Game = {
+    id: raw.header.id,
+    league: LEAGUE,
+    startTime: new Date(competition.date).toISOString(),
+    status: state,
+    home: side("home"),
+    away: side("away"),
+  };
+  if (state === "live") game.clock = gameClock(status);
+  if (state === "final") game.endedIn = (status.period ?? 0) > QUARTERS ? "overtime" : "regulation";
+  const venue = raw.gameInfo?.venue;
+  if (venue) game.venue = { name: venue.fullName, city: venue.address?.city };
+  const periods = summaryPeriods(game, competition.competitors);
+  if (periods) game.periods = periods;
+
+  const started = state === "live" || state === "final";
+  const players = (id: string) => raw.boxscore?.players?.find((p) => p.team.abbreviation === id);
+  const totals = (id: string) => raw.boxscore?.teams?.find((t) => t.team.abbreviation === id);
+  const leaders = (id: string) => raw.leaders?.find((l) => l.team.abbreviation === id);
+  const [awayId, homeId] = [game.away.team.id, game.home.team.id];
+  // Before kickoff the totals and leaders are the season's, not this game's: left out.
+  const teamStats = started ? teamGameStats(totals(awayId), totals(homeId)) : [];
+  const performers = started
+    ? [topPerformer(leaders(awayId)), topPerformer(leaders(homeId))].filter((p): p is GamePerformer => !!p)
+    : [];
+  const scores = started ? scoringPlays(raw) : [];
+  const attendance = raw.gameInfo?.attendance;
+  return compact({
+    game,
+    boxscore: { away: mapBoxscoreTeam(players(awayId)), home: mapBoxscoreTeam(players(homeId)) },
+    scoringPlays: scores.length > 0 ? scores : undefined,
+    teamStats: teamStats.length > 0 ? teamStats : undefined,
+    performers: performers.length > 0 ? performers : undefined,
+    attendance: attendance && attendance > 0 ? attendance : undefined,
+  });
 }

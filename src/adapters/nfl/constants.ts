@@ -43,3 +43,38 @@ export const CONFERENCE_BANDS: StandingsBand[] = [{ label: "Playoffs", through: 
 
 /** Quarters in regulation: a live game's strip lists all of them from kickoff, and late lead changes count from the last. */
 export const QUARTERS = 4;
+
+/** The box score's tables, by ESPN's group name, in the order shown, with their titles. Groups not listed are left out. */
+export const BOX_SCORE_TABLES: readonly [group: string, title: string][] = [
+  ["passing", "Passing"],
+  ["rushing", "Rushing"],
+  ["receiving", "Receiving"],
+  ["defensive", "Defence"],
+  ["interceptions", "Interceptions"],
+  ["fumbles", "Fumbles"],
+  ["kicking", "Kicking"],
+  ["punting", "Punting"],
+  ["kickReturns", "Kick returns"],
+  ["puntReturns", "Punt returns"],
+];
+
+/**
+ * The game page's team stats, from the summary's `boxscore.teams` (stat name, label). In the order shown; a stat a
+ * team lacks leaves its line out. Values are shown as ESPN sends them ("2-8", "19:20"); only plain numbers get a bar.
+ */
+export const TEAM_GAME_STATS: readonly [name: string, label: string][] = [
+  ["totalYards", "Total yards"],
+  ["netPassingYards", "Passing yards"],
+  ["rushingYards", "Rushing yards"],
+  ["firstDowns", "1st downs"],
+  ["thirdDownEff", "3rd down"],
+  ["fourthDownEff", "4th down"],
+  ["redZoneAttempts", "Red zone"],
+  ["turnovers", "Turnovers"],
+  ["sacksYardsLost", "Sacks allowed"],
+  ["totalPenaltiesYards", "Penalties"],
+  ["possessionTime", "Time of possession"],
+];
+
+/** The leader lines a team's top performer is picked from: whoever gained the most yards. */
+export const PERFORMER_CATEGORIES = ["passingYards", "rushingYards", "receivingYards"] as const;

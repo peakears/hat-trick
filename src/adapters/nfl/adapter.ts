@@ -2,6 +2,7 @@ import type { z } from "zod";
 import type {
   AdapterWarning,
   Game,
+  GameDetail,
   LeaderBoard,
   LeaderQuery,
   LeagueAdapter,
@@ -19,8 +20,8 @@ import {
   SITE_URL,
   STANDINGS_URL,
 } from "./constants";
-import { mapLeaderBoard, mapScoreboard, mapStandings } from "./mappers";
-import { RawLeadersSchema, RawScoreboardSchema, RawStandingsSchema } from "./raw-types";
+import { mapLeaderBoard, mapScoreboard, mapStandings, mapSummary } from "./mappers";
+import { RawLeadersSchema, RawScoreboardSchema, RawStandingsSchema, RawSummarySchema } from "./raw-types";
 import { parseResponse } from "./validate";
 
 export interface NflAdapterOptions extends NflClientOptions {
@@ -31,8 +32,8 @@ export interface NflAdapterOptions extends NflClientOptions {
 }
 
 /**
- * The NFL from ESPN's keyless site API: scores, standings and leaders. The optional features (game, team and player
- * pages, play-by-play) are left out until they are built, so the app hides what leads there.
+ * The NFL from ESPN's keyless site API: scores, standings, leaders and game pages. The other optional features (team
+ * and player pages, play-by-play) are left out until they are built, so the app hides what leads there.
  */
 export class NflAdapter implements LeagueAdapter {
   readonly league = LEAGUE;
@@ -86,5 +87,11 @@ export class NflAdapter implements LeagueAdapter {
         return mapLeaderBoard(await this.fetch(url, RawLeadersSchema, options), category, label, limit, decimals);
       }),
     );
+  }
+
+  /** The score card, box score, team stats, top performers and scoring plays, from the game's summary (one request). */
+  async getGameDetail(gameId: string, options?: RequestOptions): Promise<GameDetail> {
+    const raw = await this.fetch(`${SITE_URL}/summary?event=${encodeURIComponent(gameId)}`, RawSummarySchema, options);
+    return mapSummary(raw);
   }
 }

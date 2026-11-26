@@ -8,6 +8,7 @@ import { PageSkeleton } from "../../../src/ui/components/Skeleton";
 import { TeamLogo } from "../../../src/ui/components/TeamLogo";
 import { FlashScore } from "../../../src/ui/components/FlashScore";
 import { GoalSummary } from "../../../src/ui/components/GoalSummary";
+import { ScoringPlays } from "../../../src/ui/components/ScoringPlays";
 import { PlayByPlayCard } from "../../../src/ui/components/PlayByPlayCard";
 import { PenaltySummary } from "../../../src/ui/components/PenaltySummary";
 import { GameInfoLines } from "../../../src/ui/components/GameInfoLines";
@@ -56,7 +57,7 @@ export default function GameScreen() {
     );
   }
 
-  const { game, goals, threeStars, penalties, videos, teamStats, performers, attendance } = detail.data;
+  const { game, goals, scoringPlays, threeStars, penalties, videos, teamStats, performers, attendance } = detail.data;
   const live = game.status === "live";
   // While hidden: no score, shots, goals, three stars, penalties, box score, and no records (the standings already
   // count a finished game).
@@ -163,6 +164,7 @@ export default function GameScreen() {
         )}
 
         {!hidden && goals && <GoalSummary goals={goals} />}
+        {!hidden && scoringPlays && <ScoringPlays plays={scoringPlays} game={game} />}
 
         {!hidden && penalties && (
           <PenaltySummary penalties={penalties} goals={goals} teamIds={[game.away.team.id, game.home.team.id]} />
