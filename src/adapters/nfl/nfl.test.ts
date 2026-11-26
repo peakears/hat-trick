@@ -6,10 +6,12 @@ import { NflAdapter, NflApiError, NflResponseError } from ".";
 import { LEADER_CATEGORIES, LEADER_GROUPS } from "./constants";
 import { periodLabel, split } from "./mappers";
 
-// Recorded from ESPN on 2026-11-26 (about 8:50 am ET), trimmed of fields the adapter does not read; see CLAUDE.md.
+// Recorded from ESPN on 2026-11-26 (about 8:50 am ET; Thanksgiving's scoreboard at 1:18 pm ET), trimmed of fields the
+// adapter does not read; see CLAUDE.md.
 const FIXTURES: [RegExp, string][] = [
   [/\/scoreboard\?dates=20261125$/, "scoreboard-2026-11-25.json"], // GB at LAR, final (LAR won 26-13)
-  [/\/scoreboard\?dates=20261126$/, "scoreboard-2026-11-26.json"], // Thanksgiving: three games, scheduled
+  // Thanksgiving: CHI at DET live (DET 3-0, 8:31 left in Q1), PHI at DAL and KC at BUF scheduled.
+  [/\/scoreboard\?dates=20261126$/, "scoreboard-2026-11-26.json"],
   [/\/standings\?level=3$/, "standings-now.json"], // after week 12's Wednesday game; NYG 6-3-1 and WSH 4-5-1 tied
   ...LEADER_CATEGORIES.map(({ category }): [RegExp, string] => [
     new RegExp(`/byathlete\\?.*sort=${category.replace(".", "\\.")}:desc`),
@@ -147,9 +149,26 @@ describe("NFL adapter", () => {
       expect(game.clock).toBeUndefined();
     });
 
-    it("gives scheduled games no score, clock or quarters", async () => {
+    it("maps a live game from the league: the quarter, its clock and the quarters to come", async () => {
       const games = await fixtureAdapter().adapter.getScores("2026-11-26");
-      expect(games.map((g) => `${g.away.team.id}@${g.home.team.id}`)).toEqual(["CHI@DET", "PHI@DAL", "KC@BUF"]);
+      expect(byMatchup(games, "CHI", "DET")).toMatchObject({
+        status: "live",
+        clock: { period: 1, label: "Q1", timeRemaining: "8:31" },
+        away: { team: { name: "Chicago Bears" }, score: 0 },
+        home: { team: { name: "Detroit Lions" }, score: 3 },
+        venue: { name: "Ford Field", city: "Detroit" },
+        periods: [
+          { label: "Q1", away: 0, home: 3 },
+          { label: "Q2", away: null, home: null },
+          { label: "Q3", away: null, home: null },
+          { label: "Q4", away: null, home: null },
+        ],
+      });
+    });
+
+    it("gives scheduled games no score, clock or quarters", async () => {
+      const games = (await fixtureAdapter().adapter.getScores("2026-11-26")).filter((g) => g.status === "scheduled");
+      expect(games.map((g) => `${g.away.team.id}@${g.home.team.id}`)).toEqual(["PHI@DAL", "KC@BUF"]);
       for (const game of games) {
         expect(game.status).toBe("scheduled");
         expect([game.home.score, game.away.score]).toEqual([null, null]);
@@ -183,9 +202,9 @@ describe("NFL adapter", () => {
       expect((await overtime.adapter.getScores("2026-11-25"))[0].endedIn).toBe("overtime");
       const postponed = fixtureAdapter((url, body) => {
         if (!url.includes("dates=20261126")) return;
-        body.events[0].status.type = { name: "STATUS_POSTPONED", state: "pre", completed: false };
+        body.events[1].status.type = { name: "STATUS_POSTPONED", state: "pre", completed: false };
       });
-      const [game] = await postponed.adapter.getScores("2026-11-26");
+      const game = (await postponed.adapter.getScores("2026-11-26"))[1];
       expect(game.status).toBe("postponed");
     });
 

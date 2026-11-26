@@ -14,13 +14,13 @@ ESPN's site API: unofficial and undocumented, no key, and **reachable from Claud
 
 ## Fixtures
 
-Recorded 2026-11-26 about 8:50 am ET (the morning of Thanksgiving: GB at LAR, final the night before, and three games still to play):
+Recorded 2026-11-26 about 8:50 am ET (the morning of Thanksgiving: GB at LAR, final the night before), and Thanksgiving's scoreboard at 1:18 pm ET (CHI at DET live, DET 3-0 with 8:31 left in Q1; PHI at DAL and KC at BUF scheduled):
 
 ```sh
 cd src/adapters/nfl/__fixtures__
 B=https://site.api.espn.com/apis/site/v2/sports/football/nfl
 curl -s "$B/scoreboard?dates=20261125" -o scoreboard-2026-11-25.json   # GB 13 at LAR 26, final
-curl -s "$B/scoreboard?dates=20261126" -o scoreboard-2026-11-26.json   # CHI at DET, PHI at DAL, KC at BUF, scheduled
+curl -s "$B/scoreboard?dates=20261126" -o scoreboard-2026-11-26.json   # at 1:18 pm ET: CHI at DET live, 2 scheduled
 curl -s "https://site.api.espn.com/apis/v2/sports/football/nfl/standings?level=3" -o standings-now.json
 L="https://site.web.api.espn.com/apis/common/v3/sports/football/nfl/statistics/byathlete?region=us&lang=en&contentorigin=espn&isqualified=true&page=1&limit=20"
 for s in passing.passingYards passing.passingTouchdowns passing.QBRating rushing.rushingYards rushing.rushingTouchdowns \
@@ -32,4 +32,6 @@ Trimmed after recording, keeping everything the adapter reads: scoreboards lose 
 
 ## Unverified
 
-Not yet seen: a live game (in progress, halftime, the end of a quarter), overtime, a tied final, a postponed game, the scoreboard's `situation`, the playoffs (more than one overtime). The scores, period and status code is the NBA's by name; a live scoreboard fixture is still to record.
+Verified on 2026-11-26: a live game is `STATUS_IN_PROGRESS` (state `in`, `period` 1, `displayClock` "8:31", one linescore per quarter started). Its competition has a `situation` (not mapped yet): `down` 2, `distance` 8, `yardLine` 22, `downDistanceText` "2nd & 8 at DET 22", `shortDownDistanceText` "2nd & 8", `possessionText` "DET 22", `possession` (ESPN's numeric team id, "3"), `isRedZone`, `homeTimeouts`, `awayTimeouts`, and `lastPlay` (`text`, `type`, the drive so far, win probability).
+
+Not yet seen: halftime and the end of a quarter (by name, as the NBA's), overtime, a tied final, a postponed game, the playoffs (more than one overtime).

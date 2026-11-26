@@ -33,8 +33,8 @@ const RawVenueSchema = z.object({
 });
 
 /**
- * Verified on 2026-11-26: STATUS_SCHEDULED (pre, period 0) and STATUS_FINAL (post, period 4). Live states are the
- * NBA's by name (STATUS_IN_PROGRESS, STATUS_HALFTIME, STATUS_END_PERIOD), not yet seen here.
+ * Verified on 2026-11-26: STATUS_SCHEDULED (pre, period 0), STATUS_IN_PROGRESS (in, period 1, "8:31") and
+ * STATUS_FINAL (post, period 4). Halftime and the end of a quarter are the NBA's by name, not yet seen here.
  */
 const RawStatusSchema = z.object({
   /** Game clock as shown, "4:06"; "0:00" before kickoff and at the end of a quarter. */
