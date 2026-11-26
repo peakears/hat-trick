@@ -8,9 +8,10 @@ import { DIVIDER, useColors } from "../theme/theme";
  * Each period's score in a small table: periods across, away and home down, the total at the end. The labels come
  * from the adapter ("Q1", "2nd", "OT"), so it serves any league; a live game lists every regulation period, "-" for
  * those not played yet. Nothing without periods. The caller hides it behind
- * the spoiler shield.
+ * the spoiler shield. `compact` is the Scores card's version: smaller, on a sunken background inside the card, and
+ * silent for screen readers (the card's own label says the score).
  */
-export function PeriodTable({ game }: { game: Game }) {
+export function PeriodTable({ game, compact = false }: { game: Game; compact?: boolean }) {
   const colors = useColors();
   const periods = game.periods;
   if (!periods || periods.length === 0) return null;
@@ -24,29 +25,44 @@ export function PeriodTable({ game }: { game: Game }) {
   const row = (side: "away" | "home") => {
     const color = lost(side) ? colors.muted : colors.text;
     return (
-      <View style={[styles.row, { borderTopColor: colors.border }]}>
-        <Text style={[styles.team, { color }]}>{game[side].team.abbrev}</Text>
+      <View style={[styles.row, compact && styles.rowCompact, { borderTopColor: colors.border }]}>
+        <Text style={[styles.team, compact && styles.teamCompact, { color }]}>{game[side].team.abbrev}</Text>
         {periods.map((p, i) => (
           // A period not played yet shows "-".
           <Text
             key={`${p.label}-${i}`}
-            style={[styles.cell, scoreFontSemiBold, { color: p[side] === null ? colors.muted : color }]}
+            style={[
+              styles.cell,
+              compact && styles.cellCompact,
+              scoreFontSemiBold,
+              { color: p[side] === null ? colors.muted : color },
+            ]}
           >
             {p[side] ?? "-"}
           </Text>
         ))}
-        <Text style={[styles.cell, styles.total, scoreFont, { color }]}>{game[side].score ?? "-"}</Text>
+        <Text style={[styles.cell, styles.total, compact && styles.totalCompact, scoreFont, { color }]}>
+          {game[side].score ?? "-"}
+        </Text>
       </View>
     );
   };
   return (
     <View
-      style={[styles.card, { backgroundColor: colors.card }]}
-      accessible
-      accessibilityLabel={`Score by period. ${periods.map((p) => periodSpoken(p.label, p.away, p.home, game)).join(". ")}`}
+      style={
+        compact
+          ? [styles.cardCompact, { backgroundColor: colors.surfaceSunken }]
+          : [styles.card, { backgroundColor: colors.card }]
+      }
+      accessible={!compact}
+      accessibilityLabel={
+        compact
+          ? undefined
+          : `Score by period. ${periods.map((p) => periodSpoken(p.label, p.away, p.home, game)).join(". ")}`
+      }
     >
-      <View style={styles.row}>
-        <Text style={[styles.team, styles.head, { color: colors.muted }]}> </Text>
+      <View style={[styles.row, compact && styles.rowCompact]}>
+        <Text style={[styles.team, compact && styles.teamCompact, styles.head, { color: colors.muted }]}> </Text>
         {periods.map((p, i) => (
           <Text key={`${p.label}-${i}`} style={[styles.cell, styles.head, { color: colors.muted }]}>
             {p.label}
@@ -69,8 +85,13 @@ const styles = StyleSheet.create({
     borderTopWidth: DIVIDER,
     borderTopColor: "transparent",
   },
+  cardCompact: { borderRadius: 10, paddingVertical: 2, paddingHorizontal: 10 },
+  rowCompact: { paddingVertical: 4 },
   team: { width: 48, fontSize: 13, fontWeight: "700" },
+  teamCompact: { width: 44, fontSize: 12 },
   head: { fontSize: 12, fontWeight: "600" },
   cell: { flex: 1, textAlign: "center", fontSize: 16 },
+  cellCompact: { fontSize: 14 },
   total: { flex: 1.2, fontSize: 18 },
+  totalCompact: { fontSize: 15 },
 });
