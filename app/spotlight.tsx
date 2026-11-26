@@ -1,6 +1,7 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useRouter, type ErrorBoundaryProps } from "expo-router";
-import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from "react-native";
+import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
+import { PullToRefresh } from "../src/ui/components/PullToRefresh";
 import type { FetchOptions } from "../src/data";
 import { PlayerHeadshot } from "../src/ui/components/PlayerHeadshot";
 import { CrashScreen, Empty, ErrorView, OfflineBanner, UpdatedAt } from "../src/ui/components/States";
@@ -42,9 +43,7 @@ export default function SpotlightScreen() {
         data={spotlight.data}
         keyExtractor={(e) => e.player.id}
         contentContainerStyle={styles.list}
-        refreshControl={
-          <RefreshControl refreshing={spotlight.refreshing} onRefresh={spotlight.refresh} colors={[colors.accent]} />
-        }
+        refreshControl={<PullToRefresh refreshing={spotlight.refreshing} onRefresh={spotlight.refresh} />}
         ListHeaderComponent={
           <Text style={[styles.intro, { color: colors.muted }]}>Players the NHL is featuring right now.</Text>
         }

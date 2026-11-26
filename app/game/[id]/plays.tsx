@@ -1,6 +1,7 @@
 import { Stack, useLocalSearchParams, type ErrorBoundaryProps } from "expo-router";
 import { useState } from "react";
-import { RefreshControl, SectionList, StyleSheet, Text, View } from "react-native";
+import { SectionList, StyleSheet, Text, View } from "react-native";
+import { PullToRefresh } from "../../../src/ui/components/PullToRefresh";
 import { PlayRow } from "../../../src/ui/components/PlayRow";
 import { RevealButton } from "../../../src/ui/components/ShieldUi";
 import { Segmented } from "../../../src/ui/components/Segmented";
@@ -49,7 +50,7 @@ export default function PlaysScreen() {
 
   const { game } = plays.data;
   const title = `${game.away.team.abbrev} @ ${game.home.team.abbrev} play-by-play`;
-  const refresh = <RefreshControl refreshing={plays.refreshing} onRefresh={plays.refresh} colors={[colors.accent]} />;
+  const refresh = <PullToRefresh refreshing={plays.refreshing} onRefresh={plays.refresh} />;
 
   // Every play gives the score away, so the whole list hides behind the shield.
   if (spoilers.isHidden(game)) {
