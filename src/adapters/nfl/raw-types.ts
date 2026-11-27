@@ -267,3 +267,66 @@ export const RawSummarySchema = z.object({
 export type RawSummary = z.output<typeof RawSummarySchema>;
 export type RawBoxscoreTeam = z.output<typeof RawBoxscoreTeamSchema>;
 export type RawTeamLeaders = z.output<typeof RawTeamLeadersSchema>;
+
+// ---------- Team page: /teams/<abbrev>/athletes/statistics and /teams/<abbrev>/schedule ----------
+// Verified on 2026-11-27 against the Rams (LAR), 11 games into the season.
+
+/**
+ * The roster's season stats by category (`name` "passing", "rushing", "receiving", "defensive", "kicking", "punting",
+ * "returning", "scoring"), each listing the players with stats there, in ESPN's order. Each player's stats come in
+ * groups by `name` ("passing", "general", "defensiveInterceptions"), each a list by stat `name` with `displayValue`
+ * as ESPN shows it ("2,763", "66.8").
+ */
+export const RawTeamStatsSchema = z.object({
+  results: lenientArray(
+    z.object({
+      name: z.string(),
+      leaders: lenientArray(
+        z.object({
+          athlete: RawPlayerSchema,
+          statistics: lenientArray(
+            z.object({
+              name: z.string(),
+              stats: lenientArray(
+                z.object({ name: z.string(), displayValue: minor(z.string(), "stat.displayValue") }),
+                "athlete.stats",
+              ),
+            }),
+            "athlete.statistics",
+          ),
+        }),
+        "results.leaders",
+      ),
+    }),
+    "results",
+  ),
+});
+export type RawTeamStats = z.output<typeof RawTeamStatsSchema>;
+
+const RawScheduleCompetitorSchema = z.object({
+  homeAway: z.enum(["home", "away"]),
+  team: RawLogoTeamSchema,
+  /** Absent before kickoff. */
+  score: minor(z.object({ value: z.number() }), "competitor.score"),
+});
+
+/** The whole regular season (17 games), played and to come. Unlike the scoreboard, the status is on the competition. */
+export const RawTeamScheduleSchema = z.object({
+  events: lenientArray(
+    z.object({
+      id: z.string().min(1),
+      date: z.string().min(1),
+      competitions: z
+        .array(
+          z.object({
+            status: RawStatusSchema,
+            competitors: z.array(RawScheduleCompetitorSchema).length(2),
+            venue: minor(RawVenueSchema, "competition.venue"),
+          }),
+        )
+        .min(1),
+    }),
+    "events",
+  ),
+});
+export type RawTeamSchedule = z.output<typeof RawTeamScheduleSchema>;

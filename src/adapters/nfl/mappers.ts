@@ -20,6 +20,7 @@ import type {
   StatRow,
   StatTable,
   Team,
+  TeamDetail,
   TeamStatLine,
 } from "../../domain";
 import { periodsMatchingScore, withUpcomingPeriods } from "../periods";
@@ -30,6 +31,8 @@ import {
   PERFORMER_CATEGORIES,
   QUARTERS,
   TEAM_GAME_STATS,
+  TEAM_GAMES_SHOWN,
+  TEAM_STAT_TABLES,
 } from "./constants";
 import type {
   RawBoxscoreTeam,
@@ -40,6 +43,8 @@ import type {
   RawStandingsEntry,
   RawSummary,
   RawTeamLeaders,
+  RawTeamSchedule,
+  RawTeamStats,
 } from "./raw-types";
 
 /** Drops undefined fields (minor data that was missing), so results survive the cache's JSON round trip. */
@@ -427,5 +432,92 @@ export function mapSummary(raw: RawSummary): GameDetail {
     teamStats: teamStats.length > 0 ? teamStats : undefined,
     performers: performers.length > 0 ? performers : undefined,
     attendance: attendance && attendance > 0 ? attendance : undefined,
+  });
+}
+
+// ---------- Team page ----------
+
+type RawTeamStatsPlayer = NonNullable<NonNullable<RawTeamStats["results"]>[number]["leaders"]>[number];
+
+function athleteStat(a: RawTeamStatsPlayer, group: string, name: string): string | undefined {
+  return a.statistics?.find((g) => g.name === group)?.stats?.find((s) => s.name === name)?.displayValue;
+}
+
+/** The roster's season stats: a table per category (TEAM_STAT_TABLES), its players in ESPN's order. */
+export function mapTeamStats(raw: RawTeamStats, teamId: string): StatTable[] {
+  const tables: StatTable[] = [];
+  for (const { category, title, columns } of TEAM_STAT_TABLES) {
+    const players = raw.results?.find((r) => r.name === category)?.leaders ?? [];
+    const rows: StatRow[] = players.map((a) => {
+      const values: Record<string, string> = {};
+      for (const c of columns) {
+        const v = athleteStat(a, c.group, c.name);
+        if (v !== undefined) values[c.key] = v;
+      }
+      return { player: player(a.athlete, teamId), values };
+    });
+    if (rows.length > 0) tables.push({ title, columns: columns.map(({ key, label }) => ({ key, label })), rows });
+  }
+  return compact(tables);
+}
+
+/** The venue most of the team's home games in the schedule use. */
+function homeStadium(games: Game[], teamId: string): string | undefined {
+  const counts = new Map<string, number>();
+  for (const g of games) {
+    if (g.home.team.id === teamId && g.venue) counts.set(g.venue.name, (counts.get(g.venue.name) ?? 0) + 1);
+  }
+  let best: string | undefined;
+  for (const [name, n] of counts) if (best === undefined || n > (counts.get(best) ?? 0)) best = name;
+  return best;
+}
+
+type RawScheduleEvent = NonNullable<RawTeamSchedule["events"]>[number];
+
+function scheduleGame(e: RawScheduleEvent): Game {
+  const c = e.competitions[0];
+  const status = gameStatus(c.status);
+  const side = (homeAway: "home" | "away"): GameSide => {
+    const x = c.competitors.find((y) => y.homeAway === homeAway);
+    if (!x) throw new Error(`game ${e.id} has no ${homeAway} team`);
+    const score = x.score?.value;
+    return {
+      team: {
+        id: x.team.abbreviation,
+        league: LEAGUE,
+        name: x.team.displayName,
+        abbrev: x.team.abbreviation,
+        logoUrl: x.team.logos?.[0]?.href,
+      },
+      score: status === "scheduled" || status === "postponed" || score === undefined ? null : score,
+    };
+  };
+  const game: Game = {
+    id: e.id,
+    league: LEAGUE,
+    startTime: new Date(e.date).toISOString(),
+    status,
+    home: side("home"),
+    away: side("away"),
+  };
+  if (status === "live") game.clock = gameClock(c.status);
+  if (status === "final") game.endedIn = c.status.period > QUARTERS ? "overtime" : "regulation";
+  if (c.venue) game.venue = { name: c.venue.fullName, city: c.venue.address?.city };
+  return game;
+}
+
+/** The team page's games: the last few played (newest first) and the next few (soonest first), and its stadium. */
+export function mapTeamSchedule(
+  raw: RawTeamSchedule,
+  teamId: string,
+): Pick<TeamDetail, "recent" | "upcoming" | "arena"> {
+  const games = (raw.events ?? []).map(scheduleGame).sort((a, b) => Date.parse(a.startTime) - Date.parse(b.startTime));
+  return compact({
+    arena: homeStadium(games, teamId),
+    recent: games
+      .filter((g) => g.status === "final" || g.status === "live")
+      .slice(-TEAM_GAMES_SHOWN)
+      .reverse(),
+    upcoming: games.filter((g) => g.status === "scheduled").slice(0, TEAM_GAMES_SHOWN),
   });
 }

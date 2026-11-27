@@ -16,7 +16,10 @@ const FIXTURES: [RegExp, string][] = [
   [/\/summary\?event=401873079$/, "summary-401873079-final.json"], // GB 13 at LAR 26
   [/\/summary\?event=401873081$/, "summary-401873081-live.json"], // CHI at DET, live
   [/\/summary\?event=401873082$/, "summary-401873082-pre.json"], // KC at BUF, scheduled
-  [/\/standings\?level=3$/, "standings-now.json"], // after week 12's Wednesday game; NYG 6-3-1 and WSH 4-5-1 tied
+  [/\/standings\?level=3$/, "standings-now.json"],
+  // The Rams after 11 games (7-4), recorded 2026-11-27 just after midnight ET.
+  [/\/teams\/LAR\/athletes\/statistics$/, "team-LAR-athletes-statistics.json"],
+  [/\/teams\/LAR\/schedule$/, "team-LAR-schedule.json"], // after week 12's Wednesday game; NYG 6-3-1 and WSH 4-5-1 tied
   ...LEADER_CATEGORIES.map(({ category }): [RegExp, string] => [
     new RegExp(`/byathlete\\?.*sort=${category.replace(".", "\\.")}:desc`),
     `leaders-${category}.json`,
@@ -67,9 +70,9 @@ runLeagueAdapterContract({
   inputs: {
     scoreDates: ["2026-11-25", "2026-11-26"],
     leaderQueries: [{}, { category: "passing.passingYards", limit: 3 }, { category: "defensive.sacks" }],
-    // Not built yet: team and player pages, play-by-play, special events and spotlight.
+    // Not built yet: player pages, play-by-play, special events and spotlight.
     gameIds: ["401873079", "401873081", "401873082"],
-    teamIds: [],
+    teamIds: ["LAR"],
     playerIds: [],
     playGameIds: [],
     specialEventDates: [],
@@ -103,10 +106,11 @@ describe("NFL adapter", () => {
     await adapter.getStandings();
     await adapter.getLeaders();
     for (const id of ["401873079", "401873081", "401873082"]) await adapter.getGameDetail(id);
+    await adapter.getTeam("LAR");
     expect(warnings).toEqual([]);
   });
 
-  it("names the league and its words, and has game pages but none of the other optional features yet", () => {
+  it("names the league and its words, and has game and team pages but none of the other optional features yet", () => {
     const adapter = new NflAdapter();
     expect(adapter).toMatchObject({
       league: "nfl",
@@ -116,7 +120,8 @@ describe("NFL adapter", () => {
     });
     const methods = adapter as unknown as Record<string, unknown>;
     expect(methods.getGameDetail).toBeTypeOf("function");
-    for (const method of ["getPlays", "getTeam", "getPlayer", "getSpecialEvents", "getSpotlight"]) {
+    expect(methods.getTeam).toBeTypeOf("function");
+    for (const method of ["getPlays", "getPlayer", "getSpecialEvents", "getSpotlight"]) {
       expect(methods[method], method).toBeUndefined();
     }
   });
@@ -537,6 +542,83 @@ describe("NFL adapter", () => {
     it("fails without the header's teams", async () => {
       const { adapter } = fixtureAdapter((url, body) => body.header.competitions[0].competitors.pop());
       await expect(adapter.getGameDetail("401873079")).rejects.toBeInstanceOf(NflResponseError);
+    });
+  });
+
+  describe("team page", () => {
+    it("has a season table per category, with the players in ESPN's order", async () => {
+      const team = await fixtureAdapter().adapter.getTeam("LAR");
+      expect(team.teamId).toBe("LAR");
+      expect(team.stats.map((t) => [t.title, t.rows.length])).toEqual([
+        ["Passing", 2],
+        ["Rushing", 8],
+        ["Receiving", 14],
+        ["Defence", 45],
+        ["Kicking", 4],
+        ["Punting", 1],
+      ]);
+      const [passing] = team.stats;
+      expect(passing.columns.map((c) => c.label)).toEqual(["GP", "CMP", "ATT", "CMP%", "YDS", "TD", "INT", "RTG"]);
+      expect(passing.rows[0]).toEqual({
+        player: {
+          id: "12483",
+          league: "nfl",
+          name: "Matthew Stafford",
+          teamId: "LAR",
+          position: "QB",
+          headshotUrl: "https://a.espncdn.com/i/headshots/nfl/players/full/12483.png",
+        },
+        values: expect.objectContaining({
+          gamesPlayed: "11",
+          completions: "264",
+          passingAttempts: "395",
+          passingYards: "2,763",
+          QBRating: "91.4",
+        }),
+      });
+    });
+
+    it("takes the defence's interceptions from their own group", async () => {
+      const team = await fixtureAdapter().adapter.getTeam("LAR");
+      const defence = team.stats.find((t) => t.title === "Defence")!;
+      const lake = defence.rows.find((r) => r.player.name === "Quentin Lake")!;
+      expect(lake.values).toMatchObject({ gamesPlayed: "11", totalTackles: "69", interceptions: "3" });
+    });
+
+    it("lists the last five games newest first, the next five soonest first, and the home stadium", async () => {
+      const team = await fixtureAdapter().adapter.getTeam("LAR");
+      expect(team.recent?.map((g) => `${g.away.team.id}@${g.home.team.id} ${g.away.score}-${g.home.score}`)).toEqual([
+        "GB@LAR 13-26",
+        "LAR@ARI 34-6",
+        "LAR@WSH 20-13",
+        "LAC@LAR 9-24",
+        "LAR@LV 35-21",
+      ]);
+      expect(team.upcoming?.map((g) => g.id)).toEqual([
+        "401873096",
+        "401873120",
+        "401873136",
+        "401873143",
+        "401873159",
+      ]);
+      expect(team.upcoming?.[0]).toMatchObject({
+        status: "scheduled",
+        home: { score: null },
+        away: { team: { id: "KC" } },
+      });
+      // Most home games, not the first: week 1 was played at the Melbourne Cricket Ground.
+      expect(team.arena).toBe("SoFi Stadium");
+    });
+
+    it("still shows the season stats when the schedule fails", async () => {
+      const { adapter, warnings } = fixtureAdapter((url, body) => {
+        if (url.includes("/schedule")) throw new Error("offline");
+      });
+      const team = await adapter.getTeam("LAR");
+      expect(team.stats.length).toBe(6);
+      expect(team.recent).toBeUndefined();
+      expect(team.upcoming).toBeUndefined();
+      expect(warnings.length).toBeGreaterThan(0);
     });
   });
 

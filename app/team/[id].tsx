@@ -74,10 +74,10 @@ function CompactGame({ game, teamId, today }: { game: Game; teamId: string; toda
 
   let outcome;
   if (line.result) {
-    const { won, score, endedIn } = line.result;
+    const { outcome: result, score, endedIn } = line.result;
     outcome = (
-      <Text style={[styles.gameOutcome, tabular, { color: won ? colors.text : colors.muted }]}>
-        <Text style={styles.bold}>{won ? "W" : "L"}</Text> {score}
+      <Text style={[styles.gameOutcome, tabular, { color: result === "L" ? colors.muted : colors.text }]}>
+        <Text style={styles.bold}>{result}</Text> {score}
         {endedIn ? ` ${endedIn}` : ""}
       </Text>
     );

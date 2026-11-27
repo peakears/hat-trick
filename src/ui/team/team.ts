@@ -77,10 +77,13 @@ export interface TeamGameLine {
   /** True when the team is at home ("vs"), false on the road ("@"). */
   home: boolean;
   /** Final games only, and only when the spoiler shield is not hiding them. */
-  result?: { won: boolean; score: string; endedIn?: "OT" | "SO" };
+  result?: { outcome: GameOutcome; score: string; endedIn?: "OT" | "SO" };
   /** Live games, when not hidden: the score with the team's goals first, "2-1". */
   liveScore?: string;
 }
+
+/** A final from one team's side: won, lost, or tied (football can end level after overtime). */
+export type GameOutcome = "W" | "L" | "T";
 
 /** The game as `teamId` sees it: opponent, home or road, and (unless `hidden`) the result. */
 export function teamGameLine(game: Game, teamId: string, hidden: boolean): TeamGameLine {
@@ -91,9 +94,10 @@ export function teamGameLine(game: Game, teamId: string, hidden: boolean): TeamG
   if (hidden || us.score === null || them.score === null) return line;
   const score = `${us.score}-${them.score}`;
   if (game.status === "live") return { ...line, liveScore: score };
-  if (game.status === "final" && us.score !== them.score) {
+  if (game.status === "final") {
     const endedIn = game.endedIn === "overtime" ? "OT" : game.endedIn === "shootout" ? "SO" : undefined;
-    return { ...line, result: { won: us.score > them.score, score, endedIn } };
+    const outcome = us.score > them.score ? "W" : us.score < them.score ? "L" : "T";
+    return { ...line, result: { outcome, score, endedIn } };
   }
   return line;
 }
@@ -103,7 +107,8 @@ export function teamGameSpoken(line: TeamGameLine): string {
   const where = `${line.home ? "vs" : "at"} ${line.opponent.name}`;
   if (line.result) {
     const how = line.result.endedIn === "OT" ? " in overtime" : line.result.endedIn === "SO" ? " in a shootout" : "";
-    return `${where}, ${line.result.won ? "won" : "lost"} ${line.result.score}${how}`;
+    const verb = { W: "won", L: "lost", T: "tied" }[line.result.outcome];
+    return `${where}, ${verb} ${line.result.score}${how}`;
   }
   if (line.liveScore) return `${where}, live, ${line.liveScore}`;
   return where;
