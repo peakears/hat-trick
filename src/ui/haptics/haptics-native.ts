@@ -1,30 +1,19 @@
-import {
-  AndroidHaptics,
-  ImpactFeedbackStyle,
-  impactAsync,
-  performAndroidHapticsAsync,
-  selectionAsync,
-} from "expo-haptics";
-import { Platform } from "react-native";
+import { ImpactFeedbackStyle, impactAsync } from "expo-haptics";
 
 /**
- * The only expo-haptics code. On Android it plays the system's own haptic effects, which follow the phone's
- * "Touch feedback" setting, so nothing is felt when that is off (the app's Haptic feedback switch is checked
- * before this is called). Never throws: a phone without a vibrator, or Expo Go without the module, just feels nothing.
+ * The only expo-haptics code. A short vibration (expo-haptics' "medium" impact: on Android 43 ms at a quarter of
+ * full strength), rather than Android's own touch effects (performAndroidHapticsAsync), which are too faint to notice
+ * on many phones and are off entirely when the phone's touch vibration is. The app's Haptic feedback switch is
+ * checked before this is called; the phone's silent mode can still mute it. Never throws: a phone without a
+ * vibrator, or Expo Go without the module, just feels nothing.
  */
 
 /** What the tap is for: letting go of a pull to refresh, or a swipe that changed the day on Scores. */
 export type HapticKind = "refresh" | "day";
 
-export function playHaptic(kind: HapticKind): void {
+export function playHaptic(_kind: HapticKind): void {
   try {
-    const done =
-      Platform.OS === "android"
-        ? performAndroidHapticsAsync(kind === "day" ? AndroidHaptics.Clock_Tick : AndroidHaptics.Context_Click)
-        : kind === "day"
-          ? selectionAsync()
-          : impactAsync(ImpactFeedbackStyle.Light);
-    done.catch(() => {});
+    impactAsync(ImpactFeedbackStyle.Medium).catch(() => {});
   } catch {
     // No native module (an old build or Expo Go): no tap.
   }
