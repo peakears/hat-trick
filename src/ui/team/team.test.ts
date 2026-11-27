@@ -125,17 +125,23 @@ describe("compact team games", () => {
     expect(road).toMatchObject({
       home: false,
       opponent: { id: "TOR" },
-      result: { won: true, score: "4-3", endedIn: "OT" },
+      result: { outcome: "W", score: "4-3", endedIn: "OT" },
     });
     expect(teamGameSpoken(road)).toBe("at Toronto Maple Leafs, won 4-3 in overtime");
     const home = teamGameLine(final, "TOR", false);
-    expect(home).toMatchObject({ home: true, opponent: { id: "LAK" }, result: { won: false, score: "3-4" } });
+    expect(home).toMatchObject({ home: true, opponent: { id: "LAK" }, result: { outcome: "L", score: "3-4" } });
     expect(teamGameSpoken(home)).toBe("vs Los Angeles Kings, lost 3-4 in overtime");
     expect(teamGameLine(game("final", 2, 1), "TOR", false).result).toEqual({
-      won: true,
+      outcome: "W",
       score: "2-1",
       endedIn: undefined,
     });
+  });
+
+  it("shows a tie, as football can end level after overtime", () => {
+    const tie = teamGameLine(game("final", 20, 20, { endedIn: "overtime" }), "TOR", false);
+    expect(tie.result).toEqual({ outcome: "T", score: "20-20", endedIn: "OT" });
+    expect(teamGameSpoken(tie)).toBe("vs Los Angeles Kings, tied 20-20 in overtime");
   });
 
   it("shows a live score, and nothing before puck drop", () => {

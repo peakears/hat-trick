@@ -82,6 +82,17 @@ export interface Game {
   periods?: PeriodScore[];
   /** The game's standout player so far (most points), worded by the adapter. Live and final games only. */
   standout?: GameStandout;
+  /** Where play stands right now (football's down and distance). Live games only, while play is on. */
+  situation?: GameSituation;
+}
+
+export interface GameSituation {
+  /** Worded by the adapter: "2nd & 8 at DET 22". */
+  text: string;
+  /** The team with the ball, when the league says. */
+  possessionTeamId?: string;
+  /** Inside the opponent's 20-yard line. */
+  redZone?: boolean;
 }
 
 export interface PeriodScore {
@@ -197,6 +208,11 @@ export interface GameDetail {
   boxscore: { home: StatTable[]; away: StatTable[] };
   /** In the order scored. Absent when the league has no goal list for this game (yet); empty when no goals. */
   goals?: Goal[];
+  /**
+   * Every score in order, as plays of kind "score", for a league whose scores are not goals (football's
+   * touchdowns and field goals). Absent for a league that sends `goals`, and before the first score.
+   */
+  scoringPlays?: Play[];
   /** First star first. Absent when the league has not named them (before and during the game) or they could not be loaded. */
   threeStars?: GameStar[];
   /** In the order taken. Absent when the league has no penalty list for this game (yet); empty when there were none. */
@@ -239,7 +255,8 @@ export interface Play {
   id: string;
   period: number;
   periodLabel: string; // "1st", "OT", "SO" - adapter formats it, as for goals
-  time: string; // elapsed in the period, "03:22"
+  /** The period's clock as the league shows it: elapsed in hockey ("03:22"), time left in football ("9:55"). */
+  time: string;
   kind: PlayKind;
   /** The team the play belongs to (the scorer's, the shooter's, the one penalized). Absent for a stoppage. */
   teamId?: string;
@@ -339,6 +356,7 @@ export interface RecordSplit {
   wins: number;
   losses: number;
   otLosses?: number; // hockey only
+  ties?: number; // football only
   goalsFor?: number;
   goalsAgainst?: number;
 }
@@ -351,6 +369,7 @@ export interface StandingRow {
   wins: number;
   losses: number;
   otLosses?: number; // hockey only
+  ties?: number; // football only
   points?: number;
   /** Share of games won, 0-1 (basketball standings sort by it). */
   winPercent?: number;

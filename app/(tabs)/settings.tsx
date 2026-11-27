@@ -264,7 +264,7 @@ export default function SettingsScreen() {
       </Section>
 
       <Text style={[styles.footer, { color: colors.muted }]}>
-        Not affiliated with the NHL, the NBA, ESPN or any team.
+        Not affiliated with the NHL, the NBA, the NFL, ESPN or any team.
       </Text>
     </ScrollView>
   );

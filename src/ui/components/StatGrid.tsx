@@ -2,9 +2,11 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import type { StatColumn } from "../../domain";
 import { statValue } from "../common/format";
 import { tabular, useColors, DIVIDER } from "../theme/theme";
+import { columnWidth } from "./stat-grid-layout";
 
 const NAME_WIDTH = 150;
-const COLUMN_WIDTH = 48;
+/** Both halves' header rows share this height (labels are one line), so the rows below stay in line. */
+const HEADER_HEIGHT = 28;
 
 export interface StatGridRow {
   key: string;
@@ -33,7 +35,9 @@ export function StatGrid({ title, columns, rows }: { title: string; columns: Sta
     <View style={[styles.card, { backgroundColor: colors.card }]}>
       <View style={styles.inner}>
         <View style={{ width: NAME_WIDTH }}>
-          <Text style={[styles.header, { color: colors.muted }]}>{title}</Text>
+          <Text numberOfLines={1} style={[styles.header, { color: colors.muted }]}>
+            {title}
+          </Text>
           {rows.map((row) => {
             const text = (
               <>
@@ -68,7 +72,11 @@ export function StatGrid({ title, columns, rows }: { title: string; columns: Sta
           <View>
             <View style={styles.cols}>
               {columns.map((c) => (
-                <Text key={c.key} style={[styles.header, styles.num, { color: colors.muted }]}>
+                <Text
+                  key={c.key}
+                  numberOfLines={1}
+                  style={[styles.header, styles.num, { width: columnWidth(c.label), color: colors.muted }]}
+                >
                   {c.label}
                 </Text>
               ))}
@@ -76,7 +84,10 @@ export function StatGrid({ title, columns, rows }: { title: string; columns: Sta
             {rows.map((row) => (
               <View key={row.key} style={[rowStyle, styles.cols]}>
                 {columns.map((c) => (
-                  <Text key={c.key} style={[styles.cell, styles.num, tabular, { color: colors.text }]}>
+                  <Text
+                    key={c.key}
+                    style={[styles.cell, styles.num, tabular, { width: columnWidth(c.label), color: colors.text }]}
+                  >
                     {statValue(row.values[c.key])}
                   </Text>
                 ))}
@@ -93,9 +104,15 @@ const styles = StyleSheet.create({
   card: { borderRadius: 12, marginHorizontal: 12, marginBottom: 12, paddingVertical: 6, paddingLeft: 12 },
   inner: { flexDirection: "row" },
   cols: { flexDirection: "row", alignItems: "center" },
-  header: { fontSize: 12, fontWeight: "700", paddingVertical: 6, textTransform: "uppercase" },
+  header: {
+    height: HEADER_HEIGHT,
+    lineHeight: HEADER_HEIGHT,
+    fontSize: 12,
+    fontWeight: "700",
+    textTransform: "uppercase",
+  },
   row: { justifyContent: "center", borderTopWidth: DIVIDER },
   cell: { fontSize: 14 },
   detail: { fontSize: 11, marginTop: 1 },
-  num: { width: COLUMN_WIDTH, textAlign: "right", paddingRight: 8 },
+  num: { textAlign: "right", paddingRight: 8 },
 });

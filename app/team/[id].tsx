@@ -36,13 +36,15 @@ export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
   return <CrashScreen error={error} retry={retry} />;
 }
 
-/** The big record numbers, each with its own label (no OT losses where the league has none). */
+/** The big record numbers, each with its own label (no OT losses or ties where the league has none). */
 function recordParts(row: StandingRow): { label: string; value: number }[] {
   const parts = [
     { label: "W", value: row.wins },
     { label: "L", value: row.losses },
   ];
-  return row.otLosses === undefined ? parts : [...parts, { label: "OTL", value: row.otLosses }];
+  if (row.otLosses !== undefined) parts.push({ label: "OTL", value: row.otLosses });
+  if (row.ties !== undefined) parts.push({ label: "T", value: row.ties });
+  return parts;
 }
 
 /** The smaller numbers under the record, skipping any the league does not have. */
@@ -72,10 +74,10 @@ function CompactGame({ game, teamId, today }: { game: Game; teamId: string; toda
 
   let outcome;
   if (line.result) {
-    const { won, score, endedIn } = line.result;
+    const { outcome: result, score, endedIn } = line.result;
     outcome = (
-      <Text style={[styles.gameOutcome, tabular, { color: won ? colors.text : colors.muted }]}>
-        <Text style={styles.bold}>{won ? "W" : "L"}</Text> {score}
+      <Text style={[styles.gameOutcome, tabular, { color: result === "L" ? colors.muted : colors.text }]}>
+        <Text style={styles.bold}>{result}</Text> {score}
         {endedIn ? ` ${endedIn}` : ""}
       </Text>
     );

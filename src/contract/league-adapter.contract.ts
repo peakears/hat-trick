@@ -208,8 +208,8 @@ export function runLeagueAdapterContract(options: ContractOptions): void {
           group.rows.forEach((row, i) => {
             expectTeam(row.team, league);
             expect(row.rank, `${group.name} ranks are 1..n`).toBe(i + 1);
-            const decided = row.wins + row.losses + (row.otLosses ?? 0);
-            expect(decided, `${row.team.abbrev} W+L+OTL <= GP`).toBeLessThanOrEqual(row.gamesPlayed);
+            const decided = row.wins + row.losses + (row.otLosses ?? 0) + (row.ties ?? 0);
+            expect(decided, `${row.team.abbrev} W+L+OTL+T <= GP`).toBeLessThanOrEqual(row.gamesPlayed);
             teamIds.push(row.team.id);
           });
         }
