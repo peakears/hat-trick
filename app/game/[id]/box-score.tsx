@@ -1,6 +1,7 @@
 import { Stack, useLocalSearchParams, type ErrorBoundaryProps } from "expo-router";
 import { useState } from "react";
-import { RefreshControl, ScrollView, StyleSheet, View } from "react-native";
+import { ScrollView, StyleSheet, View } from "react-native";
+import { PullToRefresh } from "../../../src/ui/components/PullToRefresh";
 import { RevealButton } from "../../../src/ui/components/ShieldUi";
 import { Segmented } from "../../../src/ui/components/Segmented";
 import { CrashScreen, Empty, ErrorView, OfflineBanner, UpdatedAt } from "../../../src/ui/components/States";
@@ -9,7 +10,6 @@ import { StatTableView } from "../../../src/ui/components/StatTableView";
 import { useSpoilers } from "../../../src/ui/spoilers/spoiler-context";
 import { useSportsData } from "../../../src/ui/data/sports-data-context";
 import { usePageLeague } from "../../../src/ui/data/use-page-league";
-import { useColors } from "../../../src/ui/theme/theme";
 import { usePolled } from "../../../src/ui/data/use-polled";
 
 /** A box score that fails to render keeps the header, so Back still returns to the game. */
@@ -21,7 +21,6 @@ export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
 export default function BoxScoreScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const sports = useSportsData();
-  const colors = useColors();
   const spoilers = useSpoilers();
   const [side, setSide] = useState<"away" | "home">("away");
   const league = usePageLeague();
@@ -48,11 +47,7 @@ export default function BoxScoreScreen() {
     <>
       <Stack.Screen options={{ title: `${game.away.team.abbrev} @ ${game.home.team.abbrev} box score` }} />
       <OfflineBanner meta={detail.meta} />
-      <ScrollView
-        refreshControl={
-          <RefreshControl refreshing={detail.refreshing} onRefresh={detail.refresh} colors={[colors.accent]} />
-        }
-      >
+      <ScrollView refreshControl={<PullToRefresh refreshing={detail.refreshing} onRefresh={detail.refresh} />}>
         {hidden ? (
           <View style={styles.hidden}>
             <Empty message="Box score hidden by the spoiler shield." />

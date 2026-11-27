@@ -22,6 +22,7 @@ describe("parseSettings", () => {
       pureBlack: false,
       accent: "blue",
       showLogos: true,
+      haptics: true,
       showBetting: false,
       favoriteTeams: [],
       remindersEnabled: false,
@@ -37,6 +38,12 @@ describe("parseSettings", () => {
       scoresAllLeagues: true,
       teamAlerts: {},
     });
+  });
+
+  it("has haptic feedback on by default, and reads a stored choice or a bad value", () => {
+    expect(DEFAULT_SETTINGS.haptics).toBe(true);
+    expect(parseSettings(JSON.stringify({ haptics: false })).haptics).toBe(false);
+    expect(parseSettings(JSON.stringify({ haptics: "no" })).haptics).toBe(true);
   });
 
   it("returns defaults for corrupt JSON or a non-object, with setup done (something was stored)", () => {
@@ -60,6 +67,7 @@ describe("parseSettings", () => {
       pureBlack: false,
       accent: "blue",
       showLogos: true,
+      haptics: true,
       showBetting: false,
       favoriteTeams: [],
       remindersEnabled: false,
@@ -80,6 +88,7 @@ describe("parseSettings", () => {
       pureBlack: false,
       accent: "blue",
       showLogos: true,
+      haptics: true,
       showBetting: true,
       favoriteTeams: [],
       remindersEnabled: false,
@@ -159,6 +168,7 @@ describe("loadSettings / saveSettings", () => {
       pureBlack: true,
       accent: "purple",
       showLogos: false,
+      haptics: false,
       showBetting: true,
       favoriteTeams: ["nhl:TOR", "nba:BOS"],
       remindersEnabled: true,

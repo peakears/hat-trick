@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { RefreshControl, SectionList, StyleSheet, Text, View } from "react-native";
+import { SectionList, StyleSheet, Text, View } from "react-native";
+import { PullToRefresh } from "../../src/ui/components/PullToRefresh";
 import { WeekStrip } from "../../src/ui/components/WeekStrip";
 import { GameCard } from "../../src/ui/components/GameCard";
 import { LeagueBar } from "../../src/ui/components/LeagueBar";
@@ -22,6 +23,7 @@ import { leagueTint } from "../../src/ui/theme/palette";
 import { useDebounced } from "../../src/ui/common/use-debounced";
 import { eventWeekStart, withSpecialEvents } from "../../src/ui/scores/special-events";
 import { useDaySwipe } from "../../src/ui/scores/use-swipe";
+import { useHaptic } from "../../src/ui/haptics/use-haptic";
 import { useScoresToday } from "../../src/ui/scores/use-today";
 
 /** How long the date must stay put before its scores are loaded. */
@@ -50,7 +52,12 @@ export default function ScoresScreen() {
   // that loaded, or an offline one).
   const day = days.find((d) => d.league === league) ?? days[0];
   const shownDays = allView ? days : [day];
-  const swipe = useDaySwipe((step) => go(addDays(date, step)));
+  const haptic = useHaptic();
+  // One light tap per swipe that changes the day (none while dragging, none for the week strip's taps).
+  const swipe = useDaySwipe((step) => {
+    haptic("day");
+    go(addDays(date, step));
+  });
 
   // Rebuilt on each render: `days` is new each time, and the lists are a day's games, so this is cheap.
   const sections: ListSection[] | undefined = (() => {
@@ -118,13 +125,7 @@ export default function ScoresScreen() {
           }
           stickySectionHeadersEnabled={false}
           contentContainerStyle={styles.list}
-          refreshControl={
-            <RefreshControl
-              refreshing={shownDays.some((d) => d.scores.refreshing)}
-              onRefresh={refresh}
-              colors={[colors.accent]}
-            />
-          }
+          refreshControl={<PullToRefresh refreshing={shownDays.some((d) => d.scores.refreshing)} onRefresh={refresh} />}
           ListEmptyComponent={<Empty message="No games on this date." />}
           ListFooterComponent={<UpdatedAt meta={footer} />}
         />

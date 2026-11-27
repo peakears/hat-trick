@@ -25,6 +25,8 @@ export interface Settings {
   /** The colour of links, buttons and highlights. */
   accent: AccentId;
   showLogos: boolean;
+  /** A light tap when a pull to refresh is let go and when a swipe changes the day on Scores. */
+  haptics: boolean;
   /** Does nothing, and has no switch in Settings, unless betting info (issue #7) is built. */
   showBetting: boolean;
   /** Team ids (three-letter abbreviations) the user starred. Their games sort to the top of Scores. */
@@ -59,6 +61,7 @@ export const DEFAULT_SETTINGS: Settings = {
   pureBlack: false,
   accent: "blue",
   showLogos: true,
+  haptics: true,
   showBetting: false,
   favoriteTeams: [],
   remindersEnabled: false,
@@ -84,6 +87,7 @@ const schema = z.object({
   pureBlack: z.boolean().catch(DEFAULT_SETTINGS.pureBlack),
   accent: z.enum(ACCENTS).catch(DEFAULT_SETTINGS.accent),
   showLogos: z.boolean().catch(DEFAULT_SETTINGS.showLogos),
+  haptics: z.boolean().catch(DEFAULT_SETTINGS.haptics),
   showBetting: z.boolean().catch(DEFAULT_SETTINGS.showBetting),
   // `league:team` keys. Bare ids from a version before favourites had a league are the NHL's; duplicates are dropped.
   favoriteTeams: z.array(z.string()).transform(normalizeFavorites).catch([]),

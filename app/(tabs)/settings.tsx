@@ -63,6 +63,12 @@ export default function SettingsScreen() {
           detail="Team logos and player photos. Off shows abbreviations and initials instead."
           value={settings.showLogos}
           onChange={(showLogos) => update({ showLogos })}
+        />
+        <ToggleRow
+          label="Haptic feedback"
+          detail="A light tap when you pull to refresh and when you swipe to another day."
+          value={settings.haptics}
+          onChange={(haptics) => update({ haptics })}
           last
         />
       </Section>
