@@ -82,6 +82,17 @@ export interface Game {
   periods?: PeriodScore[];
   /** The game's standout player so far (most points), worded by the adapter. Live and final games only. */
   standout?: GameStandout;
+  /** Where play stands right now (football's down and distance). Live games only, while play is on. */
+  situation?: GameSituation;
+}
+
+export interface GameSituation {
+  /** Worded by the adapter: "2nd & 8 at DET 22". */
+  text: string;
+  /** The team with the ball, when the league says. */
+  possessionTeamId?: string;
+  /** Inside the opponent's 20-yard line. */
+  redZone?: boolean;
 }
 
 export interface PeriodScore {

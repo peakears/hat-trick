@@ -7,6 +7,8 @@ import { lenientArray, minor } from "./validate";
 // ---------- Scoreboard: /scoreboard?dates=YYYYMMDD ----------
 
 const RawScoreboardTeamSchema = z.object({
+  /** ESPN's numeric id ("3"), which the situation names the team with the ball by. */
+  id: minor(z.string(), "team.id"),
   abbreviation: z.string().min(1),
   displayName: z.string().min(1),
   logo: minor(z.string(), "team.logo"),
@@ -48,9 +50,23 @@ const RawStatusSchema = z.object({
   }),
 });
 
+/**
+ * Where play stands, on a live game. Verified on 2026-11-26 (CHI at DET, Q1): `down` 2, `distance` 8,
+ * `downDistanceText` "2nd & 8 at DET 22", `possession` "3" (ESPN's team id, CHI), `isRedZone` false; also
+ * `shortDownDistanceText`, `possessionText`, timeouts and `lastPlay`, not read. Between plays of a kickoff or a
+ * timeout the down can be -1 with odd text (" & Goal at CHI 35", seen in a summary's drive).
+ */
+const RawSituationSchema = z.object({
+  down: minor(z.number(), "situation.down"),
+  downDistanceText: minor(z.string(), "situation.downDistanceText"),
+  possession: minor(z.string(), "situation.possession"),
+  isRedZone: minor(z.boolean(), "situation.isRedZone"),
+});
+
 const RawCompetitionSchema = z.object({
   competitors: z.array(RawCompetitorSchema).length(2),
   venue: minor(RawVenueSchema, "competition.venue"),
+  situation: minor(RawSituationSchema, "competition.situation"),
 });
 
 const RawEventSchema = z.object({

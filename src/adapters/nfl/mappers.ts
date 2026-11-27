@@ -6,6 +6,7 @@ import type {
   GameDetail,
   GamePerformer,
   GameSide,
+  GameSituation,
   GameStatus,
   LeaderBoard,
   LeaderEntry,
@@ -118,6 +119,20 @@ function periods(game: Game, competitors: RawCompetitor[]): PeriodScore[] | unde
   return checked && game.status === "live" ? withUpcomingPeriods(checked, QUARTERS, periodLabel) : checked;
 }
 
+/**
+ * Where play stands, while the clock is running in a live game (not at halftime or between quarters) and only with a
+ * real down (1-4): around a kickoff or a timeout ESPN sends down -1 and text like " & Goal at CHI 35".
+ */
+function situation(event: RawEvent): GameSituation | undefined {
+  const competition = event.competitions[0];
+  const raw = competition.situation;
+  if (event.status.type.name !== "STATUS_IN_PROGRESS" || !raw) return undefined;
+  const text = raw.downDistanceText?.trim();
+  if (!text || raw.down === undefined || raw.down < 1 || raw.down > 4) return undefined;
+  const possession = competition.competitors.find((c) => c.team.id !== undefined && c.team.id === raw.possession);
+  return { text, possessionTeamId: possession?.team.abbreviation, redZone: raw.isRedZone };
+}
+
 export function mapGame(event: RawEvent): Game {
   const competition = event.competitions[0];
   const status = gameStatus(event.status);
@@ -146,6 +161,8 @@ export function mapGame(event: RawEvent): Game {
   if (venue) game.venue = { name: venue.fullName, city: venue.address?.city };
   const list = periods(game, competition.competitors);
   if (list) game.periods = list;
+  const now = situation(event);
+  if (now) game.situation = now;
   return game;
 }
 

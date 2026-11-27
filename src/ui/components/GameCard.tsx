@@ -12,7 +12,7 @@ import { tabular, useColors, useScheme } from "../theme/theme";
 import { leagueTint } from "../theme/palette";
 import { scoreFont, scoreFontSemiBold } from "../theme/fonts";
 import { useTvRegion } from "../game/use-tv-region";
-import { showLiveDetail, standoutText } from "../scores/game-card";
+import { showLiveDetail, situationText, standoutText } from "../scores/game-card";
 import { ChannelLine } from "./ChannelLine";
 import { FlashScore } from "./FlashScore";
 import { RevealButton } from "./ShieldUi";
@@ -48,6 +48,7 @@ export function GameCard({ game, showLeague = false }: { game: Game; showLeague?
   const showScores = game.status !== "scheduled" && game.status !== "postponed";
   const detail = showLiveDetail(game, hidden);
   const standout = detail && game.standout ? standoutText(game.standout) : undefined;
+  const situation = detail && game.situation ? situationText(game.situation, game) : undefined;
 
   const row = (side: GameSide, which: "home" | "away") => {
     const dim = won !== undefined && won !== which;
@@ -97,7 +98,7 @@ export function GameCard({ game, showLeague = false }: { game: Game; showLeague?
         { backgroundColor: colors.card, borderColor: colors.cardBorder, opacity: pressed ? 0.7 : 1 },
       ]}
       accessibilityRole={opens ? "button" : undefined}
-      accessibilityLabel={`${game.specialEvent ? `${game.specialEvent}. ` : ""}${game.away.team.name} at ${game.home.team.name}, ${statusLabel}${hidden ? ". Score hidden" : ""}${favoriteNote}${standout ? `. ${standout.spoken}` : ""}${channels.length > 0 ? `. On TV: ${channelsLabel(channels)}` : ""}`}
+      accessibilityLabel={`${game.specialEvent ? `${game.specialEvent}. ` : ""}${game.away.team.name} at ${game.home.team.name}, ${statusLabel}${hidden ? ". Score hidden" : ""}${favoriteNote}${situation ? `. ${situation.spoken}` : ""}${standout ? `. ${standout.spoken}` : ""}${channels.length > 0 ? `. On TV: ${channelsLabel(channels)}` : ""}`}
     >
       <View style={styles.main}>
         <View style={styles.teams}>
@@ -115,7 +116,7 @@ export function GameCard({ game, showLeague = false }: { game: Game; showLeague?
         </View>
       </View>
       {detail && (
-        // Each period's score and the standout, live only. Part of the card's spoken label, so hidden from readers.
+        // Each period's score, where play stands and the standout, live only. Part of the card's spoken label, so hidden from readers.
         <View style={styles.detail} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
           {game.periods && game.periods.length > 0 && (
             <View style={[styles.periods, { backgroundColor: colors.surfaceSunken }]}>
@@ -149,6 +150,14 @@ export function GameCard({ game, showLeague = false }: { game: Game; showLeague?
                 </View>
               ))}
             </View>
+          )}
+          {situation && (
+            // Where play stands: "CHI ball · 2nd & 8 at DET 22", and the red zone in the live colour.
+            <Text numberOfLines={1} style={[styles.situation, { color: colors.text }]}>
+              {situation.possession && <Text style={styles.bold}>{situation.possession} ball · </Text>}
+              {situation.text}
+              {situation.redZone && <Text style={[styles.bold, { color: colors.live }]}> · Red zone</Text>}
+            </Text>
           )}
           {standout && (
             <Text numberOfLines={1} style={[styles.standout, { color: colors.text }]}>
@@ -200,5 +209,6 @@ const styles = StyleSheet.create({
   periodTeam: { fontSize: 12, lineHeight: 18, fontWeight: "700" },
   periodValue: { fontSize: 14, lineHeight: 18 },
   standout: { fontSize: 13 },
+  situation: { fontSize: 13 },
   statusText: { fontSize: 13, fontWeight: "600", textAlign: "center" },
 });

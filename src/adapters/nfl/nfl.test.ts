@@ -186,7 +186,42 @@ describe("NFL adapter", () => {
           { label: "Q3", away: null, home: null },
           { label: "Q4", away: null, home: null },
         ],
+        situation: { text: "2nd & 8 at DET 22", possessionTeamId: "CHI", redZone: false },
       });
+    });
+
+    it("says where play stands only while the clock runs, with a real down", async () => {
+      const at = async (edit: (event: any) => void) => {
+        const { adapter } = fixtureAdapter((url, body) => {
+          if (url.includes("dates=20261126")) edit(body.events[0]);
+        });
+        return byMatchup(await adapter.getScores("2026-11-26"), "CHI", "DET").situation;
+      };
+      expect(await at(() => {})).toEqual({ text: "2nd & 8 at DET 22", possessionTeamId: "CHI", redZone: false });
+      expect(
+        await at((e) =>
+          Object.assign(e.competitions[0].situation, {
+            isRedZone: true,
+            possession: "8",
+            downDistanceText: "1st & Goal at CHI 4",
+            down: 1,
+          }),
+        ),
+      ).toEqual({ text: "1st & Goal at CHI 4", possessionTeamId: "DET", redZone: true });
+      expect(await at((e) => (e.status.type.name = "STATUS_HALFTIME"))).toBeUndefined();
+      expect(
+        await at((e) =>
+          Object.assign(e.competitions[0].situation, { down: -1, downDistanceText: " & Goal at CHI 35" }),
+        ),
+      ).toBeUndefined();
+      expect(await at((e) => delete e.competitions[0].situation)).toBeUndefined();
+      // A possession the game's teams do not match leaves the team out, not the situation.
+      expect(await at((e) => (e.competitions[0].situation.possession = "99"))).toEqual({
+        text: "2nd & 8 at DET 22",
+        redZone: false,
+      });
+      const scheduled = await fixtureAdapter().adapter.getScores("2026-11-26");
+      expect(byMatchup(scheduled, "KC", "BUF").situation).toBeUndefined();
     });
 
     it("gives scheduled games no score, clock or quarters", async () => {
