@@ -330,3 +330,111 @@ export const RawTeamScheduleSchema = z.object({
   ),
 });
 export type RawTeamSchedule = z.output<typeof RawTeamScheduleSchema>;
+
+// ---------- Player page: common/v3/.../athletes/<id>[/stats|/gamelog]?region=us&lang=en ----------
+// Verified on 2026-11-27 against Matthew Stafford (12483: a quarterback, 18 seasons, playoffs), Quentin Lake
+// (4249128: a safety) and Brandon McManus (16339: a kicker, undrafted). The NBA's shapes, with football's stats.
+
+export const RawAthleteSchema = z.object({
+  athlete: z.object({
+    id: z.string().min(1),
+    displayName: z.string().min(1),
+    /** "9"; absent for a player without a number. */
+    jersey: minor(z.string(), "athlete.jersey"),
+    /** `name` is ESPN's ("Quarterback", "Place kicker"); `abbreviation` is the code shown in tables ("QB"). */
+    position: minor(z.object({ name: z.string(), abbreviation: z.string() }), "athlete.position"),
+    team: minor(RawLogoTeamSchema, "athlete.team"),
+    headshot: minor(z.object({ href: z.string() }), "athlete.headshot"),
+    active: minor(z.boolean(), "athlete.active"),
+    /** "2/7/1988", month first with region=us. */
+    displayDOB: minor(z.string(), "athlete.displayDOB"),
+    /** "Dallas, TX" */
+    displayBirthPlace: minor(z.string(), "athlete.displayBirthPlace"),
+    /** `6' 3"` */
+    displayHeight: minor(z.string(), "athlete.displayHeight"),
+    /** "214 lbs" */
+    displayWeight: minor(z.string(), "athlete.displayWeight"),
+    /** "2009: Rd 1, Pk 1 (DET)", the pick counted overall; absent for an undrafted player. */
+    displayDraft: minor(z.string(), "athlete.displayDraft"),
+    /** This regular season's headline stats for the player's position (YDS, TD, INT, QBR for a quarterback). */
+    statsSummary: minor(
+      z.object({
+        /** "2026 regular season stats" */
+        displayName: minor(z.string(), "statsSummary.displayName"),
+        statistics: lenientArray(
+          z.object({ abbreviation: z.string(), displayValue: z.string() }),
+          "statsSummary.statistics",
+        ),
+      }),
+      "athlete.statsSummary",
+    ),
+  }),
+});
+export type RawAthlete = z.output<typeof RawAthleteSchema>;
+
+/**
+ * Season-by-season stats for one season type (`seasontype=2` regular season, `3` playoffs), a category per kind of
+ * stat ("passing", "rushing", "defensive", "kicking"), **the player's main one first**. Each has its columns' `names`
+ * (with `gamesPlayed`), one line per season and team with `stats` in that order ("2,763"), and the career line in
+ * `totals`. As for the NBA, a player with no playoff games gets the regular season for `seasontype=3`: the
+ * `seasontype` filter's `value` says which type was sent, and its `options` which types the player has.
+ */
+export const RawAthleteStatsSchema = z.object({
+  filters: lenientArray(
+    z.object({
+      name: z.string(),
+      value: z.string(),
+      options: lenientArray(z.object({ value: z.string() }), "filter.options"),
+    }),
+    "filters",
+  ),
+  /** By slug ("los-angeles-rams"), as each season line names its team. */
+  teams: minor(z.record(z.string(), z.object({ shortDisplayName: z.string() })), "teams"),
+  categories: z.array(
+    z.object({
+      name: z.string(),
+      names: z.array(z.string()),
+      statistics: lenientArray(
+        z.object({
+          teamSlug: z.string(),
+          /** "2026" */
+          season: z.object({ displayName: z.string() }),
+          stats: z.array(z.string()),
+        }),
+        "category.statistics",
+      ),
+      totals: minor(z.array(z.string()), "category.totals"),
+    }),
+  ),
+});
+export type RawAthleteStats = z.output<typeof RawAthleteStatsSchema>;
+
+/**
+ * Every game this season, by event id in `events` (opponent, home or away, date), with each game's stats in
+ * `seasonTypes[].categories[].events[]` in the order of the top-level `names`, which depend on the position
+ * (passing and rushing for a quarterback). Preseason games are a season type of their own.
+ */
+export const RawGamelogSchema = z.object({
+  names: z.array(z.string()),
+  events: z.record(
+    z.string(),
+    z.object({
+      id: z.string(),
+      atVs: z.string(),
+      /** "2026-11-26T01:00:00.000+00:00" */
+      gameDate: z.string(),
+      opponent: z.object({ abbreviation: z.string().min(1) }),
+      team: minor(z.object({ abbreviation: z.string() }), "event.team"),
+    }),
+  ),
+  seasonTypes: lenientArray(
+    z.object({
+      displayName: z.string(),
+      categories: z.array(
+        z.object({ events: lenientArray(z.object({ eventId: z.string(), stats: z.array(z.string()) }), "events") }),
+      ),
+    }),
+    "seasonTypes",
+  ),
+});
+export type RawGamelog = z.output<typeof RawGamelogSchema>;

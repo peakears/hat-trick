@@ -4,7 +4,7 @@ import { runLeagueAdapterContract } from "../../contract/league-adapter.contract
 import type { AdapterWarning, Game } from "../../domain";
 import { NflAdapter, NflApiError, NflResponseError } from ".";
 import { LEADER_CATEGORIES, LEADER_GROUPS } from "./constants";
-import { periodLabel, split } from "./mappers";
+import { periodLabel, positionName, split } from "./mappers";
 
 // Recorded from ESPN on 2026-11-26 (about 8:50 am ET; Thanksgiving's scoreboard at 1:18 pm ET), trimmed of fields the
 // adapter does not read; see CLAUDE.md.
@@ -19,7 +19,15 @@ const FIXTURES: [RegExp, string][] = [
   [/\/standings\?level=3$/, "standings-now.json"],
   // The Rams after 11 games (7-4), recorded 2026-11-27 just after midnight ET.
   [/\/teams\/LAR\/athletes\/statistics$/, "team-LAR-athletes-statistics.json"],
-  [/\/teams\/LAR\/schedule$/, "team-LAR-schedule.json"], // after week 12's Wednesday game; NYG 6-3-1 and WSH 4-5-1 tied
+  [/\/teams\/LAR\/schedule$/, "team-LAR-schedule.json"],
+  // Players, the same night: Matthew Stafford (QB, 18 seasons, playoffs), Quentin Lake (S), Brandon McManus (K, undrafted).
+  ...["12483", "4249128", "16339"].flatMap((id): [RegExp, string][] => [
+    [new RegExp(`/athletes/${id}\\?region=us&lang=en$`), `athlete-${id}.json`],
+    [new RegExp(`/athletes/${id}/stats\\?region=us&lang=en$`), `athlete-${id}-stats.json`],
+    [new RegExp(`/athletes/${id}/gamelog\\?region=us&lang=en$`), `athlete-${id}-gamelog.json`],
+  ]),
+  [/\/athletes\/12483\/stats\?region=us&lang=en&seasontype=3$/, "athlete-12483-stats-playoffs.json"],
+  // Lake and McManus have played in the playoffs too; their playoff stats are not recorded, so the request fails. // after week 12's Wednesday game; NYG 6-3-1 and WSH 4-5-1 tied
   ...LEADER_CATEGORIES.map(({ category }): [RegExp, string] => [
     new RegExp(`/byathlete\\?.*sort=${category.replace(".", "\\.")}:desc`),
     `leaders-${category}.json`,
@@ -70,10 +78,10 @@ runLeagueAdapterContract({
   inputs: {
     scoreDates: ["2026-11-25", "2026-11-26"],
     leaderQueries: [{}, { category: "passing.passingYards", limit: 3 }, { category: "defensive.sacks" }],
-    // Not built yet: player pages, play-by-play, special events and spotlight.
+    // Not built yet: play-by-play, special events and spotlight.
     gameIds: ["401873079", "401873081", "401873082"],
     teamIds: ["LAR"],
-    playerIds: [],
+    playerIds: ["12483", "4249128", "16339"],
     playGameIds: [],
     specialEventDates: [],
   },
@@ -107,10 +115,11 @@ describe("NFL adapter", () => {
     await adapter.getLeaders();
     for (const id of ["401873079", "401873081", "401873082"]) await adapter.getGameDetail(id);
     await adapter.getTeam("LAR");
+    await adapter.getPlayer("12483");
     expect(warnings).toEqual([]);
   });
 
-  it("names the league and its words, and has game and team pages but none of the other optional features yet", () => {
+  it("names the league and its words, and has game, team and player pages but none of the other optional features", () => {
     const adapter = new NflAdapter();
     expect(adapter).toMatchObject({
       league: "nfl",
@@ -121,7 +130,8 @@ describe("NFL adapter", () => {
     const methods = adapter as unknown as Record<string, unknown>;
     expect(methods.getGameDetail).toBeTypeOf("function");
     expect(methods.getTeam).toBeTypeOf("function");
-    for (const method of ["getPlays", "getPlayer", "getSpecialEvents", "getSpotlight"]) {
+    expect(methods.getPlayer).toBeTypeOf("function");
+    for (const method of ["getPlays", "getSpecialEvents", "getSpotlight"]) {
       expect(methods[method], method).toBeUndefined();
     }
   });
@@ -619,6 +629,181 @@ describe("NFL adapter", () => {
       expect(team.recent).toBeUndefined();
       expect(team.upcoming).toBeUndefined();
       expect(warnings.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe("player page", () => {
+    it("maps the bio: number, position in words, team, birth, size and draft", async () => {
+      const detail = await fixtureAdapter().adapter.getPlayer("12483");
+      expect(detail).toMatchObject({
+        player: {
+          id: "12483",
+          league: "nfl",
+          name: "Matthew Stafford",
+          teamId: "LAR",
+          position: "QB",
+          headshotUrl: "https://a.espncdn.com/i/headshots/nfl/players/full/12483.png",
+        },
+        positionName: "Quarterback",
+        sweaterNumber: 9,
+        team: { id: "LAR", name: "Los Angeles Rams" },
+        active: true,
+        goalie: false,
+        bio: {
+          birthDate: "1988-02-07",
+          birthPlace: "Dallas, TX",
+          heightIn: 75,
+          heightCm: 191,
+          weightLb: 214,
+          weightKg: 97,
+          draft: { year: 2009, round: 1, overallPick: 1, teamId: "DET" },
+        },
+      });
+    });
+
+    it("has this season's headline stats for the position", async () => {
+      const detail = await fixtureAdapter().adapter.getPlayer("12483");
+      expect(detail.seasonLabel).toBe("2026");
+      expect(detail.season).toEqual([
+        { value: "2,763", label: "YDS" },
+        { value: "19", label: "TD" },
+        { value: "11", label: "INT" },
+        { value: "61.5", label: "QBR" },
+      ]);
+    });
+
+    it("follows the main stat category: every season, newest first, with the playoffs, and the career", async () => {
+      const detail = await fixtureAdapter().adapter.getPlayer("12483");
+      expect(detail.seasons.columns.map((c) => c.label)).toEqual([
+        "GP",
+        "CMP",
+        "ATT",
+        "CMP%",
+        "YDS",
+        "TD",
+        "INT",
+        "RTG",
+      ]);
+      const rows = detail.seasons.rows;
+      expect(rows).toHaveLength(18 + 7);
+      expect(rows[0]).toEqual({
+        season: "2026",
+        team: "Rams",
+        league: "NFL",
+        inLeague: true,
+        playoffs: false,
+        values: {
+          gamesPlayed: "11",
+          completions: "264",
+          passingAttempts: "395",
+          completionPct: "66.8",
+          passingYards: "2,763",
+          passingTouchdowns: "19",
+          interceptions: "11",
+          QBRating: "91.4",
+        },
+      });
+      // A season with playoffs lists its regular season first.
+      expect(rows.filter((r) => r.season === "2025").map((r) => r.playoffs)).toEqual([false, true]);
+      expect(rows[rows.length - 1]).toMatchObject({ season: "2009", team: "Lions", playoffs: false });
+      expect(detail.career.regularSeason).toEqual([
+        { value: "250", label: "GP" },
+        { value: "67,279", label: "YDS" },
+        { value: "442", label: "TD" },
+        { value: "207", label: "INT" },
+      ]);
+      expect(detail.career.playoffs).toEqual([
+        { value: "13", label: "GP" },
+        { value: "3,932", label: "YDS" },
+        { value: "25", label: "TD" },
+        { value: "7", label: "INT" },
+      ]);
+    });
+
+    it("lists the last five games, newest first, with the category's columns the game log has", async () => {
+      const { lastGames } = await fixtureAdapter().adapter.getPlayer("12483");
+      // The game log has no games played.
+      expect(lastGames.columns.map((c) => c.label)).toEqual(["CMP", "ATT", "CMP%", "YDS", "TD", "INT", "RTG"]);
+      expect(lastGames.games).toHaveLength(5);
+      expect(lastGames.games[0]).toEqual({
+        gameId: "401873079",
+        date: "2026-11-25",
+        teamId: "LAR",
+        opponentId: "GB",
+        home: true,
+        values: {
+          completions: "16",
+          passingAttempts: "23",
+          completionPct: "69.6",
+          passingYards: "140",
+          passingTouchdowns: "0",
+          interceptions: "1",
+          QBRating: "67.3",
+        },
+      });
+      expect(lastGames.games[1]).toMatchObject({ opponentId: "ARI", home: false, date: "2026-11-15" });
+    });
+
+    it("gives a safety defensive tables", async () => {
+      const detail = await fixtureAdapter().adapter.getPlayer("4249128");
+      expect(detail).toMatchObject({ positionName: "Safety", sweaterNumber: 37 });
+      expect(detail.bio.draft).toEqual({ year: 2022, round: 6, overallPick: 211, teamId: "LAR" });
+      expect(detail.seasons.columns.map((c) => c.label)).toEqual(["GP", "TOT", "SOLO", "SACK", "FF", "INT", "PD"]);
+      expect(detail.seasons.rows[0].values).toMatchObject({
+        totalTackles: "69",
+        interceptions: "3",
+        passesDefended: "13",
+      });
+      expect(detail.career.regularSeason.map((s) => s.label)).toEqual(["GP", "TOT", "SACK", "INT"]);
+      expect(detail.lastGames.columns.map((c) => c.label)).toEqual(["TOT", "SOLO", "SACK", "FF", "INT", "PD"]);
+    });
+
+    it("gives an undrafted kicker kicking tables, and goes on without stats that fail", async () => {
+      const { adapter, warnings } = fixtureAdapter();
+      const detail = await adapter.getPlayer("16339");
+      expect(detail).toMatchObject({ positionName: "Place kicker", sweaterNumber: 19 });
+      expect(detail.bio.draft).toBeUndefined();
+      expect(detail.seasons.columns.map((c) => c.label)).toEqual(["GP", "FG", "FG%", "LNG", "XPM", "XPA", "PTS"]);
+      expect(detail.seasons.rows[0].values).toMatchObject({
+        "fieldGoalsMade-fieldGoalAttempts": "9-9",
+        fieldGoalPct: "100.0",
+      });
+      expect(detail.career.regularSeason).toEqual([
+        { value: "154", label: "GP" },
+        { value: "82.5", label: "FG%" },
+        { value: "61", label: "LNG" },
+        { value: "1308", label: "PTS" },
+      ]);
+      expect(detail.lastGames.columns.map((c) => c.label)).toEqual(["FG", "FG%", "LNG", "XP", "PTS"]);
+      expect(detail.lastGames.games[0].values).toEqual({
+        "fieldGoalsMade-fieldGoalAttempts": "4-4",
+        fieldGoalPct: "100.0",
+        longFieldGoalMade: "43",
+        "extraPointsMade-extraPointAttempts": "2-2",
+        totalKickingPoints: "14",
+      });
+      // His playoff stats are not recorded: the request fails, and the page goes on without them.
+      expect(detail.career.playoffs).toEqual([]);
+      expect(detail.seasons.rows.every((r) => !r.playoffs)).toBe(true);
+      expect(warnings.map((w) => w.message)).toEqual([expect.stringMatching(/^playoff stats left out/)]);
+    });
+
+    it("keeps the bio when the season stats and game log fail", async () => {
+      const { adapter, warnings } = fixtureAdapter((url) => {
+        if (/\/(stats|gamelog)\?/.test(url)) throw new Error("offline");
+      });
+      const detail = await adapter.getPlayer("12483");
+      expect(detail.player.name).toBe("Matthew Stafford");
+      expect(detail.season).toHaveLength(4);
+      expect(detail.seasons).toEqual({ columns: [], rows: [] });
+      expect(detail.lastGames).toEqual({ columns: [], games: [] });
+      expect(warnings).toHaveLength(2);
+    });
+
+    it("words positions in Canadian spelling and sentence case", () => {
+      expect(positionName("Center")).toBe("Centre");
+      expect(positionName("Running Back")).toBe("Running back");
+      expect(positionName("Defensive End")).toBe("Defensive end");
     });
   });
 

@@ -179,3 +179,92 @@ export const TEAM_STAT_TABLES: readonly { category: string; title: string; colum
     ],
   },
 ];
+
+export const ATHLETES_URL = "https://site.web.api.espn.com/apis/common/v3/sports/football/nfl/athletes";
+
+/** Games in the player page's last games table, as for the other leagues. */
+export const PLAYER_LAST_GAMES = 5;
+
+/**
+ * The player page's columns for the player's main stat category (the first ESPN lists: "passing" for a quarterback,
+ * "defensive" for a safety). Each table keeps only the columns its response has: the season table reads the
+ * category's `names`, the last games table the game log's (which has no games played, and puts made and attempted
+ * extra points in one "XP" column). `career` picks the headline totals.
+ */
+export const PLAYER_COLUMNS: Readonly<
+  Record<string, { columns: readonly { key: string; label: string }[]; career: readonly string[] }>
+> = {
+  passing: {
+    columns: [
+      { key: "gamesPlayed", label: "GP" },
+      { key: "completions", label: "CMP" },
+      { key: "passingAttempts", label: "ATT" },
+      { key: "completionPct", label: "CMP%" },
+      { key: "passingYards", label: "YDS" },
+      { key: "passingTouchdowns", label: "TD" },
+      { key: "interceptions", label: "INT" },
+      { key: "QBRating", label: "RTG" },
+    ],
+    career: ["gamesPlayed", "passingYards", "passingTouchdowns", "interceptions"],
+  },
+  rushing: {
+    columns: [
+      { key: "gamesPlayed", label: "GP" },
+      { key: "rushingAttempts", label: "CAR" },
+      { key: "rushingYards", label: "YDS" },
+      { key: "yardsPerRushAttempt", label: "AVG" },
+      { key: "rushingTouchdowns", label: "TD" },
+      { key: "longRushing", label: "LNG" },
+    ],
+    career: ["gamesPlayed", "rushingYards", "yardsPerRushAttempt", "rushingTouchdowns"],
+  },
+  receiving: {
+    columns: [
+      { key: "gamesPlayed", label: "GP" },
+      { key: "receptions", label: "REC" },
+      { key: "receivingTargets", label: "TGTS" },
+      { key: "receivingYards", label: "YDS" },
+      { key: "yardsPerReception", label: "AVG" },
+      { key: "receivingTouchdowns", label: "TD" },
+      { key: "longReception", label: "LNG" },
+    ],
+    career: ["gamesPlayed", "receptions", "receivingYards", "receivingTouchdowns"],
+  },
+  defensive: {
+    columns: [
+      { key: "gamesPlayed", label: "GP" },
+      { key: "totalTackles", label: "TOT" },
+      { key: "soloTackles", label: "SOLO" },
+      { key: "sacks", label: "SACK" },
+      { key: "fumblesForced", label: "FF" },
+      { key: "interceptions", label: "INT" },
+      { key: "passesDefended", label: "PD" },
+    ],
+    career: ["gamesPlayed", "totalTackles", "sacks", "interceptions"],
+  },
+  kicking: {
+    columns: [
+      { key: "gamesPlayed", label: "GP" },
+      { key: "fieldGoalsMade-fieldGoalAttempts", label: "FG" },
+      { key: "fieldGoalPct", label: "FG%" },
+      { key: "longFieldGoalMade", label: "LNG" },
+      { key: "extraPointsMade", label: "XPM" },
+      { key: "extraPointAttempts", label: "XPA" },
+      { key: "extraPointsMade-extraPointAttempts", label: "XP" },
+      { key: "totalKickingPoints", label: "PTS" },
+    ],
+    career: ["gamesPlayed", "fieldGoalPct", "longFieldGoalMade", "totalKickingPoints"],
+  },
+  punting: {
+    columns: [
+      { key: "gamesPlayed", label: "GP" },
+      { key: "punts", label: "PUNTS" },
+      { key: "puntYards", label: "YDS" },
+      { key: "grossAvgPuntYards", label: "AVG" },
+      { key: "netAvgPuntYards", label: "NET" },
+      { key: "puntsInside20", label: "IN20" },
+      { key: "longPunt", label: "LNG" },
+    ],
+    career: ["gamesPlayed", "punts", "grossAvgPuntYards", "longPunt"],
+  },
+};

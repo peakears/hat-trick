@@ -6,12 +6,14 @@ import type {
   LeaderBoard,
   LeaderQuery,
   LeagueAdapter,
+  PlayerDetail,
   RequestOptions,
   Standings,
   TeamDetail,
 } from "../../domain";
 import { NflClient, type NflClientOptions } from "./client";
 import {
+  ATHLETES_URL,
   DEFAULT_LEADER_LIMIT,
   LEADER_CATEGORIES,
   LEADER_GROUPS,
@@ -21,8 +23,20 @@ import {
   SITE_URL,
   STANDINGS_URL,
 } from "./constants";
-import { mapLeaderBoard, mapScoreboard, mapStandings, mapSummary, mapTeamSchedule, mapTeamStats } from "./mappers";
 import {
+  hasPlayoffStats,
+  mapLeaderBoard,
+  mapPlayer,
+  mapScoreboard,
+  mapStandings,
+  mapSummary,
+  mapTeamSchedule,
+  mapTeamStats,
+} from "./mappers";
+import {
+  RawAthleteSchema,
+  RawAthleteStatsSchema,
+  RawGamelogSchema,
   RawLeadersSchema,
   RawScoreboardSchema,
   RawStandingsSchema,
@@ -40,8 +54,8 @@ export interface NflAdapterOptions extends NflClientOptions {
 }
 
 /**
- * The NFL from ESPN's keyless site API: scores, standings, leaders, and game and team pages. The other optional
- * features (player pages, play-by-play) are left out until they are built, so the app hides what leads there.
+ * The NFL from ESPN's keyless site API: scores, standings, leaders, and game, team and player pages. The other
+ * optional features (play-by-play, special events, spotlight) are left out, so the app hides what leads there.
  */
 export class NflAdapter implements LeagueAdapter {
   readonly league = LEAGUE;
@@ -111,6 +125,43 @@ export class NflAdapter implements LeagueAdapter {
       this.getTeamSchedule(team, teamId, options),
     ]);
     return { teamId, stats: mapTeamStats(stats, teamId), ...schedule };
+  }
+
+  /**
+   * The athlete (bio, team, this season's headline stats) decides whether the page loads. Season-by-season stats, the
+   * playoffs and the game log are extras: each is left out, with a warning, if it fails.
+   */
+  async getPlayer(playerId: string, options?: RequestOptions): Promise<PlayerDetail> {
+    const base = `${ATHLETES_URL}/${encodeURIComponent(playerId)}`;
+    // region=us: dates come month first.
+    const query = "region=us&lang=en";
+    const [athlete, regular, gamelog] = await Promise.all([
+      this.fetch(`${base}?${query}`, RawAthleteSchema, options),
+      this.extra(`${base}/stats?${query}`, RawAthleteStatsSchema, "season stats", options),
+      this.extra(`${base}/gamelog?${query}`, RawGamelogSchema, "last games", options),
+    ]);
+    // Asked for only when the regular season lists playoffs: most players' answer would be the regular season again.
+    const playoffs =
+      regular && hasPlayoffStats(regular)
+        ? await this.extra(`${base}/stats?${query}&seasontype=3`, RawAthleteStatsSchema, "playoff stats", options)
+        : undefined;
+    return mapPlayer(athlete, { regular, playoffs, gamelog });
+  }
+
+  /** A best-effort request: undefined, with a warning, if it fails. */
+  private async extra<T extends z.ZodType>(
+    url: string,
+    schema: T,
+    what: string,
+    options?: RequestOptions,
+  ): Promise<z.output<T> | undefined> {
+    try {
+      return await this.fetch(url, schema, options);
+    } catch (err) {
+      const reason = err instanceof Error ? err.message : String(err);
+      (options?.onWarning ?? this.onWarning)({ url, message: `${what} left out: ${reason}` });
+      return undefined;
+    }
   }
 
   private async getTeamSchedule(
